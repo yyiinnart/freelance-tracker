@@ -1090,6 +1090,7 @@ tbody tr[onclick]:hover td{background:#131f2e;}
 
 <script>
 var L=[],P=[],PJ=[],CATS=[],TAGS=[],GRPS=[],DLOGS=[],VENDORS=[],CH={},VACS=[],MCB=null,syncTimer=null;
+var hasUnsynced=false;
 function safeJSONParse(v, fallback) {
   try { return JSON.parse(v); }
   catch(e) {
@@ -1143,136 +1144,6 @@ function generateSyncToken() {
       syncInput.classList.remove('border-amber-500');
     }, 2000);
   }
-}
-function copyScriptTemplate(){
-
-  const token =
-    document.getElementById(
-      'token-preview'
-    ).value;
-
-  if(!token){
-
-    alert('請先產生安全碼');
-
-    return;
-  }
-
-  const code =
-`var AUTH_TOKEN = '${token}';
-var FILE_NAME = '接案追蹤器_資料.json';
-
-// Code.gs
-function doGet(e) {
-  if (e.parameter.token) {
-    if (e.parameter.token !== AUTH_TOKEN) return errorRes('驗證失敗');
-    return ContentService.createTextOutput(JSON.stringify(loadData())).setMimeType(ContentService.MimeType.JSON);
-  }
-  
-  // 核心修正：改用 createTemplateFromFile 並確保名稱與左側一致
-  return HtmlService.createTemplateFromFile('index') 
-    .evaluate()
-    .setTitle('Freelance Tracker')
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-}
-function doPost(e){
-
-  if(e.parameter.token !== AUTH_TOKEN)
-    return errorRes('驗證失敗');
-
-  try{
-
-    var p =
-      JSON.parse(e.postData.contents);
-
-    saveData(p);
-
-    return ContentService
-      .createTextOutput(
-        JSON.stringify({ok:true})
-      )
-      .setMimeType(
-        ContentService.MimeType.JSON
-      );
-
-  }catch(err){
-
-    return errorRes(err.message);
-
-  }
-
-}
-
-function errorRes(msg){
-
-  return ContentService
-    .createTextOutput(
-      JSON.stringify({
-        ok:false,
-        error:msg
-      })
-    )
-    .setMimeType(
-      ContentService.MimeType.JSON
-    );
-
-}
-
-function loadData(){
-
-  var f =
-    DriveApp.getFilesByName(FILE_NAME);
-
-  if(!f.hasNext()){
-
-    return {
-      ok:true,
-      data:null
-    };
-
-  }
-
-  return {
-    ok:true,
-    data:JSON.parse(
-      f.next()
-      .getBlob()
-      .getDataAsString()
-    )
-  };
-
-}
-
-function saveData(p){
-
-  var c = JSON.stringify(p);
-
-  var f =
-    DriveApp.getFilesByName(FILE_NAME);
-
-  if(f.hasNext()){
-
-    f.next().setContent(c);
-
-  }else{
-
-    DriveApp.createFile(
-      FILE_NAME,
-      c,
-      MimeType.PLAIN_TEXT
-    );
-
-  }
-
-}`;
-
-  navigator.clipboard.writeText(code);
-
-  alert(
-    '已複製完整 Apps Script 程式碼'
-  );
-
 }
 
 // 新增：複製 HTML 的功能
@@ -1591,7 +1462,12 @@ function setSyncStatus(state,msg){
   var l={ok:'已同步',saving:'同步中…',error:'同步失敗',none:'未設定雲端'};
   var col=c[state]||c.none;
   ['sync-dot','cfg-dot'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.background=col;});
-  var st=document.getElementById('sync-text');if(st)st.textContent=msg||l[state]||'';
+  var st=document.getElementById('sync-text');
+  if(st){
+    st.textContent=msg||l[state]||'';
+    // 非 pending 狀態時，清掉 save() 加上的醒目樣式
+    st.classList.remove('text-amber-400','font-medium');
+  }
   var ct=document.getElementById('cfg-status-text');if(ct)ct.textContent=msg||l[state]||'';
   var sd=document.getElementById('sync-dot');if(sd){sd.classList.remove('sync-saving');if(state==='saving')sd.classList.add('sync-saving');}
 }
@@ -1656,6 +1532,7 @@ function cloudSave(){
     wtarget: localStorage.getItem('ft_wtarget'),
     track_limit: localStorage.getItem('ft_track_limit'),
     show_tracks: localStorage.getItem('ft_show_tracks'),
+    show_hints: localStorage.getItem('ft_show_hints'),
     dash_cfg: localStorage.getItem('ft_dash_cfg')
   };
   
@@ -1667,7 +1544,12 @@ function cloudSave(){
       var btn = document.getElementById('btn-manual-sync');
       if(d.ok){
         hasUnsynced = false; setSyncStatus('ok','已同步');
-        if(btn) { btn.classList.add('hidden'); btn.textContent = '☁️ 同步至雲端'; }
+        if(btn) {
+          // 完整還原按鈕初始樣式（移除 save() 加上的琥珀色與光點）
+          btn.classList.remove('text-amber-400','border-amber-500','bg-amber-950/30','shadow-[0_0_8px_rgba(245,158,11,0.3)]');
+          btn.classList.add('hidden','text-blue-400','border-blue-900/50','hover:bg-blue-950/50');
+          btn.textContent = '☁️ 同步至雲端';
+        }
       } else { setSyncStatus('error', d.error || '覆蓋失敗'); }
     }).catch(e=>setSyncStatus('error'));
 }
@@ -1686,7 +1568,7 @@ function cloudLoad(){
         
         // 2. 讀取並覆寫本地端設定檔
         if(cd.CFG) {
-          ['wmode','trate','dl_crit','wtarget','track_limit','show_tracks','dash_cfg'].forEach(k=>{
+          ['wmode','trate','dl_crit','wtarget','track_limit','show_tracks','show_hints','dash_cfg'].forEach(k=>{
             if(cd.CFG[k]) localStorage.setItem('ft_'+k, cd.CFG[k]);
           });
         }
@@ -1730,23 +1612,6 @@ function toggleVacation(dateStr) {
   save(); 
   renderCal();
 }
-function save(){
-  saveLocal();
-  if (getScriptUrl()) {
-    hasUnsynced = true;
-    document.getElementById('sync-dot').style.background = '#fbbf24';
-    var txt = document.getElementById('sync-text');
-    if(txt) { txt.textContent = '⚠️ 有未同步變更'; txt.classList.add('text-amber-400', 'font-medium'); }
-    var btn = document.getElementById('btn-manual-sync');
-    if(btn) { 
-      // 移除原本低調的藍色樣式，加入發光的琥珀色與呼吸光點
-      btn.classList.remove('hidden', 'text-blue-400', 'border-blue-900/50', 'hover:bg-blue-950/50'); 
-      btn.classList.add('text-amber-400', 'border-amber-500', 'bg-amber-950/30', 'shadow-[0_0_8px_rgba(245,158,11,0.3)]');
-      btn.innerHTML = '⬆️ 按此同步至雲端 <span class="relative flex h-2 w-2 ml-1"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span></span>';
-    }
-  }
-}
-
 // 每 5 分鐘自動背景同步一次 (如果累積有變更的話)
 setInterval(function() {
   if (hasUnsynced && getScriptUrl()) { forceCloudSave(); }
@@ -1771,7 +1636,7 @@ document.addEventListener('visibilitychange', function() {
   }
 });
 function exportJSON(){
-  var cfg={wmode:localStorage.getItem('ft_wmode'),trate:localStorage.getItem('ft_trate'),dl_crit:localStorage.getItem('ft_dl_crit'),wtarget:localStorage.getItem('ft_wtarget'),track_limit:localStorage.getItem('ft_track_limit'),show_tracks:localStorage.getItem('ft_show_tracks'),dash_cfg:localStorage.getItem('ft_dash_cfg')};
+  var cfg={wmode:localStorage.getItem('ft_wmode'),trate:localStorage.getItem('ft_trate'),dl_crit:localStorage.getItem('ft_dl_crit'),wtarget:localStorage.getItem('ft_wtarget'),track_limit:localStorage.getItem('ft_track_limit'),show_tracks:localStorage.getItem('ft_show_tracks'),show_hints:localStorage.getItem('ft_show_hints'),dash_cfg:localStorage.getItem('ft_dash_cfg')};
   var d={version:8,at:new Date().toISOString(),P:P,PJ:PJ,CATS:CATS,TAGS:TAGS,GRPS:GRPS,DLOGS:DLOGS,VENDORS:VENDORS,VACS:VACS,CFG:cfg};
   var a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'}));
@@ -1791,11 +1656,27 @@ function importJSON(e){
         TAGS=d.TAGS||[];GRPS=d.GRPS||[];DLOGS=d.DLOGS||[];VENDORS=d.VENDORS||[];
         VACS=d.VACS||[]; // 匯入休假日
         if(d.CFG){ // 匯入設定
-          ['wmode','trate','dl_crit','wtarget','track_limit','show_tracks','dash_cfg'].forEach(k=>{
+          ['wmode','trate','dl_crit','wtarget','track_limit','show_tracks','show_hints','dash_cfg'].forEach(k=>{
             if(d.CFG[k]) localStorage.setItem('ft_'+k, d.CFG[k]);
           });
         }
-        save();init();closeModal();showToast('✓ 匯入成功','green');
+        // 不再呼叫 init() — init() 會在有設定雲端時觸發 cloudLoad()
+        // 反向把雲端舊資料覆蓋剛 import 的內容，造成資料遺失。
+        // 改為手動重渲染所有畫面 + 立刻把新資料推上雲端覆蓋。
+        saveLocal();
+        loadDLThresh();
+        document.getElementById('global-rate').value = getGlobalRate();
+        var wtEl = document.getElementById('weekly-target'); if(wtEl) wtEl.value = getWeeklyTarget();
+        var trkLim = document.getElementById('cal-track-limit'); if(trkLim) trkLim.value = parseInt(localStorage.getItem('ft_track_limit')) || 21;
+        var trkToggle = document.getElementById('cal-toggle-tracks'); if(trkToggle) trkToggle.checked = localStorage.getItem('ft_show_tracks') !== '0';
+        applyWorkMode();
+        applyHintVisibility();
+        applyDashPanels();
+        syncSel(); rCats(); rProj(); rPay(); rGrp(); rTagStats(); rVendors(); renderCal();
+        // 若有設定雲端，立刻推送（覆蓋雲端為新資料），不走 3 秒防震
+        if(getScriptUrl()) save(true); else save();
+        closeModal();
+        showToast('✓ 匯入成功' + (getScriptUrl() ? '，正在同步至雲端…' : ''), 'green');
       },'確認覆蓋');
     }catch(err){alert('JSON 格式錯誤');}
   };
@@ -1888,6 +1769,10 @@ function stopTimer(id){
     if(addedHrs > 0) {
       DLOGS.push({id:Date.now(),date:toLocalDate(),pid:id,hrs:addedHrs,note:'計時器自動記錄'});
       syncProjectHrs(id);
+      showToast('已記錄 ' + formatHrs(addedHrs), 'green');
+    } else {
+      // 不足 1 分鐘 — 給明確回饋，避免使用者誤以為按鈕沒反應
+      showToast('計時不足 1 分鐘，未記錄工時', 'amber');
     }
     save();rProj(); 
     if(!document.getElementById('v-dash').classList.contains('hidden')) renderDash();
@@ -2083,7 +1968,17 @@ function save(isImmediate = false) {
   hasUnsynced = true;
   document.getElementById('sync-dot').style.background = '#fbbf24';
   var txt = document.getElementById('sync-text');
-  if (txt) { txt.textContent = '⚠️ 變更待同步'; }
+  if (txt) {
+    txt.textContent = '⚠️ 變更待同步';
+    txt.classList.add('text-amber-400', 'font-medium');
+  }
+  // 醒目按鈕：浮動琥珀色 + 呼吸光點
+  var btn = document.getElementById('btn-manual-sync');
+  if (btn) {
+    btn.classList.remove('hidden', 'text-blue-400', 'border-blue-900/50', 'hover:bg-blue-950/50');
+    btn.classList.add('text-amber-400', 'border-amber-500', 'bg-amber-950/30', 'shadow-[0_0_8px_rgba(245,158,11,0.3)]');
+    btn.innerHTML = '⬆️ 按此同步至雲端 <span class="relative flex h-2 w-2 ml-1"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span></span>';
+  }
 
   // 防震處理：停止操作 3 秒後才啟動雲端同步
   if (syncTimer) clearTimeout(syncTimer);
@@ -2817,10 +2712,16 @@ function editProj(id) {
 }
 
 function delProj(id){
-    if(confirm('刪除無法復原，確定？')) {
+    if(confirm('刪除無法復原，確定？\n（同時會清除此任務的工時紀錄與收付款歸屬）')) {
         PJ = PJ.filter(x => x.id !== id);
         DLOGS = DLOGS.filter(x => x.pid !== id);
-        save(); rProj(); rGrp(); syncSel();
+        P = P.filter(x => x.pid !== id);   // 同步清除歸屬此任務的收付款，避免「未分類」孤兒紀錄
+        // 若被刪任務正在計時，順手停掉
+        if(activeTimers[id]){
+          delete activeTimers[id];
+          try{ localStorage.setItem('ft_timers', JSON.stringify(activeTimers)); }catch(e){}
+        }
+        save(); rProj(); rPay(); rGrp(); syncSel();
     }
 }
 
