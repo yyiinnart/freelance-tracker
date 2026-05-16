@@ -218,8 +218,8 @@ tbody tr:hover td{background:#131f2e;}
 .chevron.expanded{transform:rotate(90deg);}
 
 /* 統一欄標題深色背景 */
-.tbl-wrap thead tr { background: #0b1120; }
-.tbl-wrap th { background: #0b1120; }
+.tbl-wrap thead tr { background: #080f1a; }
+.tbl-wrap th { background: #080f1a; }
 
 /* 欄寬控制：只套用於任務與工時分頁的 table (.proj-table) */
 .proj-table { table-layout: fixed; min-width: 880px; }
@@ -346,7 +346,7 @@ tbody tr[onclick]:hover td{background:#131f2e;}
       <div><strong>快速建立</strong>：輸入名稱即可建立任務，其餘設定可展開或建立後點「✎ 編輯」補填。</div>
     </div>
 
-    <div class="bg-slate-900 border border-slate-800 rounded-xl mb-8 shadow-sm">
+    <div class="bg-slate-900/80 border border-slate-800/80 rounded-xl mb-8 shadow-sm">
       <div class="px-5 py-3 flex flex-wrap items-end gap-3">
         <div class="flex flex-col gap-1 flex-1 min-w-[180px]"><label class="text-[10px] text-slate-500 uppercase tracking-wider">任務名稱</label><input type="text" id="pj-name" class="inp py-2" placeholder="例如：主視覺插畫設計" onkeydown="if(event.key==='Enter')addProj()"></div>
         <div class="flex flex-col gap-1 w-36"><label class="text-[10px] text-slate-500 uppercase tracking-wider">群組</label><select id="pj-grp" class="inp py-2"></select></div>
@@ -739,10 +739,13 @@ tbody tr[onclick]:hover td{background:#131f2e;}
       <div id="tag-list" class="flex flex-wrap gap-2"></div>
     </div>
 
-    <h3 class="text-sm font-semibold text-slate-300 mb-4 mt-8">依標籤篩選任務</h3>
-    <div class="flex flex-wrap gap-4 mb-6 items-end">
-      <div class="flex flex-col gap-1.5"><label class="text-xs text-slate-500">指定標籤</label><select id="tag-filter" class="inp w-40" onchange="rTagStats()"><option value="">— 全部 —</option></select></div>
-      <div class="flex flex-col gap-1.5"><label class="text-xs text-slate-500">指定群組</label><select id="tag-grp-filter" class="inp w-40" onchange="rTagStats()"><option value="">— 全部 —</option></select></div>
+    <h3 class="text-sm font-semibold text-slate-300 mb-4 mt-8">篩選任務</h3>
+    <div class="flex flex-wrap gap-4 mb-6 items-end justify-between">
+      <div class="flex flex-wrap gap-4 items-end">
+        <div class="flex flex-col gap-1.5"><label class="text-xs text-slate-500">月份</label><select id="tag-month-filter" class="inp w-36" onchange="rTagStats()"><option value="">— 全部月份 —</option></select></div>
+        <div class="flex flex-col gap-1.5"><label class="text-xs text-slate-500">指定標籤</label><select id="tag-filter" class="inp w-40" onchange="rTagStats()"><option value="">— 全部 —</option></select></div>
+        <div class="flex flex-col gap-1.5"><label class="text-xs text-slate-500">指定群組</label><select id="tag-grp-filter" class="inp w-40" onchange="rTagStats()"><option value="">— 全部 —</option></select></div>
+      </div>
       <div class="flex flex-col gap-1.5"><label class="text-xs text-slate-500">關鍵字</label><input type="text" id="tag-search" class="inp w-48" placeholder="搜尋任務名稱…" oninput="rTagStats()"></div>
     </div>
     
@@ -791,7 +794,7 @@ tbody tr[onclick]:hover td{background:#131f2e;}
     </div>
 
     <!-- 篩選器 -->
-    <div class="flex flex-wrap gap-4 items-end mb-6 justify-between bg-slate-900 p-4 rounded-xl border border-slate-800">
+    <div class="flex flex-wrap gap-4 items-end mb-6 justify-between bg-slate-900/40 p-4 rounded-xl">
       <div class="flex flex-wrap items-end gap-3">
         <div class="flex flex-col gap-1.5">
           <label class="text-xs font-medium text-slate-400">月份篩選（影響下方所有圖表與紀錄）</label>
@@ -837,18 +840,29 @@ tbody tr[onclick]:hover td{background:#131f2e;}
 
     <div id="export-box" class="hidden bg-slate-900 border border-slate-800 rounded-xl p-5 text-sm font-mono text-slate-400 leading-relaxed whitespace-pre-wrap overflow-auto" style="max-height:400px"></div>
 
-    <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 mt-6">
-      <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-2">
-        <h3 class="text-sm font-semibold text-slate-300">每日工時紀錄</h3>
+    <div class="rounded-xl p-5 mt-6" style="background:rgba(15,23,42,0.4)">
+      <div class="flex items-center justify-between mb-4 pb-2">
+        <h3 class="text-sm font-semibold text-slate-500">每日工時紀錄</h3>
         <span id="dl-range-label" class="text-[11px] text-slate-500"></span>
       </div>
-      <div id="dl-stats" class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4"></div>
+      <div id="dl-stats" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4"></div>
       <div id="dl-timeline" class="flex flex-col gap-2 max-h-[400px] overflow-y-auto"></div>
       <div id="dl-empty" class="text-center py-8 text-sm text-slate-600 hidden">尚無工時紀錄</div>
     </div>
   </div>
   <div id="v-cfg" class="hidden">
     <div class="max-w-2xl">
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-5">
+        <h3 class="text-sm font-semibold text-white mb-3">介面顯示</h3>
+        <label class="flex items-center gap-3 cursor-pointer select-none">
+          <input type="checkbox" id="toggle-hints" class="w-4 h-4 accent-blue-500" onchange="saveHintVisibility()">
+          <div>
+            <div class="text-sm text-slate-300">顯示各分頁說明文字</div>
+            <div class="text-xs text-slate-500 mt-0.5">關閉後，各分頁頂部的提示列將被隱藏。</div>
+          </div>
+        </label>
+      </div>
+
       <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-5">
         <h3 class="text-sm font-semibold text-white mb-1">工作模式</h3>
         <p class="text-xs text-slate-500 mb-4">選擇您的接案形態。「專案管理」模式可建立委外任務，追蹤外包/轉包的成本與交件。</p>
@@ -894,9 +908,9 @@ tbody tr[onclick]:hover td{background:#131f2e;}
         </div>
       </div>
 
-      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-5">
+      <div class="bg-slate-900/40 rounded-xl p-5 mb-5">
         <div class="flex items-center justify-between mb-1.5">
-          <h3 class="text-sm font-semibold text-slate-300 flex items-center gap-2">📦 年度資料封存</h3>
+          <h3 class="text-sm font-semibold text-slate-500 flex items-center gap-2">📦 年度資料封存</h3>
         </div>
         <p class="text-[10px] text-slate-500 mb-4 leading-relaxed">
           避免未來資料量突破容量限制。可將「指定年份（含）以前」的<span class="text-slate-400">已結案任務、工時與金流</span>打包為 JSON 備份檔，並從系統中清除。
@@ -1298,6 +1312,17 @@ function saveData(p){
 
   navigator.clipboard.writeText(code);
   alert('已複製 Code.gs 程式碼');
+}
+function saveHintVisibility(){
+  var show = document.getElementById('toggle-hints').checked;
+  localStorage.setItem('ft_show_hints', show ? '1' : '0');
+  applyHintVisibility();
+}
+function applyHintVisibility(){
+  var show = localStorage.getItem('ft_show_hints') !== '0';
+  var chk = document.getElementById('toggle-hints');
+  if(chk) chk.checked = show;
+  document.querySelectorAll('.hint-bar').forEach(function(el){ el.style.display = show ? '' : 'none'; });
 }
 function saveDLThresh(){
   DL_CRIT=Math.max(1,parseInt(document.getElementById('dl-crit-inp').value)||3);
@@ -3541,8 +3566,34 @@ function rTagStats(){
   var el=document.getElementById('tag-list');
   el.innerHTML=TAGS.map(t=>`<div class=\"flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-full\"><span class=\"w-2 h-2 rounded-full\" style=\"background:${(BC[t.color]||BC.gray).text}\"></span><span class=\"text-xs font-medium text-slate-300\">${esc(t.name)}</span><button class=\"text-slate-500 hover:text-red-400 text-[10px]\" onclick=\"TAGS=TAGS.filter(x=>x.id!=='${t.id}');save();rTagStats();syncSel()\">✕</button></div>`).join('');
   
+  // 填充月份下拉
+  var monthSelEl=document.getElementById('tag-month-filter');
+  if(monthSelEl){
+    var monthSet={};
+    DLOGS.forEach(function(l){if(l.date&&l.date.length>=7)monthSet[l.date.substring(0,7)]=true;});
+    PJ.forEach(function(p){if(p.sdate&&p.sdate.length>=7)monthSet[p.sdate.substring(0,7)]=true;});
+    var months=Object.keys(monthSet).sort().reverse();
+    var prevMonthVal=monthSelEl.value;
+    var monthOptHtml='<option value="">— 全部月份 —</option>'+months.map(function(m){return '<option value="'+m+'"'+(m===prevMonthVal?' selected':'')+'>'+m+'</option>';}).join('');
+    if(monthSelEl.innerHTML!==monthOptHtml) monthSelEl.innerHTML=monthOptHtml;
+  }
+  
   var tagF=document.getElementById('tag-filter').value, grpF=document.getElementById('tag-grp-filter').value, q=document.getElementById('tag-search').value.toLowerCase();
-  var filtered=PJ.filter(p=>{if(tagF&&(!p.tags||p.tags.indexOf(tagF)===-1))return false; if(grpF&&p.gid!==grpF)return false; if(q&&p.name.toLowerCase().indexOf(q)===-1)return false; return true;});
+  var monF=monthSelEl?monthSelEl.value:'';
+  var filtered=PJ.filter(p=>{
+    if(tagF&&(!p.tags||p.tags.indexOf(tagF)===-1))return false;
+    if(grpF&&p.gid!==grpF)return false;
+    if(q&&p.name.toLowerCase().indexOf(q)===-1)return false;
+    if(monF){
+      // 月份篩選：任務有工時紀錄在該月，或起訖日期涵蓋該月
+      var hasLog=DLOGS.some(function(l){return l.pid===p.id&&l.date.indexOf(monF)===0;});
+      if(!hasLog){
+        var inRange=(p.sdate&&p.sdate.substring(0,7)<=monF&&(!p.edate||p.edate.substring(0,7)>=monF));
+        if(!inRange)return false;
+      }
+    }
+    return true;
+  });
   var tb=document.getElementById('tag-proj-body'); 
   document.getElementById('tag-proj-empty').style.display=filtered.length?'none':'block';
   
@@ -3611,7 +3662,15 @@ function renderDash(){
   var netProfitTWD=totalEarnedTWD-totalVendorCostTWD;
   var vendorCostHtml=totalVendorCostTWD>0?sc('外包/轉包成本','NT$ '+Math.round(totalVendorCostTWD).toLocaleString())+sc('淨利 (應收-成本)','<span class="'+(netProfitTWD>=0?'text-emerald-400':'text-red-400')+'">NT$ '+Math.round(netProfitTWD).toLocaleString()+'</span>'):'';
 
-  document.getElementById('dash-stats').innerHTML=sc(mon?mon+' 接案工時':'歷史接案工時',hrsLabel)+sc('歷史總應收',formatMultiCurMap(eMap));
+  document.getElementById('dash-stats').innerHTML=sc('歷史總應收',formatMultiCurMap(eMap))+sc('平均時薪 (NT$)', (function(){
+    var totalBillHrs=DLOGS.filter(function(l){return !nbPids[l.pid];}).reduce(function(s,l){return s+l.hrs;},0);
+    var totalEarnedTWD2=Object.keys(eMap).reduce(function(s,k){return s+toTWD(eMap[k],k);},0);
+    if(totalBillHrs<=0)return '<span class="text-slate-500">-</span>';
+    var avgRate=Math.round(totalEarnedTWD2/totalBillHrs);
+    var tgt=getGlobalRate();
+    var col=avgRate>=tgt?'text-emerald-400':(avgRate>0?'text-amber-400':'text-slate-400');
+    return '<span class="'+col+'">NT$ '+avgRate.toLocaleString()+'</span><span class="text-xs text-slate-500 ml-1">/ h</span>';
+  })());
   document.getElementById('dash-cf').innerHTML=sc(mon?'當月實收合計':'歷史實收合計',formatMultiCurMap(rMap))+sc('目前總待收帳款',formatMultiCurMap(arMap))+vendorCostHtml;
 
   if(CH.week)CH.week.destroy();
@@ -3866,8 +3925,7 @@ function renderDailyTimeline(){
   document.getElementById('dl-stats').innerHTML=
     '<div class=\"stat-card\"><p class=\"text-xs text-slate-500 mb-1\">'+(mon?'當月':'全部')+'接案工時</p><div class=\"text-lg font-semibold text-white\">'+hrsDisplay+'</div></div>'+
     '<div class=\"stat-card\"><p class=\"text-xs text-slate-500 mb-1\">工作天數</p><div class=\"text-lg font-semibold text-white\">'+uniqueDays+' 天</div></div>'+
-    '<div class=\"stat-card\"><p class=\"text-xs text-slate-500 mb-1\">平均每日</p><div class=\"text-lg font-semibold text-white\">'+formatHrs(avgPerDay)+'</div></div>'+
-    '<div class=\"stat-card\"><p class=\"text-xs text-slate-500 mb-1\">平均每週</p><div class=\"text-lg font-semibold text-white\">'+formatHrs(avgPerWeek)+'</div></div>'+
+    '<div class=\"stat-card col-span-2 md:col-span-1\"><p class=\"text-xs text-slate-500 mb-1\">平均工時</p><div class=\"text-base font-semibold text-white flex items-baseline gap-2\"><span>日均 <span class=\"text-blue-300\">'+formatHrs(avgPerDay)+'</span></span><span class=\"text-slate-600 text-xs\">·</span><span>週均 <span class=\"text-blue-300\">'+formatHrs(avgPerWeek)+'</span></span></div></div>'+
     '<div class=\"stat-card\"><p class=\"text-xs text-slate-500 mb-1\">涉及任務</p><div class=\"text-lg font-semibold text-white\">'+uniqueProjs+' 個</div></div>';
 
   document.getElementById('dl-range-label').textContent=mon?'篩選：'+mon:'顯示全部紀錄';
@@ -4261,6 +4319,7 @@ function init(){
   document.getElementById('global-rate').value=getGlobalRate();
   var wtEl = document.getElementById('weekly-target'); if(wtEl) wtEl.value = getWeeklyTarget();
   applyWorkMode();
+  applyHintVisibility();
   fetchFX(); 
 }
 init();
