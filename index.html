@@ -104,7 +104,7 @@ tbody tr:hover td{background:#131f2e;}
 .tag-dd-btn{display:flex;align-items:center;gap:6px;padding:8px 12px;background:#1e293b;border:1px solid #334155;border-radius:8px;font-size:13px;color:#94a3b8;cursor:pointer;min-width:140px;user-select:none;}
 .tag-dd-btn:hover{border-color:#475569;}
 .tag-dd-list{position:absolute;top:calc(100%+4px);left:0;background:#1e293b;border:1px solid #475569;border-radius:8px;padding:6px 0;z-index:40;min-width:200px;max-height:240px;overflow-y:auto;display:none;box-shadow:0 10px 25px rgba(0,0,0,.5);}
-.tag-dd-list.open{display:block;}
+.tag-dd-list.open{display:flex;flex-direction:column;}
 .tag-dd-item{display:flex;align-items:center;gap:8px;padding:8px 14px;cursor:pointer;font-size:13px;color:#cbd5e1;}
 .tag-dd-item:hover{background:#273548;}
 .tag-dd-item input[type=checkbox]{accent-color:#3b82f6;}
@@ -329,10 +329,10 @@ tbody tr[onclick]:hover td{background:#131f2e;}
       <button class="tab-main" onclick="go('dash',this)">分析匯出</button>
     </div>
     <div class="flex items-center gap-1 overflow-x-auto no-scrollbar">
-      <button class="tab-sub" onclick="go('grp',this)">專案群組</button>
+      <button class="tab-sub" id="tab-grp" onclick="go('grp',this)">專案群組</button>
       <button class="tab-sub" id="tab-vendor" onclick="go('vendor',this)">聯絡人</button>
-      <button class="tab-sub" onclick="go('tag',this)">標籤管理</button>
-      <button class="tab-sub" onclick="go('cat',this)">類型管理</button>
+      <button class="tab-sub" onclick="go('tag',this)">任務一覽</button>
+      <button class="tab-sub" onclick="go('cat',this)">分類管理</button>
       <div class="w-px h-4 bg-slate-700 mx-2"></div>
       <button class="tab-sub" onclick="go('cfg',this)">⚙ 設定</button>
       <button class="tab-sub" onclick="go('sync',this)">☁ 雲端</button>
@@ -342,14 +342,14 @@ tbody tr[onclick]:hover td{background:#131f2e;}
 
   <div id="v-proj">
     <div class="hint-bar flex flex-col gap-1">
-      <div><strong>專注模式</strong>：拖曳列表前方「☰」排序任務。僅有最頂部的「當前執行任務」能啟動計時器。</div>
-      <div><strong>快速建立</strong>：輸入名稱即可建立任務，其餘設定可展開或建立後點「✎ 編輯」補填。</div>
+      <div><strong>建立任務</strong>：輸入名稱後點「+ 建立」，其餘欄位（截止日、合約金額、標籤等）可事後點「✎ 編輯」補填。</div>
+      <div><strong>計時器</strong>：每次只能有一個執行中任務，點擊任務列的播放鍵啟動；停止時自動寫入工時紀錄。拖曳列表前方「☰」可調整任務優先順序。</div>
     </div>
 
     <div class="bg-slate-900/80 border border-slate-800/80 rounded-xl mb-8 shadow-sm">
       <div class="px-5 py-3 flex flex-wrap items-end gap-3">
         <div class="flex flex-col gap-1 flex-1 min-w-[180px]"><label class="text-[10px] text-slate-500 uppercase tracking-wider">任務名稱</label><input type="text" id="pj-name" class="inp py-2" placeholder="例如：主視覺插畫設計" onkeydown="if(event.key==='Enter')addProj()"></div>
-        <div class="flex flex-col gap-1 w-36"><label class="text-[10px] text-slate-500 uppercase tracking-wider">群組</label><select id="pj-grp" class="inp py-2"></select></div>
+        <div class="flex flex-col gap-1 w-36" id="pj-grp-wrap"><label class="text-[10px] text-slate-500 uppercase tracking-wider">群組</label><select id="pj-grp" class="inp py-2"></select></div>
         <div class="flex flex-col gap-1 w-28"><label class="text-[10px] text-slate-500 uppercase tracking-wider">類型</label><select id="pj-type" class="inp py-2"></select></div>
         <button class="btn btn-solid py-2 px-5 flex-shrink-0" onclick="addProj()">+ 建立</button>
         <button class="btn py-2 px-3 flex-shrink-0 text-xs text-slate-400" onclick="toggleCreateMore()" id="create-more-btn">更多設定 ▾</button>
@@ -575,7 +575,7 @@ tbody tr[onclick]:hover td{background:#131f2e;}
   </div>
 
   <div id="v-pay" class="hidden">
-    <div class="hint-bar">所有收付款紀錄的總覽。如需新增，請到各任務的<strong>詳情面板</strong>中登記。</div>
+    <div class="hint-bar">所有收付款紀錄的總覽。如需新增，請開啟各任務的<strong>詳情面板</strong>，在款項區塊中登記收款或付款。此頁可依月份篩選，並一覽各筆帳款的歸屬任務與備註。</div>
     
     <div id="pay-ar-section" class="mb-6 hidden">
       <div class="flex items-center justify-between mb-3">
@@ -614,7 +614,7 @@ tbody tr[onclick]:hover td{background:#131f2e;}
   </div>
 
   <div id="v-cal" class="hidden">
-    <div class="hint-bar">以月曆方式瀏覽所有任務的排程區間，快速確認空檔與撞期。點擊任務色條可開啟詳情。</div>
+    <div class="hint-bar">以月曆方式呈現所有任務的起訖區間，快速確認排程衝突與空檔。點擊色條可展開任務詳情。截止日臨近的任務會以顏色警示標記。</div>
     <div class="flex items-center justify-between mb-4">
       <button class="btn btn-sm hover:bg-slate-800" onclick="calNav(-1)">◀ 上月</button>
       <h2 id="cal-title" class="text-lg font-semibold text-slate-200"></h2>
@@ -653,7 +653,7 @@ tbody tr[onclick]:hover td{background:#131f2e;}
   </div>
 
   <div id="v-grp" class="hidden">
-    <div class="hint-bar">將多個任務歸納為同一專案群組。點擊群組可展開查看所屬任務卡片。</div>
+    <div class="hint-bar">將多個相關任務歸入同一群組，方便依客戶或大型專案彙整管理。點擊群組列可展開查看所屬任務卡片；群組本身有獨立的狀態（進行中／完成／暫停）可標記。</div>
     <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 flex flex-wrap gap-4 items-end mb-6">
       <div class="flex flex-col gap-1.5 flex-1 min-w-[200px]"><label class="text-xs font-medium text-slate-500">群組名稱</label><input type="text" id="grp-name" class="inp" placeholder="客戶名稱或大型企劃名"></div>
       <div class="flex flex-col gap-1.5 w-32"><label class="text-xs font-medium text-slate-500">狀態</label><select id="grp-st" class="inp"><option value="active">進行中</option><option value="done">已完成</option><option value="paused">暫停</option></select></div>
@@ -664,7 +664,7 @@ tbody tr[onclick]:hover td{background:#131f2e;}
   </div>
 
   <div id="v-vendor" class="hidden">
-    <div class="hint-bar">記錄合作過的外包/轉包聯絡人的銀行帳號與聯絡方式。所有資料儲存於你的瀏覽器與自己的 Google Drive，不會上傳到任何第三方。</div>
+    <div class="hint-bar">記錄合作外包商或轉包方的聯絡資訊與收款帳號。建立後可在任務的「外包設定」中直接選用，免去重複填寫。所有資料僅儲存於本機瀏覽器，不會上傳至任何第三方。</div>
     <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 mb-6 max-w-2xl">
       <h3 class="text-sm font-semibold text-slate-300 mb-4">新增聯絡人</h3>
 
@@ -724,30 +724,30 @@ tbody tr[onclick]:hover td{background:#131f2e;}
   </div>
 
   <div id="v-tag" class="hidden">
-    <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-8">
-      <h3 class="text-sm font-semibold text-slate-300 mb-4">新增與管理標籤</h3>
-      <div class="flex flex-wrap gap-4 items-end mb-5">
-        <div class="flex flex-col gap-1.5"><input type="text" id="tag-name" class="inp w-48" placeholder="新標籤名稱" onkeydown="if(event.key==='Enter')addTag()"></div>
-        <div class="flex flex-col gap-1.5">
-          <select id="tag-color" class="inp w-32">
-            <option value="blue">藍色</option><option value="teal">青綠</option><option value="purple">紫色</option>
-            <option value="amber">琥珀</option><option value="rose">玫瑰</option><option value="green">綠色</option>
-            <option value="pink">粉紅</option><option value="gray">灰色</option>
-          </select></div>
-        <button class="btn btn-solid" onclick="addTag()">+ 新增標籤</button>
-      </div>
-      <div id="tag-list" class="flex flex-wrap gap-2"></div>
-    </div>
-
-    <h3 class="text-sm font-semibold text-slate-300 mb-4 mt-8">篩選任務</h3>
+    <div class="hint-bar">以表格形式列出所有任務，支援多條件同時篩選。<strong>月份</strong>依工時紀錄日期過濾；<strong>標籤</strong>可多選；<strong>關鍵字</strong>比對任務名稱。點擊任務名稱可開啟詳情面板。</div>
+    <h3 class="text-sm font-semibold text-slate-300 mb-4">篩選任務</h3>
     <div class="flex flex-wrap gap-4 mb-6 items-end justify-between">
       <div class="flex flex-wrap gap-4 items-end">
-        <div class="flex flex-col gap-1.5"><label class="text-xs text-slate-500">月份</label><select id="tag-month-filter" class="inp w-36" onchange="rTagStats()"><option value="">— 全部月份 —</option></select></div>
-        <div class="flex flex-col gap-1.5"><label class="text-xs text-slate-500">指定標籤</label><select id="tag-filter" class="inp w-40" onchange="rTagStats()"><option value="">— 全部 —</option></select></div>
-        <div class="flex flex-col gap-1.5"><label class="text-xs text-slate-500">指定群組</label><select id="tag-grp-filter" class="inp w-40" onchange="rTagStats()"><option value="">— 全部 —</option></select></div>
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs text-slate-500">月份</label>
+          <div id="tag-month-dd" class="tag-dd"></div>
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs text-slate-500">標籤</label>
+          <div id="tag-tag-dd" class="tag-dd"></div>
+        </div>
+        <div class="flex flex-col gap-1.5" id="tag-grp-dd-wrap">
+          <label class="text-xs text-slate-500">群組</label>
+          <div id="tag-grp-dd" class="tag-dd"></div>
+        </div>
       </div>
       <div class="flex flex-col gap-1.5"><label class="text-xs text-slate-500">關鍵字</label><input type="text" id="tag-search" class="inp w-48" placeholder="搜尋任務名稱…" oninput="rTagStats()"></div>
     </div>
+    
+    <!-- 隱藏的舊 select 保留 id 供部分 JS 參照，但不顯示 -->
+    <select id="tag-filter" class="hidden"></select>
+    <select id="tag-grp-filter" class="hidden"></select>
+    <select id="tag-month-filter" class="hidden"></select>
     
     <div class="tbl-wrap"><div class="overflow-x-auto">
       <table>
@@ -758,24 +758,42 @@ tbody tr[onclick]:hover td{background:#131f2e;}
   </div>
 
   <div id="v-cat" class="hidden">
-    <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-6">
-      <h3 class="text-sm font-semibold text-slate-300 mb-4">新增業務類型</h3>
-      <div class="flex flex-wrap gap-4 items-end">
-        <div class="flex flex-col gap-1.5"><input type="text" id="cat-name" class="inp w-64" placeholder="例如：插畫、UI設計、顧問..."></div>
-        <div class="flex flex-col gap-1.5">
-          <select id="cat-color" class="inp w-32">
-            <option value="blue">藍色</option><option value="teal">青綠</option><option value="purple">紫色</option>
-            <option value="amber">琥珀</option><option value="rose">玫瑰</option><option value="green">綠色</option>
-            <option value="gray">灰色</option>
-          </select></div>
-        <button class="btn btn-solid" onclick="addCat()">+ 新增</button>
+    <div class="hint-bar"><strong>業務類型</strong>用於區分案件的工作性質（如插畫、UI設計、顧問），會顯示在任務卡片上並影響分析頁的圓餅圖統計。<strong>標籤</strong>用於彈性分組（如急件標籤、特定活動標籤），可在任務一覽頁多選篩選，兩者可同時使用。</div>
+    <!-- 類型新增列 -->
+    <div class="flex flex-wrap gap-3 items-end mb-5 pb-5 border-b border-slate-800">
+      <div class="flex flex-col gap-1">
+        <span class="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">業務類型</span>
+        <input type="text" id="cat-name" class="inp w-56" placeholder="例如：插畫、UI設計、顧問...">
       </div>
+      <select id="cat-color" class="inp w-28 self-end">
+        <option value="blue">藍色</option><option value="teal">青綠</option><option value="purple">紫色</option>
+        <option value="amber">琥珀</option><option value="rose">玫瑰</option><option value="green">綠色</option>
+        <option value="gray">灰色</option>
+      </select>
+      <button class="btn btn-solid self-end" onclick="addCat()">+ 新增</button>
     </div>
-    <div id="cat-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
+    <div id="cat-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 mb-10"></div>
+
+    <!-- 標籤區塊 -->
+    <div class="border-t border-slate-800 pt-6">
+      <div class="flex flex-wrap gap-3 items-end mb-5">
+        <div class="flex flex-col gap-1">
+          <span class="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">標籤</span>
+          <input type="text" id="tag-name" class="inp w-44" placeholder="新標籤名稱" onkeydown="if(event.key==='Enter')addTag()">
+        </div>
+        <select id="tag-color" class="inp w-28 self-end">
+          <option value="blue">藍色</option><option value="teal">青綠</option><option value="purple">紫色</option>
+          <option value="amber">琥珀</option><option value="rose">玫瑰</option><option value="green">綠色</option>
+          <option value="pink">粉紅</option><option value="gray">灰色</option>
+        </select>
+        <button class="btn btn-solid self-end" onclick="addTag()">+ 新增</button>
+      </div>
+      <div id="tag-list" class="flex flex-wrap gap-2"></div>
+    </div>
   </div>
 
 <div id="v-dash" class="hidden">
-    
+    <div class="hint-bar">綜覽接案產值、工時分佈與金流狀況。頂部顯示本週即時配速，下方可依<strong>月份篩選</strong>聚焦單月數據。「📋 AI近況分析」可將當期數據整理成文字摘要，方便貼給 AI 助理進行深度分析。</div>
     <!-- 置頂：即時配速區 (不受下方月份篩選影響) -->
     <div class="bg-slate-900 rounded-xl border border-slate-800 p-5 mb-8 relative overflow-hidden shadow-lg shadow-blue-900/5">
       <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-indigo-500"></div>
@@ -851,18 +869,8 @@ tbody tr[onclick]:hover td{background:#131f2e;}
     </div>
   </div>
   <div id="v-cfg" class="hidden">
+    <div class="hint-bar"><strong>工作模式</strong>決定介面功能範圍；<strong>目標時薪</strong>是虧損預警的計算基準，任務工時換算後低於此值會亮起警示條；<strong>緊急門檻</strong>決定截止日多近時觸發橘色警示。參數設定一次即可，之後不需頻繁調整。</div>
     <div class="max-w-2xl">
-      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-5">
-        <h3 class="text-sm font-semibold text-white mb-3">介面顯示</h3>
-        <label class="flex items-center gap-3 cursor-pointer select-none">
-          <input type="checkbox" id="toggle-hints" class="w-4 h-4 accent-blue-500" onchange="saveHintVisibility()">
-          <div>
-            <div class="text-sm text-slate-300">顯示各分頁說明文字</div>
-            <div class="text-xs text-slate-500 mt-0.5">關閉後，各分頁頂部的提示列將被隱藏。</div>
-          </div>
-        </label>
-      </div>
-
       <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-5">
         <h3 class="text-sm font-semibold text-white mb-1">工作模式</h3>
         <p class="text-xs text-slate-500 mb-4">選擇您的接案形態。「專案管理」模式可建立委外任務，追蹤外包/轉包的成本與交件。</p>
@@ -880,6 +888,12 @@ tbody tr[onclick]:hover td{background:#131f2e;}
               <div class="font-medium text-slate-200 mb-1">📋 專案管理</div>
               <div class="text-xs text-slate-500">可建立外包/轉包任務，追蹤委外成本、交件狀態與淨利。</div>
             </div>
+          </label>
+        </div>
+        <div class="mt-4 pt-3 border-t border-slate-800/60">
+          <label class="flex items-center gap-2 cursor-pointer select-none">
+            <input type="checkbox" id="toggle-hints" class="w-3.5 h-3.5 accent-blue-500" onchange="saveHintVisibility()">
+            <span class="text-xs text-slate-500">顯示各分頁說明文字</span>
           </label>
         </div>
       </div>
@@ -1515,12 +1529,24 @@ function applyWorkMode() {
   if(calFilt) calFilt.style.display = isManager ? 'flex' : 'none';
   var vendorTab = document.getElementById('tab-vendor');
   if(vendorTab) vendorTab.style.display = isManager ? '' : 'none';
-  // 若目前就在聯絡人頁又切回個人模式，自動跳回任務頁
+  // 專案群組相關 UI（solo 模式全隱藏）
+  var grpTab = document.getElementById('tab-grp');
+  if(grpTab) grpTab.style.display = isManager ? '' : 'none';
+  var pjGrpWrap = document.getElementById('pj-grp-wrap');
+  if(pjGrpWrap) pjGrpWrap.style.display = isManager ? '' : 'none';
+  var tagGrpWrap = document.getElementById('tag-grp-dd-wrap');
+  if(tagGrpWrap) tagGrpWrap.style.display = isManager ? '' : 'none';
+  // 若目前就在聯絡人頁或群組頁，又切回個人模式，自動跳回任務頁
   if(!isManager){
     var vVendor = document.getElementById('v-vendor');
     if(vVendor && !vVendor.classList.contains('hidden')){
       var projBtn = document.querySelector('.tab-main');
       if(projBtn) go('proj', projBtn);
+    }
+    var vGrp = document.getElementById('v-grp');
+    if(vGrp && !vGrp.classList.contains('hidden')){
+      var projBtn2 = document.querySelector('.tab-main');
+      if(projBtn2) go('proj', projBtn2);
     }
   }
   rProj(); rGrp();
@@ -2015,6 +2041,7 @@ function buildTagDD(cid,px){
   el.innerHTML='<div class="tag-dd-btn" onclick="toggleTagDD(\''+px+'\')"><span id="'+px+'-tag-label">選擇標籤…</span><svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M2 3.5l3 3 3-3"/></svg></div><div id="'+px+'-tag-list" class="tag-dd-list">'+TAGS.map(t=>{var col=(BC[t.color]||BC.gray).text;return '<label class="tag-dd-item" onclick="event.stopPropagation()"><input type="checkbox" class="'+px+'-tag-chk" value="'+t.id+'" onchange="updateTagLabel(\''+px+'\')"><span class="w-2 h-2 rounded-full flex-shrink-0" style="background:'+col+'"></span>'+esc(t.name)+'</label>';}).join('')+'</div>';
 }
 function toggleTagDD(px){var l=document.getElementById(px+'-tag-list');if(!l)return;l.classList.toggle('open');if(l.classList.contains('open')){var c=e=>{if(!l.parentElement.contains(e.target)){l.classList.remove('open');document.removeEventListener('click',c);}};setTimeout(()=>document.addEventListener('click',c),0);}}
+function toggleDD(ddId){var l=document.getElementById(ddId+'_list');if(!l)return;l.classList.toggle('open');if(l.classList.contains('open')){var c=function(e){if(!l.parentElement.contains(e.target)){l.classList.remove('open');document.removeEventListener('click',c);}};setTimeout(function(){document.addEventListener('click',c);},0);}}
 function updateTagLabel(px){var chks=document.querySelectorAll('.'+px+'-tag-chk:checked');var l=document.getElementById(px+'-tag-label');if(!chks.length){l.textContent='選擇標籤…';l.style.color='#94a3b8';return;}l.innerHTML=Array.from(chks).map(c=>{var t=tagBy(c.value);if(!t)return '';return '<span style="color:'+(BC[t.color]||BC.gray).text+'">'+esc(t.name)+'</span>';}).join(', ');l.style.color='#f1f5f9';}
 function getCheckedTags(px){return Array.from(document.querySelectorAll('.'+px+'-tag-chk:checked')).map(c=>c.value);}
 function setCheckedTags(px,tags){document.querySelectorAll('.'+px+'-tag-chk').forEach(c=>{c.checked=(tags||[]).indexOf(c.value)!==-1;});updateTagLabel(px);}
@@ -2339,7 +2366,7 @@ function rVendors(){
 }
 
 
-function rCats(){var el=document.getElementById('cat-list');el.innerHTML=CATS.map(c=>'<div class="flex items-center justify-between bg-slate-900 border border-slate-800 px-4 py-3 rounded-lg"><span class="font-medium text-slate-300 flex items-center gap-2"><span class="w-3 h-3 rounded-full" style="background:'+(BC[c.color]||BC.gray).text+'"></span>'+esc(c.name)+'</span><button class="text-xs text-red-400 hover:text-red-300" onclick="CATS=CATS.filter(x=>x.id!==\''+c.id+'\');save();rCats();syncSel()">刪除</button></div>').join('');}
+function rCats(){var el=document.getElementById('cat-list');el.innerHTML=CATS.map(c=>'<div class="flex items-center justify-between px-3 py-2 rounded-lg border border-slate-800/60 bg-slate-900/40 hover:bg-slate-800/40 transition-colors"><span class="text-sm text-slate-300 flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:'+(BC[c.color]||BC.gray).text+'"></span>'+esc(c.name)+'</span><button class="text-[10px] text-slate-600 hover:text-red-400 transition-colors px-1" onclick="CATS=CATS.filter(x=>x.id!==\''+c.id+'\');save();rCats();syncSel()">✕</button></div>').join('');}
 function addCat() {
   var n = document.getElementById('cat-name').value.trim();
   if (!n) return;
@@ -2362,13 +2389,12 @@ function rGrp(){
     var totalEarned=tasks.reduce((s,p)=>s+(p.earned||0),0);
     var taskCards='';
     if(isExp){
-      taskCards=`<div class="proj-group-body"><div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      taskCards=`<div class="proj-group-body"><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
         ${tasks.length?tasks.map(p=>{
           var c=catBy(p.type);
           var tCell=renderTagList(p.tags);
           var cur=p.budgetCur||'TWD';
-          var logs=DLOGS.filter(l=>l.pid===p.id);
-          var recentLogs=logs.sort((a,b)=>b.date.localeCompare(a.date)).slice(0,3);
+          var isOutsource=p.execMode&&p.execMode!=='self';
           var dli=deadlineInfo(p.edate,p.st);
           var nms=nextMilestone(p);
           var effectiveDli=dli;
@@ -2377,32 +2403,40 @@ function rGrp(){
           }
           var dlCls=effectiveDli&&effectiveDli.cls?' '+effectiveDli.cls:'';
           var dlBadge=dli&&dli.cls?`<span class="dl-badge ${dli.cls}">${dli.label}</span>`:'';
-          var msLine=nms?`<div class="text-[10px] mt-1 text-violet-400">▸ ${esc(nms.name)} ${nms.date}${nms.dli&&nms.dli.cls?' <span class="dl-badge '+nms.dli.cls+'">'+nms.dli.label+'</span>':''}</div>`:'';
-          var dlLine=`<div class="text-[10px] mt-2 flex items-center justify-between"><span class="text-slate-600"> ${p.sdate||'?'} ~ ${p.edate||'?'}</span>${dlBadge}</div>${msLine}`;
+          var msLine=nms?`<div class="text-[10px] text-violet-400 truncate">▸ ${esc(nms.name)}${nms.dli&&nms.dli.cls?' <span class="dl-badge '+nms.dli.cls+'">'+nms.dli.label+'</span>':''}</div>`:'';
           var grpExecBadge='';
           if(p.execMode==='outsource') grpExecBadge='<span class="badge bg-amber-950 text-amber-400 border border-amber-900/50 text-[10px]">外包</span>';
           else if(p.execMode==='resell') grpExecBadge='<span class="badge bg-purple-950 text-purple-400 border border-purple-900/50 text-[10px]">轉包</span>';
-          var grpVendorHint=(p.execMode&&p.execMode!=='self'&&p.vendorName)?`<div class="text-[10px] text-amber-400/60 mt-1">→ ${esc(p.vendorName)}</div>`:'';
-          return `<div class="task-card${dlCls}" onclick="openDetail(${p.id})">
-            <div class="flex items-center justify-between mb-2">
-              <span class="font-medium text-slate-200 text-sm">${esc(p.name)} ${grpExecBadge}</span>
-              ${bdgSt(p.st)}
+          var ar=projAR(p.id);
+          var earnedStr=(function(){
+            if(ar.earned>0){
+              var arAmt=ar.earned-ar.recv;
+              if(arAmt>0) return '<span class="text-amber-400">'+fmtMoney(ar.earned,cur)+'</span>';
+              return '<span class="text-emerald-400/80">'+fmtMoney(ar.earned,cur)+'</span>';
+            }
+            if(ar.isExpected) return '<span class="text-slate-500">'+fmtMoney(ar.expected,cur)+'</span><span class="text-[9px] text-slate-600 ml-0.5">預</span>';
+            return '<span class="text-slate-600">-</span>';
+          })();
+          var vendorCostStr=isOutsource?(p.vendorCost?fmtMoney(p.vendorCost,p.vendorCostCur||'TWD'):'<span class="text-slate-600">-</span>'):'';
+          var vendorLine=(isOutsource&&p.vendorName)?`<div class="text-[10px] text-amber-400/70 truncate">→ ${esc(p.vendorName)}</div>`:'';
+          return `<div class="task-card${dlCls}" style="padding:10px 12px" onclick="openDetail(${p.id})">
+            <div class="flex items-center justify-between gap-1 mb-1.5">
+              <span class="font-medium text-slate-200 text-xs truncate">${esc(p.name)}</span>
+              <div class="flex items-center gap-1 flex-shrink-0">${grpExecBadge}${bdgSt(p.st)}</div>
             </div>
-            <div class="flex flex-wrap gap-1 mb-2">${bdg(c.name,c.color)} ${tCell}</div>
-            <div class="grid grid-cols-3 gap-2 text-xs">
-              <div><span class="text-slate-500">工時</span><br><span class="text-blue-300 font-medium">${formatHrs(p.hrs||0)}</span></div>
-              <div><span class="text-slate-500">${p.execMode==='resell'?'上游收入':'應收'}</span><br><span class="text-slate-300">${(function(){
-                if(p.earned) return fmtMoney(p.earned,cur);
-                if(!p.nonBillable && p.bill==='piece' && (p.budget||0)>0) return '<span class="text-slate-400">'+fmtMoney(p.budget,cur)+'</span><span class="text-[10px] text-slate-500">(預期)</span>';
-                return '-';
-              })()}</span></div>
-              <div><span class="text-slate-500">${(p.execMode&&p.execMode!=='self')?'發包成本':'合約'}</span><br><span class="text-slate-400">${(p.execMode&&p.execMode!=='self')?(p.vendorCost?fmtMoney(p.vendorCost,p.vendorCostCur||'TWD'):'-'):(p.budget?fmtMoney(p.budget,cur):'-')}</span></div>
+            <div class="flex flex-wrap gap-1 mb-2">${bdg(c.name,c.color)}${tCell}</div>
+            <div class="flex items-center gap-3 text-[11px] mb-1.5">
+              <div><span class="text-slate-500">${p.execMode==='resell'?'上游':'應收'}</span> ${earnedStr}</div>
+              ${isOutsource?`<div><span class="text-slate-500">發包</span> <span class="text-slate-400">${vendorCostStr}</span></div>`:''}
+              <div><span class="text-slate-500">工時</span> <span class="text-blue-300">${formatHrs(p.hrs||0)}</span></div>
             </div>
-            ${grpVendorHint}
-            ${recentLogs.length?`<div class="mt-2 pt-2 border-t border-slate-800"><p class="text-[10px] text-slate-500 mb-1">最近工時紀錄</p>${recentLogs.map(l=>`<div class="text-[11px] text-slate-500">${l.date} — ${formatHrs(l.hrs)}${l.note?' · '+esc(l.note):''}</div>`).join('')}</div>`:''}
-            ${dlLine}
+            ${vendorLine}
+            <div class="flex items-center justify-between text-[10px] mt-1">
+              <span class="text-slate-600">${p.sdate||'?'} ~ ${p.edate||'?'}</span>${dlBadge}
+            </div>
+            ${msLine}
           </div>`;
-        }).join(''):`<div class="text-sm text-slate-600 py-6 col-span-2 text-center">此群組尚無任務</div>`}
+        }).join(''):`<div class="text-sm text-slate-600 py-6 col-span-3 text-center">此群組尚無任務</div>`}
       </div></div>`;
     }
     return `<div class="proj-group">
@@ -2523,7 +2557,7 @@ function editProj(id) {
   var html=`<div class="flex flex-col gap-4">
     <div><label class="text-xs font-semibold text-slate-500 block mb-1">任務名稱</label><input id="ep-name" class="inp" value="${esc(p.name)}"></div>
     <div class="grid grid-cols-2 gap-3">
-      <div><label class="text-xs font-semibold text-slate-500 block mb-1">所屬專案</label><select id="ep-grp" class="inp">${grpOpts}</select></div>
+      <div style="display:${getWorkMode()==='manager'?'block':'none'}"><label class="text-xs font-semibold text-slate-500 block mb-1">所屬專案</label><select id="ep-grp" class="inp">${grpOpts}</select></div>
       <div><label class="text-xs font-semibold text-slate-500 block mb-1">業務類型</label><select id="ep-type" class="inp">${catOpts}</select></div>
     </div>
     
@@ -2698,8 +2732,8 @@ function openDetail(id){
 
       <div class="bg-slate-800/20 border border-slate-700/50 rounded-lg p-3.5 mb-6">
         <div class="grid grid-cols-[60px_1fr] gap-y-2.5 text-xs items-center px-1">
-          <div class="text-slate-500">專案群組</div>
-          <div class="-ml-1.5">
+          <div class="text-slate-500" style="display:${getWorkMode()==='manager'?'':'none'}">專案群組</div>
+          <div class="-ml-1.5" style="display:${getWorkMode()==='manager'?'':'none'}">
             <select class="bg-transparent outline-none hover:bg-slate-800/60 border border-transparent hover:border-slate-700 rounded px-1.5 py-0.5 cursor-pointer transition-colors text-slate-300 w-auto" onchange="updateProjField(${id}, 'gid', this.value)">${grpOpts}</select>
           </div>
           
@@ -3562,39 +3596,212 @@ function togglePayAR(){
 }
 
 function addTag(){var n=document.getElementById('tag-name').value.trim();if(!n)return;TAGS.push({id:'t'+Date.now(),name:n,color:document.getElementById('tag-color').value});save();rTagStats();syncSel();document.getElementById('tag-name').value='';}
-function rTagStats(){
-  var el=document.getElementById('tag-list');
-  el.innerHTML=TAGS.map(t=>`<div class=\"flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-full\"><span class=\"w-2 h-2 rounded-full\" style=\"background:${(BC[t.color]||BC.gray).text}\"></span><span class=\"text-xs font-medium text-slate-300\">${esc(t.name)}</span><button class=\"text-slate-500 hover:text-red-400 text-[10px]\" onclick=\"TAGS=TAGS.filter(x=>x.id!=='${t.id}');save();rTagStats();syncSel()\">✕</button></div>`).join('');
-  
-  // 填充月份下拉
-  var monthSelEl=document.getElementById('tag-month-filter');
-  if(monthSelEl){
-    var monthSet={};
-    DLOGS.forEach(function(l){if(l.date&&l.date.length>=7)monthSet[l.date.substring(0,7)]=true;});
-    PJ.forEach(function(p){if(p.sdate&&p.sdate.length>=7)monthSet[p.sdate.substring(0,7)]=true;});
-    var months=Object.keys(monthSet).sort().reverse();
-    var prevMonthVal=monthSelEl.value;
-    var monthOptHtml='<option value="">— 全部月份 —</option>'+months.map(function(m){return '<option value="'+m+'"'+(m===prevMonthVal?' selected':'')+'>'+m+'</option>';}).join('');
-    if(monthSelEl.innerHTML!==monthOptHtml) monthSelEl.innerHTML=monthOptHtml;
+
+// ===== 多選下拉組件（v3：狀態外存、無冒泡問題、含搜尋框）=====
+var _mddState={};  // containerId → Set<val>
+var _mddItems={};  // containerId → [{val,label}]
+
+function getMultiDDValues(cid){ var s=_mddState[cid]; return s&&s.size?Array.from(s):[]; }
+
+/* 初次建立下拉 DOM，之後只更新內容不重建外框 */
+function buildMultiDD(cid, items, placeholder, onChangeFn){
+  var wrap=document.getElementById(cid);
+  if(!wrap)return;
+  _mddItems[cid]=items;
+  if(!_mddState[cid]) _mddState[cid]=new Set();
+
+  var ddId='mdd_'+cid;
+  // 若外框已存在，只刷新列表內容和按鈕文字
+  if(document.getElementById(ddId)){
+    _mddRefreshList(cid, ddId, onChangeFn);
+    _mddRefreshBtn(cid, ddId);
+    return;
   }
-  
-  var tagF=document.getElementById('tag-filter').value, grpF=document.getElementById('tag-grp-filter').value, q=document.getElementById('tag-search').value.toLowerCase();
-  var monF=monthSelEl?monthSelEl.value:'';
-  var filtered=PJ.filter(p=>{
-    if(tagF&&(!p.tags||p.tags.indexOf(tagF)===-1))return false;
-    if(grpF&&p.gid!==grpF)return false;
-    if(q&&p.name.toLowerCase().indexOf(q)===-1)return false;
-    if(monF){
-      // 月份篩選：任務有工時紀錄在該月，或起訖日期涵蓋該月
-      var hasLog=DLOGS.some(function(l){return l.pid===p.id&&l.date.indexOf(monF)===0;});
-      if(!hasLog){
-        var inRange=(p.sdate&&p.sdate.substring(0,7)<=monF&&(!p.edate||p.edate.substring(0,7)>=monF));
-        if(!inRange)return false;
+
+  // 首次建立
+  var html=
+    '<div class="tag-dd" id="'+ddId+'" style="position:relative">'+
+      '<div class="tag-dd-btn" id="'+ddId+'_btn" style="min-width:130px;cursor:pointer">'+
+        '<span class="flex-1 text-left text-xs truncate mdd-btn-label" style="max-width:170px"></span>'+
+        '<span class="text-slate-600 text-[10px] ml-1 flex-shrink-0">▾</span>'+
+      '</div>'+
+      '<div class="tag-dd-list" id="'+ddId+'_list" style="min-width:200px;max-height:280px;overflow:hidden;">'+
+        '<div class="px-2 pt-2 pb-1 flex-shrink-0">'+
+          '<input type="text" class="inp py-1 text-xs mdd-search" placeholder="搜尋…" style="height:28px">'+
+        '</div>'+
+        '<div class="mdd-scroll" style="overflow-y:auto;flex:1"></div>'+
+      '</div>'+
+    '</div>';
+  wrap.innerHTML=html;
+
+  // 按鈕 toggle
+  var btn=document.getElementById(ddId+'_btn');
+  btn.addEventListener('click', function(e){
+    e.stopPropagation();
+    _mddToggle(ddId);
+  });
+
+  // 搜尋框
+  var searchInp=wrap.querySelector('.mdd-search');
+  searchInp.addEventListener('click',function(e){e.stopPropagation();});
+  searchInp.addEventListener('input',function(){
+    _mddRefreshList(cid, ddId, onChangeFn);
+  });
+
+  _mddRefreshList(cid, ddId, onChangeFn);
+  _mddRefreshBtn(cid, ddId);
+}
+
+function _mddToggle(ddId){
+  var list=document.getElementById(ddId+'_list');
+  if(!list)return;
+  var open=list.classList.contains('open');
+  // 關所有其他
+  document.querySelectorAll('.tag-dd-list.open').forEach(function(el){el.classList.remove('open');});
+  if(!open){
+    list.classList.add('open');
+    // 清空搜尋框
+    var si=list.querySelector('.mdd-search');
+    if(si){si.value=''; si.dispatchEvent(new Event('input'));}
+    setTimeout(function(){
+      function outside(e){
+        var panel=document.getElementById(ddId+'_list');
+        var btn=document.getElementById(ddId+'_btn');
+        if(!panel||(!panel.contains(e.target)&&!btn.contains(e.target))){
+          if(panel)panel.classList.remove('open');
+          document.removeEventListener('click',outside,true);
+        }
       }
+      document.addEventListener('click',outside,true);
+    },0);
+  }
+}
+
+function _mddRefreshList(cid, ddId, onChangeFn){
+  var scroll=document.querySelector('#'+ddId+'_list .mdd-scroll');
+  if(!scroll)return;
+  var items=_mddItems[cid]||[];
+  var s=_mddState[cid]||new Set();
+  var q='';
+  var si=document.querySelector('#'+ddId+'_list .mdd-search');
+  if(si)q=si.value.toLowerCase();
+  var visible=q?items.filter(function(it){return it.label.toLowerCase().indexOf(q)!==-1;}):items;
+  var isAll=s.size===0;
+
+  var rows='';
+  // 「全部」行（搜尋時隱藏）
+  if(!q){
+    rows+='<label class="tag-dd-item" style="cursor:pointer">'+
+      '<input type="checkbox" class="mdd-all flex-shrink-0" '+(isAll?'checked':'')+' style="accent-color:#3b82f6">'+
+      '<span class="text-slate-400 text-xs">全部</span></label>';
+  }
+  visible.forEach(function(it){
+    var chk=s.has(it.val);
+    rows+='<label class="tag-dd-item" data-val="'+it.val+'" style="cursor:pointer">'+
+      '<input type="checkbox" class="mdd-item flex-shrink-0" '+(chk?'checked':'')+' style="accent-color:#3b82f6">'+
+      '<span class="text-xs">'+esc(it.label)+'</span></label>';
+  });
+  if(!visible.length) rows='<div class="px-3 py-2 text-xs text-slate-600">無符合項目</div>';
+  scroll.innerHTML=rows;
+
+  // 事件：全部
+  var allChk=scroll.querySelector('.mdd-all');
+  if(allChk){
+    allChk.addEventListener('change',function(){
+      _mddState[cid]=new Set();
+      _mddRefreshList(cid,ddId,onChangeFn);
+      _mddRefreshBtn(cid,ddId);
+      if(onChangeFn&&window[onChangeFn])window[onChangeFn]();
+    });
+  }
+
+  // 事件：個別項目
+  scroll.querySelectorAll('.mdd-item').forEach(function(chk){
+    chk.addEventListener('change',function(){
+      var val=chk.closest('[data-val]').getAttribute('data-val');
+      var s2=_mddState[cid]||new Set();
+      if(chk.checked){
+        s2.add(val);
+      } else {
+        s2.delete(val);
+      }
+      _mddState[cid]=s2;
+      // 同步「全部」checkbox：若沒有任何選擇，勾上全部
+      var ac=scroll.querySelector('.mdd-all');
+      if(ac) ac.checked=(s2.size===0);
+      _mddRefreshBtn(cid,ddId);
+      if(onChangeFn&&window[onChangeFn])window[onChangeFn]();
+    });
+  });
+}
+
+function _mddRefreshBtn(cid,ddId){
+  var labelSpan=document.querySelector('#'+ddId+'_btn .mdd-btn-label');
+  if(!labelSpan)return;
+  var s=_mddState[cid]||new Set();
+  if(s.size===0){
+    labelSpan.innerHTML='<span class="text-slate-500">全部</span>';
+  } else {
+    var items=_mddItems[cid]||[];
+    var labels=items.filter(function(it){return s.has(it.val);}).map(function(it){return esc(it.label);});
+    labelSpan.innerHTML='<span class="text-blue-300">'+labels.join(', ')+'</span>';
+  }
+}
+
+function rTagStats(){
+  // 渲染 tag-list（在 v-cat 頁）
+  var el=document.getElementById('tag-list');
+  if(el) el.innerHTML=TAGS.map(t=>`<div class=\"flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-full\"><span class=\"w-2 h-2 rounded-full\" style=\"background:${(BC[t.color]||BC.gray).text}\"></span><span class=\"text-xs font-medium text-slate-300\">${esc(t.name)}</span><button class=\"text-slate-500 hover:text-red-400 text-[10px]\" onclick=\"TAGS=TAGS.filter(x=>x.id!=='${t.id}');save();rTagStats();syncSel()\">✕</button></div>`).join('');
+  
+  // 建立選項
+  var monthSet={};
+  DLOGS.forEach(function(l){if(l.date&&l.date.length>=7)monthSet[l.date.substring(0,7)]=true;});
+  PJ.forEach(function(p){if(p.sdate&&p.sdate.length>=7)monthSet[p.sdate.substring(0,7)]=true;});
+  var monthItems=Object.keys(monthSet).sort().reverse().map(function(m){return{val:m,label:m};});
+  var tagItems=TAGS.map(function(t){return{val:t.id,label:t.name};});
+  var grpItems=GRPS.map(function(g){return{val:g.id,label:g.name};});
+
+  // 只在容器存在且尚未初始化時才 build（避免重建 DOM 關掉開著的下拉）
+  if(document.getElementById('tag-month-dd')&&!document.getElementById('mdd_tag-month-dd')){
+    buildMultiDD('tag-month-dd',monthItems,'全部月份','_applyTagFilter');
+  }
+  if(document.getElementById('tag-tag-dd')&&!document.getElementById('mdd_tag-tag-dd')){
+    buildMultiDD('tag-tag-dd',tagItems,'全部標籤','_applyTagFilter');
+  }
+  if(document.getElementById('tag-grp-dd')&&!document.getElementById('mdd_tag-grp-dd')){
+    buildMultiDD('tag-grp-dd',grpItems,'全部群組','_applyTagFilter');
+  }
+
+  _applyTagFilter();}
+
+function _applyTagFilter(){
+  var selMonths=getMultiDDValues('tag-month-dd');
+  var selTags=getMultiDDValues('tag-tag-dd');
+  var selGrps=getMultiDDValues('tag-grp-dd');
+  var q=document.getElementById('tag-search')?document.getElementById('tag-search').value.toLowerCase():'';
+  var filtered=PJ.filter(function(p){
+    // 標籤複選：任一符合即通過
+    if(selTags.length>0){
+      var hasTags=selTags.some(function(tid){return p.tags&&p.tags.indexOf(tid)!==-1;});
+      if(!hasTags)return false;
+    }
+    // 群組複選
+    if(selGrps.length>0&&selGrps.indexOf(p.gid)===-1)return false;
+    // 關鍵字
+    if(q&&p.name.toLowerCase().indexOf(q)===-1)return false;
+    // 月份複選：有任一選定月份的工時或涵蓋區間
+    if(selMonths.length>0){
+      var pass=selMonths.some(function(monF){
+        var hasLog=DLOGS.some(function(l){return l.pid===p.id&&l.date.indexOf(monF)===0;});
+        if(hasLog)return true;
+        return(p.sdate&&p.sdate.substring(0,7)<=monF&&(!p.edate||p.edate.substring(0,7)>=monF));
+      });
+      if(!pass)return false;
     }
     return true;
   });
-  var tb=document.getElementById('tag-proj-body'); 
+  var tb=document.getElementById('tag-proj-body');
+  if(!tb)return;
   document.getElementById('tag-proj-empty').style.display=filtered.length?'none':'block';
   
         tb.innerHTML = filtered.map(p => {
@@ -3653,7 +3860,13 @@ function renderDash(){
   var hrsLabel=formatHrs(tH)+(otherH>0?' <span class="text-slate-500 text-sm font-normal">+ 其他 '+formatHrs(otherH)+'</span>':'');
   
   var eMap={TWD:0,USD:0,CNY:0,JPY:0}, rMap={TWD:0,USD:0,CNY:0,JPY:0};
-  PJ.forEach(p=>{if(!p.nonBillable)eMap[p.budgetCur||'TWD']+=(p.earned||0);});
+  // 應收：若有月份篩選，只計算在該月有工時的任務之應收比例；全部時取全部
+  if(mon){
+    var pidSet=new Set(fLogs.map(function(l){return l.pid;}));
+    PJ.forEach(function(p){if(!p.nonBillable&&pidSet.has(p.id))eMap[p.budgetCur||'TWD']+=(p.earned||0);});
+  } else {
+    PJ.forEach(p=>{if(!p.nonBillable)eMap[p.budgetCur||'TWD']+=(p.earned||0);});
+  }
   fp.forEach(p=>{if((p.payType||'income')==='income') rMap[p.cur]+=p.amt;});
   var arMap=totalARMap();
 
@@ -3662,11 +3875,11 @@ function renderDash(){
   var netProfitTWD=totalEarnedTWD-totalVendorCostTWD;
   var vendorCostHtml=totalVendorCostTWD>0?sc('外包/轉包成本','NT$ '+Math.round(totalVendorCostTWD).toLocaleString())+sc('淨利 (應收-成本)','<span class="'+(netProfitTWD>=0?'text-emerald-400':'text-red-400')+'">NT$ '+Math.round(netProfitTWD).toLocaleString()+'</span>'):'';
 
-  document.getElementById('dash-stats').innerHTML=sc('歷史總應收',formatMultiCurMap(eMap))+sc('平均時薪 (NT$)', (function(){
-    var totalBillHrs=DLOGS.filter(function(l){return !nbPids[l.pid];}).reduce(function(s,l){return s+l.hrs;},0);
-    var totalEarnedTWD2=Object.keys(eMap).reduce(function(s,k){return s+toTWD(eMap[k],k);},0);
-    if(totalBillHrs<=0)return '<span class="text-slate-500">-</span>';
-    var avgRate=Math.round(totalEarnedTWD2/totalBillHrs);
+  document.getElementById('dash-stats').innerHTML=sc((mon?mon+' ':'歷史')+'總應收',formatMultiCurMap(eMap))+sc('平均時薪 (NT$)', (function(){
+    var billHrs=tH; // 已是篩選後計費工時
+    var earnedTWD2=Object.keys(eMap).reduce(function(s,k){return s+toTWD(eMap[k],k);},0);
+    if(billHrs<=0)return '<span class="text-slate-500">-</span>';
+    var avgRate=Math.round(earnedTWD2/billHrs);
     var tgt=getGlobalRate();
     var col=avgRate>=tgt?'text-emerald-400':(avgRate>0?'text-amber-400':'text-slate-400');
     return '<span class="'+col+'">NT$ '+avgRate.toLocaleString()+'</span><span class="text-xs text-slate-500 ml-1">/ h</span>';
@@ -4279,7 +4492,7 @@ function go(id,btn){
   document.querySelectorAll('.tab-main,.tab-sub').forEach(el=>el.classList.remove('active'));
   document.getElementById(VIEWS[id]).classList.remove('hidden');
   btn.classList.add('active');
-  if(id==='dash')renderDash(); if(id==='tag')rTagStats(); if(id==='grp')rGrp(); if(id==='cal')renderCal(); if(id==='vendor')rVendors();
+  if(id==='dash')renderDash(); if(id==='tag')rTagStats(); if(id==='grp')rGrp(); if(id==='cal')renderCal(); if(id==='vendor')rVendors(); if(id==='cat')rTagStats();
 }
 function toggleCalTracks() {
   var chk = document.getElementById('cal-toggle-tracks');
