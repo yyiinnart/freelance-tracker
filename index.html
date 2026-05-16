@@ -1916,7 +1916,16 @@ function handleDrop(e, targetId, targetBucket) {
   save(); rProj(); draggedId = null; draggedBucket = null;
 }
 
-function openModal(t,b,cb,okLabel){document.getElementById('modal-title').textContent=t;var mb=document.getElementById('modal-body');if(typeof b==='string')mb.innerHTML='<p class="text-sm text-slate-400">'+b+'</p>';else mb.innerHTML=b;document.getElementById('modal-ok').textContent=okLabel||'確認';MCB=cb;document.getElementById('modal').classList.remove('hidden');}
+function openModal(t,b,cb,okLabel,infoOnly){
+  document.getElementById('modal-title').textContent=t;
+  var mb=document.getElementById('modal-body');
+  if(typeof b==='string')mb.innerHTML='<p class="text-sm text-slate-400">'+b+'</p>';else mb.innerHTML=b;
+  document.getElementById('modal-ok').textContent=okLabel||'確認';
+  MCB=cb;
+  var cancelBtn=document.querySelector('#modal .btn:not(#modal-ok)');
+  if(cancelBtn) cancelBtn.style.display=infoOnly?'none':'';
+  document.getElementById('modal').classList.remove('hidden');
+}
 function closeModal(){document.getElementById('modal').classList.add('hidden');MCB=null;}
 function modalConfirm(){if(MCB)MCB();closeModal();}
 
@@ -2393,7 +2402,6 @@ function rGrp(){
         ${tasks.length?tasks.map(p=>{
           var c=catBy(p.type);
           var tCell=renderTagList(p.tags);
-          var cur=p.budgetCur||'TWD';
           var isOutsource=p.execMode&&p.execMode!=='self';
           var dli=deadlineInfo(p.edate,p.st);
           var nms=nextMilestone(p);
@@ -2403,38 +2411,63 @@ function rGrp(){
           }
           var dlCls=effectiveDli&&effectiveDli.cls?' '+effectiveDli.cls:'';
           var dlBadge=dli&&dli.cls?`<span class="dl-badge ${dli.cls}">${dli.label}</span>`:'';
-          var msLine=nms?`<div class="text-[10px] text-violet-400 truncate">▸ ${esc(nms.name)}${nms.dli&&nms.dli.cls?' <span class="dl-badge '+nms.dli.cls+'">'+nms.dli.label+'</span>':''}</div>`:'';
-          var grpExecBadge='';
-          if(p.execMode==='outsource') grpExecBadge='<span class="badge bg-amber-950 text-amber-400 border border-amber-900/50 text-[10px]">外包</span>';
-          else if(p.execMode==='resell') grpExecBadge='<span class="badge bg-purple-950 text-purple-400 border border-purple-900/50 text-[10px]">轉包</span>';
+          // 里程碑：名稱 + MM-DD
+          var msLine=nms?(function(){
+            var dateShort=nms.date?nms.date.slice(5):'';
+            var dlPart=nms.dli&&nms.dli.cls?' <span class="dl-badge '+nms.dli.cls+'">'+nms.dli.label+'</span>':'';
+            return `<div class="text-[10px] text-violet-400 truncate mb-1">▸ ${esc(nms.name)}${dateShort?' <span class="text-slate-600">'+dateShort+'</span>':''}${dlPart}</div>`;
+          })():'';
+          // 右上角：外包/轉包 badge + 負責人
+          var execCorner='';
+          if(isOutsource){
+            var execLabel=p.execMode==='resell'?'轉包':'外包';
+            var execColor=p.execMode==='resell'?'bg-purple-950 text-purple-400 border-purple-900/50':'bg-amber-950 text-amber-400 border-amber-900/50';
+            var vendorTxt=p.vendorName
+              ?`<span class="text-[10px] text-amber-300/70 truncate max-w-[80px] block text-right leading-tight">${esc(p.vendorName)}</span>`
+              :'<span class="text-[10px] text-slate-600 block text-right leading-tight">未指定</span>';
+            execCorner=`<div class="flex flex-col items-end gap-0.5 flex-shrink-0 ml-2 min-w-[52px]"><span class="badge ${execColor} border text-[10px] self-end">${execLabel}</span>${vendorTxt}</div>`;
+          }
+          // 應收狀態（客戶方）
           var ar=projAR(p.id);
-          var earnedStr=(function(){
-            if(ar.earned>0){
-              var arAmt=ar.earned-ar.recv;
-              if(arAmt>0) return '<span class="text-amber-400">'+fmtMoney(ar.earned,cur)+'</span>';
-              return '<span class="text-emerald-400/80">'+fmtMoney(ar.earned,cur)+'</span>';
-            }
-            if(ar.isExpected) return '<span class="text-slate-500">'+fmtMoney(ar.expected,cur)+'</span><span class="text-[9px] text-slate-600 ml-0.5">預</span>';
-            return '<span class="text-slate-600">-</span>';
+          var arBadge=(function(){
+            if(p.nonBillable) return '';
+            var base=ar.earned>0?ar.earned:(ar.isExpected?ar.expected:0);
+            if(base<=0) return '';
+            var net=base-ar.recv;
+            if(net<=0) return '<span class="badge bg-emerald-950 text-emerald-400 border border-emerald-900/50 text-[10px]">＄ 結清</span>';
+            return ar.isExpected
+              ? '<span class="badge bg-slate-800 text-slate-500 border border-slate-700 text-[10px]">＄ 預估</span>'
+              : '<span class="ar-badge-pending">＄ 待收</span>';
           })();
-          var vendorCostStr=isOutsource?(p.vendorCost?fmtMoney(p.vendorCost,p.vendorCostCur||'TWD'):'<span class="text-slate-600">-</span>'):'';
-          var vendorLine=(isOutsource&&p.vendorName)?`<div class="text-[10px] text-amber-400/70 truncate">→ ${esc(p.vendorName)}</div>`:'';
-          return `<div class="task-card${dlCls}" style="padding:10px 12px" onclick="openDetail(${p.id})">
-            <div class="flex items-center justify-between gap-1 mb-1.5">
-              <span class="font-medium text-slate-200 text-xs truncate">${esc(p.name)}</span>
-              <div class="flex items-center gap-1 flex-shrink-0">${grpExecBadge}${bdgSt(p.st)}</div>
+          // 外包付款狀態（廠商方）—— 取代「預估」，直接顯示付款狀態
+          var payBadge='';
+          if(isOutsource){
+            payBadge=p.vendorPaid
+              ?'<span class="badge bg-emerald-950 text-emerald-400 border border-emerald-900/50 text-[10px]">已付款</span>'
+              :'<span class="badge bg-amber-950/80 text-amber-400 border border-amber-900/50 text-[10px]">待付款</span>';
+          }
+          // 底部 badge 列：客戶應收 + 外包付款
+          var moneyRow=[arBadge,payBadge].filter(Boolean).join(' ');
+          return `<div class="task-card${dlCls}" style="padding:10px 12px;display:flex;flex-direction:column;min-height:118px" onclick="openDetail(${p.id})">
+            <div class="flex items-start gap-1 mb-1">
+              <span class="font-medium text-slate-100 text-xs leading-snug flex-1 min-w-0">${esc(p.name)}</span>
+              ${execCorner}
             </div>
-            <div class="flex flex-wrap gap-1 mb-2">${bdg(c.name,c.color)}${tCell}</div>
-            <div class="flex items-center gap-3 text-[11px] mb-1.5">
-              <div><span class="text-slate-500">${p.execMode==='resell'?'上游':'應收'}</span> ${earnedStr}</div>
-              ${isOutsource?`<div><span class="text-slate-500">發包</span> <span class="text-slate-400">${vendorCostStr}</span></div>`:''}
-              <div><span class="text-slate-500">工時</span> <span class="text-blue-300">${formatHrs(p.hrs||0)}</span></div>
+            <div class="flex flex-wrap gap-1 mb-1">${bdg(c.name,c.color)}</div>
+            ${tCell?`<div class="flex flex-wrap gap-1 mb-1">${tCell}</div>`:''}
+            <div class="mt-auto">
+              ${msLine}
+              <div class="flex items-center justify-between text-[10px] pt-1.5 border-t border-slate-800/60">
+                <span class="text-slate-600">${p.edate||'未設截止'} ${dlBadge}</span>
+                <div class="flex items-center gap-1">
+                  ${moneyRow}
+                  ${bdgSt(p.st)}
+                </div>
+              </div>
+              <div class="flex justify-end mt-1">
+                <button class="text-[10px] text-slate-600 hover:text-slate-300 transition-colors px-1" onclick="editProj(${p.id});event.stopPropagation()" title="編輯任務">✎ 編輯</button>
+              </div>
             </div>
-            ${vendorLine}
-            <div class="flex items-center justify-between text-[10px] mt-1">
-              <span class="text-slate-600">${p.sdate||'?'} ~ ${p.edate||'?'}</span>${dlBadge}
-            </div>
-            ${msLine}
           </div>`;
         }).join(''):`<div class="text-sm text-slate-600 py-6 col-span-3 text-center">此群組尚無任務</div>`}
       </div></div>`;
@@ -2445,10 +2478,9 @@ function rGrp(){
           <span class="chevron ${isExp?'expanded':''}" style="color:#64748b">▶</span>
           <span class="font-medium text-slate-200">${esc(g.name)}</span>
           ${bdgSt(g.st)}
-          <span class="text-xs text-slate-500">${tasks.length} 任務</span>
-          <span class="text-xs text-slate-600 ml-2">合計 ${formatHrs(totalHrs)}</span>
         </div>
         <div class="flex items-center gap-2">
+          <button class="btn btn-sm text-xs text-slate-400 border-slate-700" onclick="showGrpStats('${g.id}');event.stopPropagation()">📊 統計</button>
           <button class="btn btn-sm text-xs" onclick="editGrp('${g.id}');event.stopPropagation()">✎ 編輯</button>
           <button class="text-xs text-red-400 hover:text-red-300 px-2" onclick="delGrp('${g.id}');event.stopPropagation()">刪除</button>
         </div>
@@ -2456,6 +2488,89 @@ function rGrp(){
       ${taskCards}
     </div>`;
   }).join('');
+}
+
+function showGrpStats(gid){
+  var g=grpBy(gid);if(!g)return;
+  var tasks=PJ.filter(p=>p.gid===gid);
+  var totalHrs=tasks.reduce((s,p)=>s+(p.hrs||0),0);
+  // 收支彙總（依幣別分組）
+  var earnedMap={},recvMap={},costMap={};
+  tasks.forEach(function(p){
+    var ar=projAR(p.id);
+    var cur=ar.cur||'TWD';
+    var base=ar.earned>0?ar.earned:(ar.isExpected?ar.expected:0);
+    if(base>0){ earnedMap[cur]=(earnedMap[cur]||0)+base; }
+    if(ar.recv>0){ recvMap[cur]=(recvMap[cur]||0)+ar.recv; }
+    if(p.vendorCost>0){ var vc=p.vendorCostCur||'TWD'; costMap[vc]=(costMap[vc]||0)+p.vendorCost; }
+  });
+  function mapToHtml(m,cls){
+    var keys=Object.keys(m);
+    if(!keys.length) return '<span class="text-slate-600">—</span>';
+    return keys.map(k=>'<span class="'+cls+'">'+fmtMoney(m[k],k)+'</span>').join('<span class="text-slate-700 mx-1">/</span>');
+  }
+  // 任務狀態分類
+  var active=tasks.filter(p=>p.st==='active').length;
+  var done=tasks.filter(p=>p.st==='done').length;
+  var paused=tasks.filter(p=>p.st==='paused').length;
+  // 待收彙總
+  var arMap={};
+  tasks.forEach(function(p){
+    var ar=projAR(p.id);
+    var cur=ar.cur||'TWD';
+    var base=ar.earned>0?ar.earned:(ar.isExpected?ar.expected:0);
+    var net=base-ar.recv;
+    if(net>0){ arMap[cur]=(arMap[cur]||0)+net; }
+  });
+  // 外包任務
+  var outsourceTasks=tasks.filter(p=>p.execMode&&p.execMode!=='self');
+  var outsourceHtml=outsourceTasks.length?outsourceTasks.map(p=>{
+    var ar=projAR(p.id);
+    var statusCls=p.vendorPaid?'text-emerald-400':'text-amber-400';
+    var statusTxt=p.vendorPaid?'已付款':'未付款';
+    return `<div class="flex items-center justify-between py-1.5 border-b border-slate-800/50 last:border-0 text-xs">
+      <span class="text-slate-300 truncate max-w-[140px]">${esc(p.name)}</span>
+      <span class="text-amber-300/70 text-[11px] mx-2">${esc(p.vendorName||'未指定')}</span>
+      <span class="${statusCls}">${statusTxt}${p.vendorCost?' · '+fmtMoney(p.vendorCost,p.vendorCostCur||'TWD'):''}</span>
+    </div>`;
+  }).join(''):'<div class="text-xs text-slate-600 py-2">無外包/轉包任務</div>';
+
+  var html=`<div class="flex flex-col gap-4 text-sm">
+    <div class="grid grid-cols-2 gap-3">
+      <div class="bg-slate-900 rounded-lg p-3 border border-slate-800">
+        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">任務</div>
+        <div class="text-base font-bold text-slate-200">${tasks.length} 項</div>
+        <div class="text-[11px] text-slate-500 mt-1">進行 ${active} · 完成 ${done}${paused?' · 暫停 '+paused:''}</div>
+      </div>
+      <div class="bg-slate-900 rounded-lg p-3 border border-slate-800">
+        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">總工時</div>
+        <div class="text-base font-bold text-blue-300">${formatHrs(totalHrs)}</div>
+      </div>
+    </div>
+    <div class="bg-slate-900 rounded-lg p-3 border border-slate-800 flex flex-col gap-2">
+      <div class="flex justify-between items-center">
+        <span class="text-[11px] text-slate-500">應收／預估</span>
+        <span>${mapToHtml(earnedMap,'text-slate-200 font-medium')}</span>
+      </div>
+      <div class="flex justify-between items-center">
+        <span class="text-[11px] text-slate-500">已實收</span>
+        <span>${mapToHtml(recvMap,'text-emerald-400')}</span>
+      </div>
+      <div class="flex justify-between items-center border-t border-slate-800 pt-2 mt-1">
+        <span class="text-[11px] text-amber-400/80">待收帳款</span>
+        <span>${mapToHtml(arMap,'text-amber-400 font-medium')}</span>
+      </div>
+      ${Object.keys(costMap).length?`<div class="flex justify-between items-center border-t border-slate-800 pt-2 mt-1">
+        <span class="text-[11px] text-slate-500">外包總成本</span>
+        <span>${mapToHtml(costMap,'text-purple-400')}</span>
+      </div>`:''}
+    </div>
+    ${outsourceTasks.length?`<div>
+      <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-2">外包／轉包明細</div>
+      <div class="bg-slate-900 rounded-lg border border-slate-800 px-3 py-1">${outsourceHtml}</div>
+    </div>`:''}
+  </div>`;
+  openModal('📊 '+esc(g.name)+' 收支統計', html, null, '關閉', true);
 }
 
 function toggleGrp(gid){expandedGrps[gid]=!expandedGrps[gid];rGrp();}
@@ -2569,7 +2684,15 @@ function editProj(id) {
     <div id="ep-vendor-wrap" class="bg-slate-800/40 border border-slate-700/50 rounded-lg p-3" style="display:${(p.execMode&&p.execMode!=='self')?'block':'none'}">
       <div class="text-[10px] font-semibold text-amber-400/80 uppercase tracking-wider mb-2">▸ 外包/轉包設定</div>
       <div class="flex flex-col gap-2">
-        <div><label class="text-xs text-slate-500 block mb-1">聯絡人</label><input id="ep-vendor" class="inp" value="${esc(p.vendorName||'')}" list="vendor-datalist" autocomplete="off" placeholder="輸入或從通訊錄選擇…"></div>
+        <div><label class="text-xs text-slate-500 block mb-1">負責人</label>
+          <select id="ep-vendor-sel" class="inp" onchange="onEpVendorChange(this)">
+            <option value="">— 未指定 —</option>
+            ${VENDORS.map(v=>`<option value="${v.id}" ${p.vendorId===v.id?'selected':''}>${esc(v.name)}</option>`).join('')}
+            ${p.vendorName&&!p.vendorId?`<option value="__manual__" selected>${esc(p.vendorName)}（未連動）</option>`:''}
+            <option value="__manual__">✎ 手動輸入姓名…</option>
+          </select>
+          <input id="ep-vendor" class="inp mt-1" value="${esc(p.vendorName||'')}" placeholder="輸入姓名" style="display:${p.vendorName&&!p.vendorId?'block':'none'}">
+        </div>
         <div><label class="text-xs text-slate-500 block mb-1">發包金額</label><div class="flex gap-1"><input id="ep-vcost" type="number" class="inp" value="${p.vendorCost||0}"><select id="ep-vcur" class="inp" style="width:70px">${CURS.map(c=>'<option value="'+c+'" '+((p.vendorCostCur||'TWD')===c?'selected':'')+'>'+c+'</option>').join('')}</select></div></div>
         <div><label class="text-xs text-slate-500 block mb-1">${p.execMode==='resell'?'已付給聯絡人':'付款狀態'}</label><select id="ep-vpaid" class="inp"><option value="false" ${!p.vendorPaid?'selected':''}>未付款</option><option value="true" ${p.vendorPaid?'selected':''}>已付款</option></select></div>
         ${p.execMode==='resell'?'<div><label class="text-xs text-slate-500 block mb-1">上游收款</label><select id="ep-urecv" class="inp"><option value="false" '+(!(p.upstreamReceived)?'selected':'')+'>未收款</option><option value="true" '+(p.upstreamReceived?'selected':'')+'>已收款</option></select></div>':''}
@@ -2615,8 +2738,15 @@ function editProj(id) {
 
     p.execMode=document.getElementById('ep-exec').value||'self';
     if(p.execMode!=='self'){
-      p.vendorName=document.getElementById('ep-vendor').value.trim();
-      p.vendorId=(vendorByName(p.vendorName)||{}).id||'';
+      var vSel=document.getElementById('ep-vendor-sel').value;
+      if(vSel&&vSel!=='__manual__'){
+        var vObj=vendorBy(vSel);
+        p.vendorId=vSel;
+        p.vendorName=vObj?vObj.name:'';
+      } else {
+        p.vendorId='';
+        p.vendorName=document.getElementById('ep-vendor').value.trim();
+      }
       p.vendorCost=+document.getElementById('ep-vcost').value||0;
       p.vendorCostCur=document.getElementById('ep-vcur').value||'TWD';
       p.vendorPaid=document.getElementById('ep-vpaid').value==='true';
@@ -2751,6 +2881,33 @@ function openDetail(id){
           </div>
         </div>
       </div>
+
+      ${p.execMode&&p.execMode!=='self'?`
+      <div class="bg-amber-950/10 border border-amber-900/30 rounded-lg p-3.5 mb-6">
+        <div class="text-[10px] font-bold text-amber-500/80 uppercase tracking-wider mb-3">▸ ${p.execMode==='resell'?'轉包':'外包'}資訊</div>
+        <div class="grid grid-cols-[72px_1fr] gap-y-2.5 text-xs items-center">
+          <div class="text-slate-500">負責人</div>
+          <div class="-ml-1">
+            <select class="bg-transparent outline-none hover:bg-slate-800/60 border border-transparent hover:border-slate-700 rounded px-1.5 py-0.5 cursor-pointer transition-colors text-amber-300/90 w-auto max-w-[200px]" onchange="updateVendorFromDetail(${id}, this.value)">
+              ${p.vendorId?'':`<option value="" class="bg-slate-900 text-slate-400">— 未指定 —</option>`}
+              ${VENDORS.map(v=>`<option value="${v.id}" class="bg-slate-900 text-slate-200" ${p.vendorId===v.id?'selected':''}>${esc(v.name)}</option>`).join('')}
+              ${p.vendorName&&!p.vendorId?`<option value="__manual__" selected class="bg-slate-900 text-amber-300">${esc(p.vendorName)}（未連動）</option>`:''}
+              <option value="__manual__" class="bg-slate-900 text-slate-500">✎ 手動輸入…</option>
+            </select>
+            ${p.vendorName&&!p.vendorId?`<span class="text-[10px] text-slate-600 ml-1">未連動至聯絡人</span>`:''}
+          </div>
+          ${p.vendorId?(function(){var v=vendorBy(p.vendorId)||{};var c=v.contact||{};var lines=[];if(c.line)lines.push('LINE: '+c.line);if(c.email)lines.push(c.email);if(c.phone)lines.push(c.phone);return lines.length?`<div class="text-slate-600 col-span-2 text-[10px] -mt-1 ml-1">${esc(lines.join('  '))}</div>`:''})():''}
+          <div class="text-slate-500">發包金額</div>
+          <div class="text-slate-400">${p.vendorCost?fmtMoney(p.vendorCost,p.vendorCostCur||'TWD'):'<span class="text-slate-600">未填</span>'}</div>
+          <div class="text-slate-500">交件狀態</div>
+          <div class="cursor-pointer" onclick="cycleDelivery(${id})" title="點擊切換">${(function(){var m={'wip':['製作中','text-slate-400'],'reviewing':['審查中','text-amber-400'],'done':['已完成','text-emerald-400']};var k=p.deliverySt||'wip';return '<span class="'+(m[k]||m.wip)[1]+'">'+(m[k]||m.wip)[0]+'</span><span class="text-slate-600 ml-1 text-[10px]">（點擊切換）</span>';})()}</div>
+          <div class="text-slate-500">付款狀態</div>
+          <div class="cursor-pointer" onclick="toggleVendorPaid(${id})" title="點擊切換">${p.vendorPaid?'<span class="text-emerald-400">已付款</span>':'<span class="text-amber-400">未付款</span>'}<span class="text-slate-600 ml-1 text-[10px]">（點擊切換）</span></div>
+          ${p.execMode==='resell'?`
+          <div class="text-slate-500">上游收款</div>
+          <div class="cursor-pointer" onclick="toggleUpstreamReceived(${id})" title="點擊切換">${p.upstreamReceived?'<span class="text-emerald-400">已收款</span>':'<span class="text-amber-400">未收款</span>'}<span class="text-slate-600 ml-1 text-[10px]">（點擊切換）</span></div>`:''}
+        </div>
+      </div>`:''}
 
       <div class="mb-6">
         <div class="flex items-center justify-between mb-2 px-1">
@@ -2960,6 +3117,34 @@ function editMS(pid,idx,el){
   if(f==='name')p.milestones[idx].name=el.value;
   if(f==='date'){p.milestones[idx].date=el.value;p.milestones.sort(function(a,b){return(a.date||'9').localeCompare(b.date||'9');});}
   save();openDetail(pid);
+}
+
+function updateVendorFromDetail(pid, val){
+  var p=pBy(pid);if(!p)return;
+  if(val==='__manual__'){
+    var name=prompt('請輸入負責人姓名：', p.vendorName||'');
+    if(name===null)return;
+    p.vendorName=name.trim();
+    p.vendorId='';
+  } else if(val){
+    var v=vendorBy(val);
+    if(v){p.vendorId=v.id;p.vendorName=v.name;}
+  } else {
+    p.vendorId='';p.vendorName='';
+  }
+  save();rProj();rGrp();openDetail(pid);
+}
+
+function onEpVendorChange(sel){
+  var manualInp=document.getElementById('ep-vendor');
+  if(!manualInp)return;
+  if(sel.value==='__manual__'){
+    manualInp.style.display='block';
+    manualInp.value='';
+    manualInp.focus();
+  } else {
+    manualInp.style.display='none';
+  }
 }
 
 function toggleVendorPaid(pid){
