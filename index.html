@@ -748,7 +748,7 @@ tbody tr[onclick]:hover td{background:#131f2e;}
     
     <div class="tbl-wrap"><div class="overflow-x-auto">
       <table>
-        <thead><tr><th>任務名稱</th><th>專案群組</th><th>狀態</th><th>已配標籤</th><th>工時</th><th>總應收</th><th class="w-20 text-center">操作</th></tr></thead>
+        <thead><tr><th>任務名稱</th><th>專案群組</th><th>狀態</th><th>已配標籤</th><th>工時</th><th>總應收</th><th>時薪</th><th class="w-20 text-center">操作</th></tr></thead>
         <tbody id="tag-proj-body"></tbody>
       </table>
     </div><div id="tag-proj-empty" class="text-center py-10 text-sm text-slate-600">無符合條件的任務</div></div>
@@ -3546,23 +3546,45 @@ function rTagStats(){
   var tb=document.getElementById('tag-proj-body'); 
   document.getElementById('tag-proj-empty').style.display=filtered.length?'none':'block';
   
-tb.innerHTML=filtered.map(p=>{
-    var cur=p.budgetCur||'TWD';
-    return `<tr onclick=\"rowClick(event,${p.id})\" style=\"cursor:pointer\" class=\"hover:bg-slate-800/40 transition-colors\">
-      <td class=\"font-medium text-slate-200\">${esc(p.name)}</td>
-      <td class=\"text-xs text-slate-400\">${grpName(p.gid)||'-'}</td>
-      <td>${bdgSt(p.st)}</td>
-      <td>${renderTagList(p.tags)}</td>
-      <td>${formatHrs(p.hrs||0)}</td>
-      <td class=\"text-slate-300\">${p.earned?fmtMoney(p.earned,cur):'-'}</td>
-      <td class="text-center">
-        <div class="flex items-center justify-center gap-1.5">
-          <button class="text-slate-500 hover:text-slate-300 px-1" onclick="editProj(${p.id}); event.stopPropagation();" title="編輯">✎</button>
-          <button class="text-slate-600 hover:text-red-400 px-1" onclick="delProj(${p.id}); event.stopPropagation();" title="刪除">🗑</button>
-        </div>
-      </td>
-    </tr>`;
-  }).join('');
+    tb.innerHTML = filtered.map(p => {
+        var cur = p.budgetCur || 'TWD';
+        
+        // --- 獨立時薪計算邏輯 ---
+        var earnedTWD = toTWD(p.earned || 0, cur);
+        var budgetTWD = toTWD(p.budget || 0, cur);
+        var calcBaseTWD = (p.earned > 0) ? earnedTWD : budgetTWD;
+        var rateTWD = 0;
+        var rateHtml = '';
+
+        if (p.nonBillable) {
+            rateHtml = '<span class="text-[11px] text-slate-600">不計酬</span>';
+        } else if (p.bill === 'hourly') {
+            rateTWD = toTWD(p.hrate || 0, cur);
+            rateHtml = p.hrate ? `<span class="text-emerald-400 font-medium">${Math.round(rateTWD).toLocaleString()}/h</span>` : `<span class="text-slate-600">-</span>`;
+        } else {
+            rateTWD = (p.hrs > 0 && calcBaseTWD > 0) ? Math.round(calcBaseTWD / p.hrs) : 0;
+            var targetRate = getGlobalRate();
+            // 判斷：達標(綠) / 未達標(琥珀色粗體) / 無數據(灰)
+            var rateColor = rateTWD >= targetRate ? 'text-emerald-400 font-medium' : (rateTWD > 0 ? 'text-amber-400 font-bold' : 'text-slate-600');
+            rateHtml = rateTWD ? `<span class="${rateColor}">${rateTWD.toLocaleString()}/h</span>` : `<span class="text-slate-600">-</span>`;
+        }
+
+        return `<tr onclick="rowClick(event,${p.id})" style="cursor:pointer" class="hover:bg-slate-800/40 transition-colors">
+          <td class="font-medium text-slate-200">${esc(p.name)}</td>
+          <td class="text-xs text-slate-400">${grpName(p.gid) || '-'}</td>
+          <td>${bdgSt(p.st)}</td>
+          <td>${renderTagList(p.tags)}</td>
+          <td>${formatHrs(p.hrs || 0)}</td>
+          <td class="text-slate-300">${p.earned ? fmtMoney(p.earned, cur) : '-'}</td>
+          <td>${rateHtml}</td>
+          <td class="text-center">
+            <div class="flex items-center justify-center gap-1.5">
+              <button class="text-slate-500 hover:text-slate-300 px-1" onclick="editProj(${p.id}); event.stopPropagation();" title="編輯">✎</button>
+              <button class="text-slate-600 hover:text-red-400 px-1" onclick="delProj(${p.id}); event.stopPropagation();" title="刪除">🗑</button>
+            </div>
+          </td>
+        </tr>`;
+    }).join('');
   }
 
 function sc(l,v){return `<div><p class=\"text-xs text-slate-500 mb-1\">${l}</p><div class=\"text-lg font-semibold text-white leading-tight\">${v}</div></div>`;}
