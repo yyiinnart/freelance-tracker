@@ -4689,6 +4689,7 @@ function renderCal(){
   }
   var gridStart=cells[0].str, gridEnd=cells[41].str;
   var tasks=PJ.filter(function(p){
+    if(p.st==='paused')return false;
     if(!p.sdate&&!p.edate)return false;
     var s=p.sdate||p.edate, e=p.edate||p.sdate;
     if(!(s<=gridEnd&&e>=gridStart))return false;
@@ -4815,7 +4816,6 @@ function go(id,btn){
   btn.classList.add('active');
   if(id==='dash')renderDash(); if(id==='tag')rTagStats(); if(id==='grp')rGrp(); if(id==='cal')renderCal(); if(id==='vendor')rVendors(); if(id==='cat')rTagStats();
 }
-  
 function toggleCalTracks() {
   var chk = document.getElementById('cal-toggle-tracks');
   var isChecked = chk ? chk.checked : true;
@@ -4837,7 +4837,6 @@ function saveTrackLimit() {
   renderCal();
   save();
 }
-  
 function init(){
   loadLocal();
   var limitInp = document.getElementById('cal-track-limit');
