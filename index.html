@@ -356,8 +356,8 @@ tbody tr[onclick]:hover td{background:#131f2e;}
     <div class="bg-slate-900/80 border border-slate-800/80 rounded-xl mb-8 shadow-sm">
       <div class="px-5 py-3 flex flex-wrap items-end gap-3">
         <div class="flex flex-col gap-1 flex-1 min-w-[180px]"><label class="text-[10px] text-slate-500 uppercase tracking-wider">任務名稱</label><input type="text" id="pj-name" class="inp py-2" placeholder="例如：主視覺插畫設計" onkeydown="if(event.key==='Enter')addProj()"></div>
+        <div class="flex flex-col gap-1 w-28"><label class="text-[10px] text-slate-500 uppercase tracking-wider">類型</label><select id="pj-type" class="inp py-2" onchange="onQuickTypeChange()"></select></div>
         <div class="flex flex-col gap-1 w-36" id="pj-grp-wrap"><label class="text-[10px] text-slate-500 uppercase tracking-wider">群組</label><select id="pj-grp" class="inp py-2"></select></div>
-        <div class="flex flex-col gap-1 w-28"><label class="text-[10px] text-slate-500 uppercase tracking-wider">類型</label><select id="pj-type" class="inp py-2"></select></div>
         <button class="btn btn-solid py-2 px-5 flex-shrink-0" onclick="addProj()">+ 建立</button>
         <button class="btn py-2 px-3 flex-shrink-0 text-xs text-slate-400" onclick="toggleCreateMore()" id="create-more-btn">更多設定 ▾</button>
       </div>
@@ -416,10 +416,10 @@ tbody tr[onclick]:hover td{background:#131f2e;}
             <div class="text-[11px] font-bold text-blue-400 tracking-widest uppercase mb-1">3. 排程與期限</div>
             <div class="flex flex-col gap-1.5">
               <label class="text-xs font-medium text-slate-400">開始日期</label>
-              <input type="date" id="pj-sdate" class="inp">
+              <input type="date" id="pj-sdate" class="inp" onchange="onQuickSdateChange()">
             </div>
             <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-medium text-slate-400">截止日期</label>
+              <label class="text-xs font-medium text-slate-400" id="pj-edate-label">截止日期</label>
               <input type="date" id="pj-edate" class="inp">
             </div>
           </div>
@@ -2366,12 +2366,64 @@ function rVendors(){
 }
 
 
-function rCats(){var el=document.getElementById('cat-list');el.innerHTML=CATS.map(c=>'<div class="flex items-center justify-between px-3 py-2 rounded-lg border border-slate-800/60 bg-slate-900/40 hover:bg-slate-800/40 transition-colors"><span class="text-sm text-slate-300 flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:'+(BC[c.color]||BC.gray).text+'"></span>'+esc(c.name)+'</span><button class="text-[10px] text-slate-600 hover:text-red-400 transition-colors px-1" onclick="CATS=CATS.filter(x=>x.id!==\''+c.id+'\');save();rCats();syncSel()">✕</button></div>').join('');}
+function rCats(){
+  var el=document.getElementById('cat-list');
+  el.innerHTML=CATS.map(c=>{
+    var dot='<span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:'+(BC[c.color]||BC.gray).text+'"></span>';
+    var days=c.defaultDays?'<span class="text-[10px] text-slate-500 ml-1">('+c.defaultDays+'天)</span>':'';
+    return '<div class="flex items-center justify-between px-3 py-2 rounded-lg border border-slate-800/60 bg-slate-900/40 hover:bg-slate-800/40 transition-colors group">'+
+      '<span class="text-sm text-slate-300 flex items-center gap-2">'+dot+esc(c.name)+days+'</span>'+
+      '<div class="flex items-center gap-1">'+
+        '<button class="text-[10px] text-slate-600 hover:text-blue-400 transition-colors px-1 opacity-0 group-hover:opacity-100" onclick="editCat(\''+c.id+'\')">✎</button>'+
+        '<button class="text-[10px] text-slate-600 hover:text-red-400 transition-colors px-1" onclick="CATS=CATS.filter(x=>x.id!==\''+c.id+'\');save();rCats();syncSel()">✕</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+function editCat(id){
+  var c=CATS.find(x=>x.id===id);if(!c)return;
+  var colorOpts=['blue','teal','purple','amber','rose','green','gray'].map(v=>'<option value="'+v+'" '+(c.color===v?'selected':'')+'>'+({blue:'藍色',teal:'青綠',purple:'紫色',amber:'琥珀',rose:'玫瑰',green:'綠色',gray:'灰色'}[v])+'</option>').join('');
+  var grpOpts='<option value="">— 不指定 —</option>'+GRPS.map(g=>'<option value="'+g.id+'" '+(c.tplGrp===g.id?'selected':'')+'>'+esc(g.name)+'</option>').join('');
+  var billOpts=[['piece','計件制'],['hourly','計時制'],['fixed','計價制']].map(function(x){return '<option value="'+x[0]+'" '+(( c.tplBill||'piece')===x[0]?'selected':'')+'>'+x[1]+'</option>';}).join('');
+  var execOpts=[['self','自行執行'],['outsource','外包'],['resell','轉包']].map(function(x){return '<option value="'+x[0]+'" '+((c.tplExec||'self')===x[0]?'selected':'')+'>'+x[1]+'</option>';}).join('');
+  var curOpts=CURS.map(function(cu){return '<option value="'+cu+'" '+((c.tplBudgetCur||'TWD')===cu?'selected':'')+'>'+cu+'</option>';}).join('');
+  var html='<div class="flex flex-col gap-4">'+
+    '<div class="grid grid-cols-2 gap-3">'+
+      '<div><label class="text-xs text-slate-400 block mb-1">名稱</label><input id="ec-name" class="inp" value="'+esc(c.name)+'"></div>'+
+      '<div><label class="text-xs text-slate-400 block mb-1">顏色</label><select id="ec-color" class="inp">'+colorOpts+'</select></div>'+
+    '</div>'+
+    '<div class="border-t border-slate-700/50 pt-4">'+
+      '<div class="text-[10px] font-semibold text-blue-400 uppercase tracking-wider mb-3">快速建立模板預設值 <span class="text-slate-600 normal-case font-normal">（僅影響新建任務，不改舊紀錄）</span></div>'+
+      '<div class="grid grid-cols-2 gap-3">'+
+        '<div><label class="text-xs text-slate-500 block mb-1">預設群組</label><select id="ec-grp" class="inp">'+grpOpts+'</select></div>'+
+        '<div><label class="text-xs text-slate-500 block mb-1">計費模式</label><select id="ec-bill" class="inp">'+billOpts+'</select></div>'+
+        '<div><label class="text-xs text-slate-500 block mb-1">合約金額</label><input id="ec-budget" type="number" min="0" class="inp" value="'+(c.tplBudget||'')+'" placeholder="留空不帶入"></div>'+
+        '<div><label class="text-xs text-slate-500 block mb-1">幣別</label><select id="ec-budgetCur" class="inp">'+curOpts+'</select></div>'+
+        '<div><label class="text-xs text-slate-500 block mb-1">執行方式</label><select id="ec-exec" class="inp">'+execOpts+'</select></div>'+
+        '<div><label class="text-xs text-slate-500 block mb-1">預設天數 <span class="text-slate-600">（開始日→截止日）</span></label><input id="ec-days" type="number" min="1" class="inp" value="'+(c.defaultDays||'')+'" placeholder="留空不帶入"></div>'+
+      '</div>'+
+    '</div>'+
+  '</div>';
+  openModal('編輯業務類型',html,function(){
+    var n=document.getElementById('ec-name').value.trim();if(!n)return;
+    c.name=n;
+    c.color=document.getElementById('ec-color').value;
+    c.tplGrp=document.getElementById('ec-grp').value||null;
+    c.tplBill=document.getElementById('ec-bill').value||null;
+    var b=parseFloat(document.getElementById('ec-budget').value);
+    c.tplBudget=isNaN(b)||b<=0?null:b;
+    c.tplBudgetCur=document.getElementById('ec-budgetCur').value||'TWD';
+    c.tplExec=document.getElementById('ec-exec').value||null;
+    var d=parseInt(document.getElementById('ec-days').value);
+    c.defaultDays=isNaN(d)||d<1?null:d;
+    save();rCats();syncSel();
+  },'儲存');
+}
 function addCat() {
   var n = document.getElementById('cat-name').value.trim();
   if (!n) return;
   var c = document.getElementById('cat-color').value;
-  CATS.push({id: nextStrId('c'), name: n, color: c});
+  CATS.push({id: nextStrId('c'), name: n, color: c, defaultDays: null});
   save();
   rCats();
   syncSel();
@@ -2616,8 +2668,52 @@ function editGrp(gid){
   },'儲存');
 }
 
+function onQuickTypeChange(){
+  var typeId=document.getElementById('pj-type').value;
+  if(!typeId) return;
+  var cat=CATS.find(c=>c.id===typeId);
+  if(cat){
+    // 群組
+    var grpEl=document.getElementById('pj-grp');
+    if(grpEl && cat.tplGrp) grpEl.value=cat.tplGrp;
+    // 計費模式
+    var billEl=document.getElementById('pj-bill');
+    if(billEl && cat.tplBill){ billEl.value=cat.tplBill; toggleHrate('pj-bill','wrap-hrate'); }
+    // 合約金額 + 幣別
+    var budgetEl=document.getElementById('pj-budget');
+    var budgetCurEl=document.getElementById('pj-budgetCur');
+    if(budgetEl && cat.tplBudget) budgetEl.value=cat.tplBudget;
+    if(budgetCurEl && cat.tplBudgetCur) budgetCurEl.value=cat.tplBudgetCur;
+    // 執行方式
+    var execEl=document.getElementById('pj-exec');
+    if(execEl && cat.tplExec){ execEl.value=cat.tplExec; toggleExecMode('pj'); }
+  }
+  // 若有開始日，重算截止日
+  onQuickSdateChange();
+}
+function onQuickSdateChange(){
+  var typeId=document.getElementById('pj-type').value;
+  var sdate=document.getElementById('pj-sdate').value;
+  var edateEl=document.getElementById('pj-edate');
+  var labelEl=document.getElementById('pj-edate-label');
+  if(!typeId||!sdate){
+    if(labelEl) labelEl.textContent='截止日期';
+    return;
+  }
+  var cat=CATS.find(c=>c.id===typeId);
+  if(cat&&cat.defaultDays&&cat.defaultDays>0){
+    var d=new Date(sdate);
+    d.setDate(d.getDate()+cat.defaultDays);
+    edateEl.value=d.toISOString().slice(0,10);
+    if(labelEl) labelEl.textContent='截止日期 ✦ 已自動帶入';
+  } else {
+    if(labelEl) labelEl.textContent='截止日期';
+  }
+}
 function addProj(){
   var n=document.getElementById('pj-name').value.trim();if(!n)return;
+  var sdateVal=document.getElementById('pj-sdate').value;
+  var edateVal=document.getElementById('pj-edate').value;
   PJ.unshift({
     id:nextNumId(),
     name:n,
@@ -2627,8 +2723,8 @@ function addProj(){
     budget:+document.getElementById('pj-budget').value||0,
     budgetCur:document.getElementById('pj-budgetCur').value||'TWD',
     st:'active', 
-    sdate:document.getElementById('pj-sdate').value,
-    edate:document.getElementById('pj-edate').value,
+    sdate:sdateVal,
+    edate:edateVal,
     tags:getCheckedTags('pj'),
     hrs:0,
     earned:0,
@@ -2651,6 +2747,10 @@ function addProj(){
   document.getElementById('pj-vendor').value='';
   document.getElementById('pj-vcost').value='';
   document.getElementById('pj-exec').value='self';
+  document.getElementById('pj-sdate').value='';
+  document.getElementById('pj-edate').value='';
+  var edLabel=document.getElementById('pj-edate-label');
+  if(edLabel) edLabel.textContent='截止日期';
   toggleExecMode('pj');
   var nbEl=document.getElementById('pj-nb');
   if(nbEl){nbEl.checked=false;toggleNonBillable('pj');}
