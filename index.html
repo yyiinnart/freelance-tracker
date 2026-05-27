@@ -1466,8 +1466,26 @@ function syncProjectHrs(pid) {
   var p = pBy(pid); if(!p) return;
   var total = DLOGS.filter(l=>l.pid===pid).reduce((s,l)=>s+l.hrs,0);
   p.hrs = Math.max(0, Math.round(total*100)/100);
-  if(p.nonBillable){ p.earned=0; }
-  else if(p.bill==='hourly') p.earned = p.hrs * (p.hrate || 0);
+  recalcProjectMoney(p);
+}
+
+function recalcProjectMoney(p, old) {
+  if(!p) return;
+  if(p.nonBillable){
+    p.earned=0;
+    return;
+  }
+  if(p.bill==='hourly'){
+    p.earned = Math.round(((p.hrs || 0) * (p.hrate || 0)) * 100) / 100;
+    return;
+  }
+
+  var oldEarned = old ? (old.earned || 0) : (p.earned || 0);
+  var oldBudget = old ? (old.budget || 0) : (p.budget || 0);
+  var wasAutoBudget = oldEarned > 0 && oldEarned === oldBudget;
+  if(p.st === 'done' || wasAutoBudget){
+    p.earned = p.budget || 0;
+  }
 }
 
 function setSyncStatus(state,msg){
@@ -2021,7 +2039,7 @@ function setCheckedTags(px,tags){document.querySelectorAll('.'+px+'-tag-chk').fo
 
 function projAR(pid){
   var p = pBy(pid); var cur = p ? p.budgetCur||'TWD' : 'TWD';
-  var earned = p ? (p.earned || 0) : 0;
+  var earned = p ? (p.bill === 'hourly' ? Math.round(((p.hrs || 0) * (p.hrate || 0)) * 100) / 100 : (p.earned || 0)) : 0;
   // 收款金額統一換算成任務幣別再累加
   var recv = P.filter(x=>x.pid===pid&&(x.payType||'income')==='income').reduce((s,x)=>{
     if(!x.cur||x.cur===cur) return s+x.amt;
@@ -2075,6 +2093,7 @@ function save(isImmediate = false) {
 function updateProjField(id, field, value) {
   var p = pBy(id);
   if (!p) return;
+  var old = {budget:p.budget, hrate:p.hrate, earned:p.earned, bill:p.bill, st:p.st};
   
   if (['budget', 'hrate', 'vendorCost', 'earned'].indexOf(field) !== -1) {
     p[field] = parseFloat(value) || 0;
@@ -2082,6 +2101,9 @@ function updateProjField(id, field, value) {
     p[field] = value;
   } else {
     p[field] = value;
+  }
+  if (['budget', 'hrate', 'bill', 'st', 'nonBillable'].indexOf(field) !== -1) {
+    recalcProjectMoney(p, old);
   }
   
   // 僅執行 saveLocal 與 UI 刷新，不跳轉、不關閉面板
@@ -2793,6 +2815,7 @@ function openProgressModal(id) {
 function editProj(id) {
   var p=PJ.find(x=>x.id===id);if(!p)return;
   var isHourly = p.bill === 'hourly';
+  var oldMoney = {budget:p.budget, hrate:p.hrate, earned:p.earned, bill:p.bill, st:p.st};
   var catOpts=CATS.map(c=>`<option value="${c.id}" ${p.type===c.id?'selected':''}>${esc(c.name)}</option>`).join('');
   var grpOpts='<option value="">— 無（獨立任務）—</option>'+GRPS.map(g=>`<option value="${g.id}" ${p.gid===g.id?'selected':''}>${esc(g.name)}</option>`).join('');
   var curOpts=CURS.map(c=>`<option value="${c}" ${(p.budgetCur||'TWD')===c?'selected':''}>${c}</option>`).join('');
@@ -2857,12 +2880,10 @@ function editProj(id) {
     p.budget=+document.getElementById('ep-budget').value||0;p.budgetCur=document.getElementById('ep-budgetCur').value||'TWD';
     p.hrate=+document.getElementById('ep-hrate').value||0;
     
-    var oldSt = p.st;
     p.st=document.getElementById('ep-st').value;
     
-    if(p.nonBillable){ p.earned=0; p.budget=0; p.hrate=0; }
-    else if(p.st === 'done' && oldSt !== 'done' && p.bill !== 'hourly') { p.earned = p.budget; }
-    if (!p.nonBillable && p.bill === 'hourly') { p.earned = (p.hrs || 0) * p.hrate; }
+    if(p.nonBillable){ p.budget=0; p.hrate=0; }
+    recalcProjectMoney(p, oldMoney);
 
     p.execMode=document.getElementById('ep-exec').value||'self';
     if(p.execMode!=='self'){
@@ -2910,10 +2931,9 @@ function delProj(id){
 function quickComplete(id) {
     var p = pBy(id); if(!p) return;
     if(p.st !== 'done') {
+        var oldMoney = {budget:p.budget, hrate:p.hrate, earned:p.earned, bill:p.bill, st:p.st};
         p.st = 'done';
-        if (!p.nonBillable && p.bill !== 'hourly') {
-            p.earned = p.budget || 0; 
-        }
+        recalcProjectMoney(p, oldMoney);
         save(); rProj(); rGrp(); syncSel();
     }
 }
