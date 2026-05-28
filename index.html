@@ -2109,6 +2109,7 @@ function updateProjField(id, field, value) {
   // 僅執行 saveLocal 與 UI 刷新，不跳轉、不關閉面板
   saveLocal(); 
   rProj(); 
+  if(!document.getElementById('v-tag').classList.contains('hidden')) rTagStats();
   // 觸發延遲同步
   save(); 
 }
@@ -3516,9 +3517,6 @@ function renderRows(list, isDone, scores, bucketKey, currentTopId) {
         var gn=grpName(p.gid); var c=catBy(p.type);
 
         var budgetTWD = toTWD(p.budget || 0, cur);
-        var earnedTWD = toTWD(p.earned || 0, cur);
-        var calcBaseTWD = (p.earned > 0) ? earnedTWD : budgetTWD;
-
         var rateTWD = 0;
         var rateHtml = '';
         var progressHtml = '';
@@ -3530,8 +3528,9 @@ function renderRows(list, isDone, scores, bucketKey, currentTopId) {
             rateTWD = toTWD(p.hrate || 0, cur);
             rateHtml = p.hrate ? `<span class=\"text-emerald-400 font-bold\">${Math.round(rateTWD).toLocaleString()} /h</span> <span class=\"text-[10px] text-slate-600\">(預期)</span>` : `<span class=\"text-slate-600\">—</span>`;
         } else {
-            rateTWD = (p.hrs > 0 && calcBaseTWD > 0) ? Math.round(calcBaseTWD / p.hrs) : 0;
-            rateHtml = rateTWD ? `<span class=\"text-emerald-400 font-bold\">${rateTWD.toLocaleString()} /h</span> <span class=\"text-[10px] text-slate-600\">(TWD)</span>` : `<span class=\"text-slate-600\">—</span>`;
+            rateTWD = (p.hrs > 0 && budgetTWD > 0) ? Math.round(budgetTWD / p.hrs) : 0;
+            var rateColor = rateTWD >= tRate ? 'text-emerald-400' : (rateTWD > 0 ? 'text-amber-400' : 'text-slate-600');
+            rateHtml = rateTWD ? `<span class=\"${rateColor} font-bold\">${rateTWD.toLocaleString()} /h</span> <span class=\"text-[10px] text-slate-600\">(TWD)</span>` : `<span class=\"text-slate-600\">—</span>`;
         }
 
         var maxHrs = budgetTWD > 0 ? (budgetTWD / tRate) : 0;
@@ -4148,9 +4147,7 @@ function _applyTagFilter(){
           var cur = p.budgetCur || 'TWD';
           
           // --- 獨立時薪計算邏輯 (已降低視覺層級) ---
-          var earnedTWD = toTWD(p.earned || 0, cur);
           var budgetTWD = toTWD(p.budget || 0, cur);
-          var calcBaseTWD = (p.earned > 0) ? earnedTWD : budgetTWD;
           var rateTWD = 0;
           var rateHtml = '';
 
@@ -4160,9 +4157,8 @@ function _applyTagFilter(){
               rateTWD = toTWD(p.hrate || 0, cur);
               rateHtml = p.hrate ? `<span class="text-[13px] text-emerald-500/80">${Math.round(rateTWD).toLocaleString()}/h</span>` : `<span class="text-[13px] text-slate-600">-</span>`;
           } else {
-              rateTWD = (p.hrs > 0 && calcBaseTWD > 0) ? Math.round(calcBaseTWD / p.hrs) : 0;
               var targetRate = getGlobalRate();
-              // 移除粗體，改用較暗的 500 色系並加上 /80 透明度來退後視覺層級
+              rateTWD = (p.hrs > 0 && budgetTWD > 0) ? Math.round(budgetTWD / p.hrs) : 0;
               var rateColor = rateTWD >= targetRate ? 'text-emerald-500/80' : (rateTWD > 0 ? 'text-amber-500/80' : 'text-slate-600');
               rateHtml = rateTWD ? `<span class="text-[13px] ${rateColor}">${rateTWD.toLocaleString()}/h</span>` : `<span class="text-[13px] text-slate-600">-</span>`;
           }
