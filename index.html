@@ -731,13 +731,17 @@ tbody tr[onclick]:hover td{background:#131f2e;}
   </div>
 
   <div id="v-tag" class="hidden">
-    <div class="hint-bar">以表格形式列出所有任務，支援多條件同時篩選。<strong>月份</strong>依工時紀錄日期過濾；<strong>標籤</strong>可多選；<strong>關鍵字</strong>比對任務名稱。點擊任務名稱可開啟詳情面板。</div>
+    <div class="hint-bar">以表格形式列出所有任務，支援多條件同時篩選。<strong>月份</strong>依工時紀錄日期過濾；<strong>業務類型</strong>與<strong>標籤</strong>皆可多選；<strong>關鍵字</strong>比對任務名稱。點擊任務名稱可開啟詳情面板。</div>
     <h3 class="text-sm font-semibold text-slate-300 mb-4">篩選任務</h3>
     <div class="flex flex-wrap gap-4 mb-6 items-end justify-between">
       <div class="flex flex-wrap gap-4 items-end">
         <div class="flex flex-col gap-1.5">
           <label class="text-xs text-slate-500">月份</label>
           <div id="tag-month-dd" class="tag-dd"></div>
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs text-slate-500">業務類型</label>
+          <div id="tag-cat-dd" class="tag-dd"></div>
         </div>
         <div class="flex flex-col gap-1.5">
           <label class="text-xs text-slate-500">標籤</label>
@@ -4099,10 +4103,14 @@ function rTagStats(){
   var monthItems=Object.keys(monthSet).sort().reverse().map(function(m){return{val:m,label:m};});
   var tagItems=TAGS.map(function(t){return{val:t.id,label:t.name};});
   var grpItems=GRPS.map(function(g){return{val:g.id,label:g.name};});
+  var catItems=CATS.map(function(c){return{val:c.id,label:c.name};});
 
   // 只在容器存在且尚未初始化時才 build（避免重建 DOM 關掉開著的下拉）
   if(document.getElementById('tag-month-dd')&&!document.getElementById('mdd_tag-month-dd')){
     buildMultiDD('tag-month-dd',monthItems,'全部月份','_applyTagFilter');
+  }
+  if(document.getElementById('tag-cat-dd')&&!document.getElementById('mdd_tag-cat-dd')){
+    buildMultiDD('tag-cat-dd',catItems,'全部類型','_applyTagFilter');
   }
   if(document.getElementById('tag-tag-dd')&&!document.getElementById('mdd_tag-tag-dd')){
     buildMultiDD('tag-tag-dd',tagItems,'全部標籤','_applyTagFilter');
@@ -4117,8 +4125,11 @@ function _applyTagFilter(){
   var selMonths=getMultiDDValues('tag-month-dd');
   var selTags=getMultiDDValues('tag-tag-dd');
   var selGrps=getMultiDDValues('tag-grp-dd');
+  var selCats=getMultiDDValues('tag-cat-dd');
   var q=document.getElementById('tag-search')?document.getElementById('tag-search').value.toLowerCase():'';
   var filtered=PJ.filter(function(p){
+    // 業務類型複選
+    if(selCats.length>0&&selCats.indexOf(p.type)===-1)return false;
     // 標籤複選：任一符合即通過
     if(selTags.length>0){
       var hasTags=selTags.some(function(tid){return p.tags&&p.tags.indexOf(tid)!==-1;});
