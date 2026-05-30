@@ -822,7 +822,7 @@ tbody tr[onclick]:hover td{background:#131f2e;}
   </div>
 
 <div id="v-dash" class="hidden">
-    <div class="hint-bar">綜覽接案產值、工時分佈與金流狀況。頂部顯示本週即時配速，下方可依<strong>月份篩選</strong>聚焦單月數據。「📋 AI近況分析」可將當期數據整理成文字摘要，方便貼給 AI 助理進行深度分析。</div>
+    <div class="hint-bar">綜覽接案產值、工時分佈與金流狀況。頂部顯示本週即時配速，下方可依<strong>月份篩選</strong>聚焦單月數據。「現金流與獲利」面板可點擊<strong>當月總支出</strong>填入該月生活開銷，系統會自動算出「淨結餘（實收−支出）」判斷賺得夠不夠。「📋 AI近況分析」可將當期數據整理成文字摘要，方便貼給 AI 助理進行深度分析。</div>
     <!-- 置頂：即時配速區 (不受下方月份篩選影響) -->
     <div class="bg-slate-900 rounded-xl border border-slate-800 p-5 mb-8 relative overflow-hidden shadow-lg shadow-blue-900/5">
       <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-indigo-500"></div>
@@ -861,11 +861,11 @@ tbody tr[onclick]:hover td{background:#131f2e;}
     <!-- 數據卡與金流 -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
       <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
-        <h3 class="text-sm font-semibold text-slate-300 mb-4 border-b border-slate-800 pb-2">任務產值總覽</h3>
+        <h3 class="text-sm font-semibold text-slate-300 mb-4 border-b border-slate-800 pb-2">產值與效率</h3>
         <div id="dash-stats" class="grid grid-cols-2 gap-4"></div>
       </div>
       <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
-        <h3 class="text-sm font-semibold text-slate-300 mb-4 border-b border-slate-800 pb-2">實收與帳款</h3>
+        <h3 class="text-sm font-semibold text-slate-300 mb-4 border-b border-slate-800 pb-2">現金流與獲利</h3>
         <div id="dash-cf" class="grid grid-cols-2 gap-4"></div>
       </div>
     </div>
@@ -1136,7 +1136,7 @@ tbody tr[onclick]:hover td{background:#131f2e;}
 </div> 
 
 <script>
-var L=[],P=[],PJ=[],CATS=[],TAGS=[],GRPS=[],DLOGS=[],VENDORS=[],CH={},VACS=[],MCB=null,syncTimer=null;
+var L=[],P=[],PJ=[],CATS=[],TAGS=[],GRPS=[],DLOGS=[],VENDORS=[],CH={},VACS=[],MEXP={},MCB=null,syncTimer=null;
 var hasUnsynced=false;
 
 // ID 產生器：避免 Date.now() 在同一毫秒被連按時撞號
@@ -1645,7 +1645,7 @@ function cloudSave(){
   };
   
   // 2. 加入 VACS (休假) 與 CFG (設定) 到上傳名單
-  var p={version:8,at:new Date().toISOString(),P:P,PJ:PJ,CATS:CATS,TAGS:TAGS,GRPS:GRPS,DLOGS:DLOGS,VENDORS:VENDORS,VACS:VACS,CFG:cfg};
+  var p={version:8,at:new Date().toISOString(),P:P,PJ:PJ,CATS:CATS,TAGS:TAGS,GRPS:GRPS,DLOGS:DLOGS,VENDORS:VENDORS,VACS:VACS,MEXP:MEXP,CFG:cfg};
   
   fetch(getAuthUrl(url), {method:'POST', body:JSON.stringify(p)})
     .then(r=>r.json()).then(d=>{
@@ -1673,6 +1673,7 @@ function cloudLoad(){
         
         // 1. 讀取休假日
         VACS=cd.VACS||[]; 
+        MEXP=cd.MEXP||{};
         
         // 2. 讀取並覆寫本地端設定檔
         if(cd.CFG) {
@@ -1713,10 +1714,11 @@ function loadLocal() {
   DLOGS = safeJSONParse(localStorage.getItem('ft_DLOGS') || '[]', []);
   VENDORS = safeJSONParse(localStorage.getItem('ft_VENDORS') || '[]', []);
   VACS = safeJSONParse(localStorage.getItem('ft_VACS') || '[]', []); // 新增載入休假資料
+  MEXP = safeJSONParse(localStorage.getItem('ft_MEXP') || '{}', {}); // 載入每月總支出
   if (!CATS) CATS = JSON.parse(JSON.stringify(DCATS));
 }
 
-function saveLocal(){try{localStorage.setItem('ft_P',JSON.stringify(P));localStorage.setItem('ft_PJ',JSON.stringify(PJ));localStorage.setItem('ft_CATS',JSON.stringify(CATS));localStorage.setItem('ft_TAGS',JSON.stringify(TAGS));localStorage.setItem('ft_GRPS',JSON.stringify(GRPS));localStorage.setItem('ft_DLOGS',JSON.stringify(DLOGS));localStorage.setItem('ft_VENDORS',JSON.stringify(VENDORS));localStorage.setItem('ft_VACS',JSON.stringify(VACS));}catch(e){}}
+function saveLocal(){try{localStorage.setItem('ft_P',JSON.stringify(P));localStorage.setItem('ft_PJ',JSON.stringify(PJ));localStorage.setItem('ft_CATS',JSON.stringify(CATS));localStorage.setItem('ft_TAGS',JSON.stringify(TAGS));localStorage.setItem('ft_GRPS',JSON.stringify(GRPS));localStorage.setItem('ft_DLOGS',JSON.stringify(DLOGS));localStorage.setItem('ft_VENDORS',JSON.stringify(VENDORS));localStorage.setItem('ft_VACS',JSON.stringify(VACS));localStorage.setItem('ft_MEXP',JSON.stringify(MEXP));}catch(e){}}
 function toggleVacation(dateStr) {
   var idx = VACS.indexOf(dateStr);
   if(idx === -1) {
@@ -1750,7 +1752,7 @@ function cloudSaveBeacon(){
   };
   var payload = {version:8, at:new Date().toISOString(),
     P:P, PJ:PJ, CATS:CATS, TAGS:TAGS, GRPS:GRPS,
-    DLOGS:DLOGS, VENDORS:VENDORS, VACS:VACS, CFG:cfg};
+    DLOGS:DLOGS, VENDORS:VENDORS, VACS:VACS, MEXP:MEXP, CFG:cfg};
   try {
     var blob = new Blob([JSON.stringify(payload)], {type:'application/json'});
     // GAS doPost 從 e.postData.contents 拿 body、從 e.parameter.token 拿 token
@@ -1795,7 +1797,7 @@ document.addEventListener('visibilitychange', function() {
 });
 function exportJSON(){
   var cfg={wmode:localStorage.getItem('ft_wmode'),trate:localStorage.getItem('ft_trate'),dl_crit:localStorage.getItem('ft_dl_crit'),wtarget:localStorage.getItem('ft_wtarget'),track_limit:localStorage.getItem('ft_track_limit'),show_tracks:localStorage.getItem('ft_show_tracks'),show_hints:localStorage.getItem('ft_show_hints'),dash_cfg:localStorage.getItem('ft_dash_cfg')};
-  var d={version:8,at:new Date().toISOString(),P:P,PJ:PJ,CATS:CATS,TAGS:TAGS,GRPS:GRPS,DLOGS:DLOGS,VENDORS:VENDORS,VACS:VACS,CFG:cfg};
+  var d={version:8,at:new Date().toISOString(),P:P,PJ:PJ,CATS:CATS,TAGS:TAGS,GRPS:GRPS,DLOGS:DLOGS,VENDORS:VENDORS,VACS:VACS,MEXP:MEXP,CFG:cfg};
   var a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'}));
   a.download='freelance_'+toLocalDate()+'.json';
@@ -1813,6 +1815,7 @@ function importJSON(e){
         P=d.P;PJ=d.PJ;CATS=d.CATS||JSON.parse(JSON.stringify(DCATS));
         TAGS=d.TAGS||[];GRPS=d.GRPS||[];DLOGS=d.DLOGS||[];VENDORS=d.VENDORS||[];
         VACS=d.VACS||[]; // 匯入休假日
+        MEXP=d.MEXP||{}; // 匯入每月總支出
         if(d.CFG){ // 匯入設定
           ['wmode','trate','dl_crit','wtarget','track_limit','show_tracks','show_hints','dash_cfg'].forEach(k=>{
             if(d.CFG[k]) localStorage.setItem('ft_'+k, d.CFG[k]);
@@ -4400,6 +4403,24 @@ function _applyTagFilter(){
 
 function sc(l,v){return `<div><p class=\"text-xs text-slate-500 mb-1\">${l}</p><div class=\"text-lg font-semibold text-white leading-tight\">${v}</div></div>`;}
 
+function editMonthExpense(mon){
+  if(!mon) return;
+  var cur=(typeof MEXP[mon]==='number')?MEXP[mon]:'';
+  var body='<div>'+
+    '<p class="text-xs text-slate-500 mb-2">填入 <span class="text-slate-300 font-semibold">'+mon+'</span> 的生活/個人總支出（僅記 TWD，純總額）。留空或填 0 可清除。</p>'+
+    '<div class="flex items-center gap-2"><span class="text-slate-400 text-sm">NT$</span>'+
+    '<input id="mexp-input" type="number" inputmode="numeric" class="inp flex-1" value="'+cur+'" placeholder="例如 35000"></div>'+
+    '</div>';
+  openModal('✏️ 當月總支出（'+mon+'）', body, function(){
+    var v=document.getElementById('mexp-input').value;
+    var n=parseFloat(v);
+    if(!v||isNaN(n)||n<=0){ delete MEXP[mon]; }
+    else { MEXP[mon]=Math.round(n); }
+    save(); renderDash();
+  }, '儲存');
+  setTimeout(function(){var el=document.getElementById('mexp-input');if(el){el.focus();el.select();}},50);
+}
+
 function renderDash(){
   var mon=document.getElementById('f-month').value;
   var fp=mon?P.filter(p=>p.date.indexOf(mon)===0):P;
@@ -4425,19 +4446,49 @@ function renderDash(){
 
   var totalVendorCostTWD=PJ.filter(p=>p.execMode&&p.execMode!=='self'&&!p.nonBillable).reduce((s,p)=>s+toTWD(p.vendorCost||0,p.vendorCostCur||'TWD'),0);
   var totalEarnedTWD=Object.keys(eMap).reduce((s,k)=>s+toTWD(eMap[k],k),0);
-  var netProfitTWD=totalEarnedTWD-totalVendorCostTWD;
-  var vendorCostHtml=totalVendorCostTWD>0?sc('外包/轉包成本','NT$ '+Math.round(totalVendorCostTWD).toLocaleString())+sc('淨利 (應收-成本)','<span class="'+(netProfitTWD>=0?'text-emerald-400':'text-red-400')+'">NT$ '+Math.round(netProfitTWD).toLocaleString()+'</span>'):'';
+  var grossProfitTWD=totalEarnedTWD-totalVendorCostTWD;
+  var vendorCostHtml=totalVendorCostTWD>0?sc('外包/轉包成本','NT$ '+Math.round(totalVendorCostTWD).toLocaleString())+sc('預估毛利 (應收-成本)','<span class="'+(grossProfitTWD>=0?'text-emerald-400':'text-red-400')+'">NT$ '+Math.round(grossProfitTWD).toLocaleString()+'</span>'):'';
 
-  document.getElementById('dash-stats').innerHTML=sc((mon?mon+' ':'歷史')+'總應收',formatMultiCurMap(eMap))+sc('平均時薪 (NT$)', (function(){
+  // === 📊 產值與效率 ===
+  document.getElementById('dash-stats').innerHTML=sc((mon?mon+' ':'歷史')+'總產值',formatMultiCurMap(eMap))+sc('計費工時',formatHrs(tH))+sc('平均時薪 (NT$)', (function(){
     var billHrs=tH; // 已是篩選後計費工時
-    var earnedTWD2=Object.keys(eMap).reduce(function(s,k){return s+toTWD(eMap[k],k);},0);
+    var earnedTWD2=totalEarnedTWD;
     if(billHrs<=0)return '<span class="text-slate-500">-</span>';
     var avgRate=Math.round(earnedTWD2/billHrs);
     var tgt=getGlobalRate();
     var col=avgRate>=tgt?'text-emerald-400':(avgRate>0?'text-amber-400':'text-slate-400');
     return '<span class="'+col+'">NT$ '+avgRate.toLocaleString()+'</span><span class="text-xs text-slate-500 ml-1">/ h</span>';
   })());
-  document.getElementById('dash-cf').innerHTML=sc(mon?'當月實收合計':'歷史實收合計',formatMultiCurMap(rMap))+sc('目前總待收帳款',formatMultiCurMap(arMap))+vendorCostHtml;
+
+  // === 💰 現金流與獲利 ===
+  // 實收（換算 TWD）
+  var recvTWD=Object.keys(rMap).reduce(function(s,k){return s+toTWD(rMap[k],k);},0);
+  var hasForeignRecv=['USD','CNY','JPY'].some(function(k){return rMap[k]>0;});
+  // 支出：選了月份取該月；未選取所有已填月份加總
+  var expVal, expCard;
+  if(mon){
+    expVal=(typeof MEXP[mon]==='number')?MEXP[mon]:null;
+    if(expVal===null){
+      expCard='<div onclick="editMonthExpense(\''+mon+'\')" class="cursor-pointer group"><p class="text-xs text-slate-500 mb-1">當月總支出 ✏️</p><div class="text-lg font-semibold text-slate-500 group-hover:text-blue-400 leading-tight">— 點擊填入</div></div>';
+    } else {
+      expCard='<div onclick="editMonthExpense(\''+mon+'\')" class="cursor-pointer group"><p class="text-xs text-slate-500 mb-1">當月總支出 ✏️</p><div class="text-lg font-semibold text-white group-hover:text-blue-400 leading-tight">NT$ '+Math.round(expVal).toLocaleString()+'</div></div>';
+    }
+  } else {
+    expVal=Object.keys(MEXP).reduce(function(s,k){return s+(MEXP[k]||0);},0);
+    var filledMonths=Object.keys(MEXP).filter(function(k){return typeof MEXP[k]==='number';}).length;
+    expCard=sc('已填月份支出加總'+(filledMonths>0?' <span class="text-xs text-slate-500 font-normal">('+filledMonths+'個月)</span>':''),filledMonths>0?'NT$ '+Math.round(expVal).toLocaleString():'<span class="text-slate-500">-</span>');
+  }
+  // 淨結餘
+  var netCard;
+  if(mon && expVal===null){
+    netCard=sc('當月淨結餘','<span class="text-slate-500">-</span>');
+  } else {
+    var netBalance=recvTWD-(expVal||0);
+    netCard=sc('當月淨結餘 <span class="text-xs text-slate-500 font-normal">(外幣已換算)</span>','<span class="'+(netBalance>=0?'text-emerald-400':'text-red-400')+'">NT$ '+Math.round(netBalance).toLocaleString()+'</span>');
+  }
+
+  document.getElementById('dash-cf').innerHTML=sc(mon?'當月實收合計':'歷史實收合計',formatMultiCurMap(rMap))+expCard+netCard+sc('目前總待收帳款',formatMultiCurMap(arMap))+vendorCostHtml;
+
 
   if(CH.week)CH.week.destroy();
   var today=new Date();
@@ -4602,8 +4653,8 @@ function openDashSettings() {
   var html = '<div class="flex flex-col gap-3">' +
     '<p class="text-xs text-slate-500 mb-2">勾選想在「分析匯出」頁面顯示的面板，設定將儲存於此瀏覽器：</p>' +
     '<label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white"><input type="checkbox" id="dc-pacing" class="accent-blue-500 w-4 h-4" '+(cfg.pacing!==false?'checked':'')+'> ⚡ 即時配速與本週工時</label>' +
-    '<label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white"><input type="checkbox" id="dc-stats" class="accent-blue-500 w-4 h-4" '+(cfg.stats!==false?'checked':'')+'> 📊 任務產值總覽</label>' +
-    '<label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white"><input type="checkbox" id="dc-cf" class="accent-blue-500 w-4 h-4" '+(cfg.cf!==false?'checked':'')+'> 💰 實收與帳款</label>' +
+    '<label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white"><input type="checkbox" id="dc-stats" class="accent-blue-500 w-4 h-4" '+(cfg.stats!==false?'checked':'')+'> 📊 產值與效率</label>' +
+    '<label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white"><input type="checkbox" id="dc-cf" class="accent-blue-500 w-4 h-4" '+(cfg.cf!==false?'checked':'')+'> 💰 現金流與獲利</label>' +
     '<label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white"><input type="checkbox" id="dc-month" class="accent-blue-500 w-4 h-4" '+(cfg.month!==false?'checked':'')+'> 📈 月度每日工時 (長條圖)</label>' +
     '<label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white"><input type="checkbox" id="dc-pie" class="accent-blue-500 w-4 h-4" '+(cfg.pie!==false?'checked':'')+'> 🍩 專案時間分佈 (圓餅圖)</label>' +
     '<label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white"><input type="checkbox" id="dc-timeline" class="accent-blue-500 w-4 h-4" '+(cfg.timeline!==false?'checked':'')+'> 📝 每日工時紀錄列表</label>' +
