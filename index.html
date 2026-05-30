@@ -585,6 +585,12 @@ tbody tr[onclick]:hover td{background:#131f2e;}
     <div class="hint-bar">所有收付款紀錄的總覽。如需新增，請開啟各任務的<strong>詳情面板</strong>，在款項區塊中登記收款或付款。此頁可依月份篩選，並一覽各筆帳款的歸屬任務與備註。</div>
     
     <div id="pay-ar-section" class="mb-6 hidden">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+        <div id="pay-ar-total" class="rounded-lg border border-slate-800 bg-slate-900 px-4 py-3">
+          <p class="text-xs text-slate-500 mb-1">目前待收帳款總計</p>
+          <div id="pay-ar-total-val" class="text-lg font-semibold text-white leading-tight"></div>
+        </div>
+      </div>
       <div class="flex items-center justify-between mb-3">
         <h3 class="text-sm font-semibold text-slate-300 flex items-center gap-2">
           <span class="text-amber-400">●</span> 待收帳款明細
@@ -595,28 +601,40 @@ tbody tr[onclick]:hover td{background:#131f2e;}
       </div>
       <div id="pay-ar-list" class="grid grid-cols-1 md:grid-cols-2 gap-2"></div>
     </div>
-    
-    <div class="border-t border-slate-800 pt-4 mb-4">
+
+    <div class="border-t border-slate-800 pt-5 mb-4">
       <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
         <h3 class="text-sm font-semibold text-slate-300 flex items-center gap-2">
-          <span class="text-emerald-400">●</span> 收付款紀錄
+          <span id="pay-mode-dot" class="text-emerald-400">●</span> <span id="pay-mode-title">收付款紀錄</span>
           <span id="pay-range-label" class="text-xs text-slate-500 font-normal"></span>
         </h3>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
+          <div class="inline-flex rounded-md border border-slate-700 overflow-hidden text-xs">
+            <button id="pay-tab-flow" class="px-3 py-1.5 transition-colors" onclick="setPayView('flow')">收付款</button>
+            <button id="pay-tab-prod" class="px-3 py-1.5 transition-colors border-l border-slate-700" onclick="setPayView('prod')">產值明細</button>
+          </div>
           <label class="text-xs text-slate-500">月份</label>
-          <select id="pay-month" class="inp text-xs" style="width:auto;min-width:130px" onchange="rPay()"></select>
+          <select id="pay-month" class="inp text-xs" style="width:auto;min-width:130px" onchange="PAY_MONTH_TOUCHED=true;rPay()"></select>
           <button class="btn btn-sm text-xs bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700" onclick="payMonthReset()">全部</button>
         </div>
       </div>
+
+      <div id="pay-stats" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-5 hidden"></div>
       
-      <div id="pay-stats" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 hidden"></div>
-      
-      <div class="tbl-wrap"><div class="overflow-x-auto">
+      <div id="pay-flow-wrap" class="tbl-wrap"><div class="overflow-x-auto">
         <table>
           <thead><tr><th>日期</th><th>類型</th><th>歸屬任務</th><th>金額</th><th>備註說明</th><th class="w-24">操作</th></tr></thead>
           <tbody id="pay-body"></tbody>
         </table>
       </div><div id="pay-empty" class="text-center py-16 text-sm text-slate-500">尚無收付款紀錄</div></div>
+
+      <div id="pay-prod-wrap" class="tbl-wrap hidden"><div class="overflow-x-auto">
+        <table>
+          <thead><tr><th>歸屬任務</th><th>計費</th><th class="text-right">工時</th><th class="text-right">時薪/效率</th><th class="text-right">產值</th></tr></thead>
+          <tbody id="pay-prod-body"></tbody>
+          <tfoot id="pay-prod-foot"></tfoot>
+        </table>
+      </div><div id="pay-prod-empty" class="text-center py-16 text-sm text-slate-500">此期間尚無工時紀錄</div></div>
     </div>
   </div>
 
@@ -930,6 +948,24 @@ tbody tr[onclick]:hover td{background:#131f2e;}
             <p class="text-[10px] text-slate-600 mb-2">排休假時可下修此目標，避免系統觸發落後警報。</p>
             <input type="number" id="weekly-target" class="inp w-32 py-1.5 text-center font-mono" value="40" onchange="saveWeeklyTarget()">
           </div>
+        </div>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-5">
+        <h3 class="text-sm font-semibold text-white mb-1">統一幣別顯示</h3>
+        <p class="text-xs text-slate-500 mb-4">勾選後，畫面上所有外幣金額都會依即時匯率換算成指定幣別顯示（不影響實際儲存的原始幣別與金額）。</p>
+        <div class="flex items-center gap-3 flex-wrap">
+          <label class="flex items-center gap-2 cursor-pointer select-none">
+            <input type="checkbox" id="unify-cur-toggle" class="w-3.5 h-3.5 accent-blue-500" onchange="saveUnifyCur()">
+            <span class="text-xs text-slate-400">啟用統一幣別</span>
+          </label>
+          <select id="unify-cur-sel" class="inp w-28 py-1.5 text-center text-xs font-mono" onchange="saveUnifyCur()" disabled>
+            <option value="TWD">TWD</option>
+            <option value="USD">USD</option>
+            <option value="CNY">CNY</option>
+            <option value="JPY">JPY</option>
+          </select>
+          <span class="text-[10px] text-slate-600">換算為近似值，僅供概覽參考</span>
         </div>
       </div>
 
@@ -1453,6 +1489,33 @@ function fetchFX(){
     }).catch(e=>{ document.getElementById('fx-text').textContent = '| 離線匯率模式'; });
 }
 function toTWD(amt, cur){ return amt * (FX[cur] || 1); }
+function fromTWD(twd, cur){ return twd / (FX[cur] || 1); }
+
+// ===== 統一幣別顯示（可選） =====
+// 開啟後，所有金額都會換算成指定幣別顯示；關閉時維持各自原幣別。
+function getUnifyCur(){ return localStorage.getItem('ft_unify_cur') || ''; }
+function isUnifyOn(){ return !!getUnifyCur(); }
+function saveUnifyCur(){
+  var on=document.getElementById('unify-cur-toggle');
+  var sel=document.getElementById('unify-cur-sel');
+  if(on && on.checked && sel && sel.value){
+    localStorage.setItem('ft_unify_cur', sel.value);
+  } else {
+    localStorage.removeItem('ft_unify_cur');
+  }
+  applyUnifyCurUI();
+  // 重繪所有受影響畫面
+  rProj(); rPay(); rGrp(); rVendors();
+  if(!document.getElementById('v-dash').classList.contains('hidden')) renderDash();
+  save();
+}
+function applyUnifyCurUI(){
+  var on=document.getElementById('unify-cur-toggle');
+  var sel=document.getElementById('unify-cur-sel');
+  var cur=getUnifyCur();
+  if(on) on.checked=!!cur;
+  if(sel){ sel.value=cur||'TWD'; sel.disabled=!cur; }
+}
 
 function formatHrs(v){
   if(!v) return '0h';
@@ -1464,7 +1527,16 @@ function formatHrs(v){
   if(h>0) return sign+h+'h';
   return sign+m+'m';
 }
-function fmtMoney(amt,cur){return amt.toLocaleString('en-US', {maximumFractionDigits: 0})+' '+(cur||'TWD');}
+function fmtMoney(amt,cur){
+  var uc=getUnifyCur();
+  if(uc && cur && cur!==uc){
+    amt = fromTWD(toTWD(amt, cur), uc); // 原幣 → TWD → 統一幣別
+    cur = uc;
+  } else if(uc && !cur){
+    cur = uc;
+  }
+  return amt.toLocaleString('en-US', {maximumFractionDigits: 0})+' '+(cur||'TWD');
+}
 
 function syncProjectHrs(pid) {
   var p = pBy(pid); if(!p) return;
@@ -1568,7 +1640,8 @@ function cloudSave(){
     track_limit: localStorage.getItem('ft_track_limit'),
     show_tracks: localStorage.getItem('ft_show_tracks'),
     show_hints: localStorage.getItem('ft_show_hints'),
-    dash_cfg: localStorage.getItem('ft_dash_cfg')
+    dash_cfg: localStorage.getItem('ft_dash_cfg'),
+    unify_cur: localStorage.getItem('ft_unify_cur')
   };
   
   // 2. 加入 VACS (休假) 與 CFG (設定) 到上傳名單
@@ -1603,7 +1676,7 @@ function cloudLoad(){
         
         // 2. 讀取並覆寫本地端設定檔
         if(cd.CFG) {
-          ['wmode','trate','dl_crit','wtarget','track_limit','show_tracks','show_hints','dash_cfg'].forEach(k=>{
+          ['wmode','trate','dl_crit','wtarget','track_limit','show_tracks','show_hints','dash_cfg','unify_cur'].forEach(k=>{
             if(cd.CFG[k]) localStorage.setItem('ft_'+k, cd.CFG[k]);
           });
         }
@@ -1618,6 +1691,7 @@ function cloudLoad(){
         loadDLThresh(); 
         applyWorkMode();
         applyHintVisibility();
+        applyUnifyCurUI();
         applyDashPanels();
         
         setSyncStatus('ok','已雲端載入'); hasUnsynced = false;
@@ -1671,7 +1745,8 @@ function cloudSaveBeacon(){
     track_limit: localStorage.getItem('ft_track_limit'),
     show_tracks: localStorage.getItem('ft_show_tracks'),
     show_hints: localStorage.getItem('ft_show_hints'),
-    dash_cfg: localStorage.getItem('ft_dash_cfg')
+    dash_cfg: localStorage.getItem('ft_dash_cfg'),
+    unify_cur: localStorage.getItem('ft_unify_cur')
   };
   var payload = {version:8, at:new Date().toISOString(),
     P:P, PJ:PJ, CATS:CATS, TAGS:TAGS, GRPS:GRPS,
@@ -2180,6 +2255,13 @@ function totalARMap(){
   return map;
 }
 function formatMultiCurMap(map, textOnly){
+  var uc=getUnifyCur();
+  if(uc){
+    // 統一幣別：把所有幣別換算後加總成一個數字
+    var total=Object.keys(map).reduce((s,k)=>s+fromTWD(toTWD(map[k],k),uc),0);
+    if(total===0) return textOnly ? '0' : '<span class="text-slate-600">0</span>';
+    return Math.round(total).toLocaleString('en-US')+' '+uc;
+  }
   var lines = Object.keys(map).filter(k=>map[k]!==0).map(k=>fmtMoney(map[k],k));
   if(!lines.length) return textOnly ? '0' : '<span class="text-slate-600">0</span>';
   if(textOnly) return lines.join(', ');
@@ -3347,7 +3429,7 @@ function addLogManual(pid){
     });
     
     syncProjectHrs(pid);
-    save(); rProj(); rGrp();
+    save(); rProj(); rGrp(); rPay();
     openDetail(pid);
   }, '儲存');
 }
@@ -3367,7 +3449,7 @@ function editLog(logId,pid){
     log.note=document.getElementById('el-note').value.trim();
     
     syncProjectHrs(pid);
-    save();rProj();rGrp();
+    save();rProj();rGrp();rPay();
     openDetail(pid);
   },'儲存');
 }
@@ -3377,7 +3459,7 @@ function delLog(logId,pid){
   if(!log)return;
   DLOGS=DLOGS.filter(l=>l.id!==logId);
   syncProjectHrs(pid);
-  save();rProj();rGrp();
+  save();rProj();rGrp();rPay();
   openDetail(pid);
 }
 function compressLogs(pid) {
@@ -3835,32 +3917,50 @@ function rPay(){
   PJ.forEach(p=>{
     if(p.nonBillable) return;
     var r=projAR(p.id);
-    var effective = r.earned || (r.isExpected ? r.expected : 0);
-    if(effective <= 0) return;
-    // r.ar = earned - recv，recv 已在 projAR 換算成任務幣別
-    var ar = r.earned > 0 ? r.ar : (r.isExpected ? (r.expected - r.recv) : 0);
+    var hasHrs=(p.hrs||0)>0;
+    var baseAmt, isEst;
+    if(r.earned>0){
+      // 計時制或已結算的計件：用實際應得
+      baseAmt=r.earned; isEst=false;
+    } else if(r.isExpected && hasHrs){
+      // 計件制且已開始做（有工時）但尚未結算：用預算作為預估應收
+      baseAmt=r.expected; isEst=true;
+    } else {
+      // 還沒開始做（無工時）→ 隱藏
+      return;
+    }
+    var ar = baseAmt - r.recv;
     if(ar <= 0) return;
     arItems.push({
       pid: p.id, name: p.name, gid: p.gid, st: p.st, cur: r.cur,
-      total: effective, recv: r.recv, ar: ar, isExpected: r.isExpected, arTWD: toTWD(ar, r.cur)
+      total: baseAmt, recv: r.recv, ar: ar, isEst: isEst,
+      done: p.st==='done', arTWD: toTWD(ar, r.cur)
     });
   });
-  arItems.sort((a,b)=>b.arTWD-a.arTWD);
+  // 已完成未收款的置頂，其餘依待收金額（換算 TWD）由大到小
+  arItems.sort((a,b)=>{
+    if(a.done!==b.done) return a.done?-1:1;
+    return b.arTWD-a.arTWD;
+  });
   
   if(arItems.length){
     arSection.classList.remove('hidden');
     document.getElementById('pay-ar-count').textContent='共 '+arItems.length+' 筆';
+    document.getElementById('pay-ar-total-val').innerHTML=formatMultiCurMap(totalARMap());
     document.getElementById('pay-ar-list').innerHTML=arItems.map(it=>{
       var gn=grpName(it.gid);
-      var cardStyle = it.isExpected ? 'bg-slate-900/30 border-dashed border-slate-700/60 hover:border-slate-600' : 'bg-slate-900 border-solid border-slate-800 hover:border-slate-700';
-      var amtStyle  = it.isExpected ? 'text-slate-400' : 'text-amber-400';
-      var lblTxt    = it.isExpected ? '預估' : '待收';
+      var cardStyle = it.isEst
+        ? 'bg-slate-900/30 border-dashed border-slate-700/60 hover:border-slate-600'
+        : 'bg-slate-900 border-solid border-slate-800 hover:border-slate-700';
+      var amtStyle = it.isEst ? 'text-slate-400' : 'text-amber-400';
+      var doneBdg   = it.done ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-950/40 text-blue-400/80 border border-blue-900/40 ml-1.5 flex-shrink-0">已完成</span>' : '';
       var partial=it.recv>0?'<div class="text-[10px] text-blue-400/70 mt-1">已收部分 '+fmtMoney(it.recv,it.cur)+' / '+fmtMoney(it.total,it.cur)+'</div>':'';
+      var lblTxt = it.isEst ? '預估' : '待收';
       
       return '<div class="border rounded-lg p-3 cursor-pointer transition-colors ' + cardStyle + '" onclick="openDetail('+it.pid+')">'+
         '<div class="flex items-start justify-between gap-2 mb-2">'+
           '<div class="min-w-0 flex-1">'+
-            '<div class="font-medium text-slate-200 text-sm flex items-center"><span class="truncate">'+esc(it.name)+'</span></div>'+
+            '<div class="font-medium text-slate-200 text-sm flex items-center"><span class="truncate">'+esc(it.name)+'</span>'+doneBdg+'</div>'+
             '<div class="text-xs text-slate-500 mt-0.5">'+(gn?esc(gn):'無群組')+'</div>'+
           '</div>'+
           '<div class="text-right flex-shrink-0">'+
@@ -3878,12 +3978,13 @@ function rPay(){
   var monthSel=document.getElementById('pay-month');
   var monthSet={};
   P.forEach(p=>{ if(p.date && p.date.length>=7) monthSet[p.date.substring(0,7)]=true; });
+  DLOGS.forEach(l=>{ if(l.date && l.date.length>=7) monthSet[l.date.substring(0,7)]=true; });
   var months=Object.keys(monthSet).sort().reverse();
   
-  // 優化：預設選取當前月份
+  // 優化：預設選取當前月份（僅在使用者尚未手動操作過篩選器時）
   var currentMonthStr = toLocalDate().slice(0,7);
   var prevMonth = monthSel.value;
-  if(!prevMonth && months.indexOf(currentMonthStr) !== -1) {
+  if(!PAY_MONTH_TOUCHED && !prevMonth && months.indexOf(currentMonthStr) !== -1) {
     prevMonth = currentMonthStr;
   }
   if(prevMonth && months.indexOf(prevMonth)===-1) prevMonth='';
@@ -3896,34 +3997,139 @@ function rPay(){
   var rangeLabel=document.getElementById('pay-range-label');
   if(rangeLabel) rangeLabel.innerHTML='· '+(selMonth||'全部')+' ('+filteredP.length+' 筆)';
   
-  if(!P.length){st.classList.add('hidden');return;}
-  if(!filteredP.length){
+  if(!P.length && !DLOGS.length){st.classList.add('hidden');return;}
+  var monthLogsForCheck = selMonth ? DLOGS.filter(l=>l.date && l.date.startsWith(selMonth)) : DLOGS;
+  if(!filteredP.length && !monthLogsForCheck.length){
     st.classList.add('hidden'); body.innerHTML=''; empty.style.display='block';
-    empty.textContent=selMonth?selMonth+' 沒有收付款紀錄':'尚無收付款紀錄'; return;
+    empty.textContent=selMonth?selMonth+' 沒有收付款或工時紀錄':'尚無收付款紀錄'; return;
   }
-  empty.style.display='none'; st.classList.remove('hidden');
+  // ===== 切換鍵 UI 狀態 =====
+  var flowWrap=document.getElementById('pay-flow-wrap');
+  var prodWrap=document.getElementById('pay-prod-wrap');
+  var tabFlow=document.getElementById('pay-tab-flow');
+  var tabProd=document.getElementById('pay-tab-prod');
+  var modeTitle=document.getElementById('pay-mode-title');
+  var modeDot=document.getElementById('pay-mode-dot');
+  var onCls='bg-blue-600 text-white';
+  var offCls='bg-slate-900 text-slate-400 hover:text-slate-200';
+  if(tabFlow){ tabFlow.className='px-3 py-1.5 transition-colors '+(PAY_VIEW==='flow'?onCls:offCls); }
+  if(tabProd){ tabProd.className='px-3 py-1.5 transition-colors border-l border-slate-700 '+(PAY_VIEW==='prod'?onCls:offCls); }
+  if(flowWrap) flowWrap.classList.toggle('hidden', PAY_VIEW!=='flow');
+  if(prodWrap) prodWrap.classList.toggle('hidden', PAY_VIEW!=='prod');
+  if(modeTitle) modeTitle.textContent = PAY_VIEW==='prod' ? '產值明細' : '收付款紀錄';
+  if(modeDot) modeDot.className = PAY_VIEW==='prod' ? 'text-blue-400' : 'text-emerald-400';
+
+  if(!filteredP.length){
+    body.innerHTML=''; empty.style.display='block';
+    empty.textContent=selMonth?selMonth+' 沒有收付款紀錄':'尚無收付款紀錄';
+  } else {
+    empty.style.display='none';
+  }
+  st.classList.remove('hidden');
   
   var incomes=filteredP.filter(p=>(p.payType||'income')==='income');
   var expenses=filteredP.filter(p=>p.payType==='expense');
   var recvMap={TWD:0,USD:0,CNY:0,JPY:0}; incomes.forEach(p=>recvMap[p.cur]+=p.amt);
   var expMap={TWD:0,USD:0,CNY:0,JPY:0}; expenses.forEach(p=>expMap[p.cur]+=p.amt);
-  var arMap=totalARMap();
+  
+  // 本月產值：一律以「該月登記的工時」為基礎換算，計件任務用「應收 ÷ 總工時」的等效時薪，
+  // 確保同任務跨月不重複計算，且各月加總 = 任務總應收。事後補登的工時依其登記日期歸入對應月份。
+  // prodRows 以「任務」為單位彙總（同任務當月多筆工時合併成一列），方便快速瀏覽本月做了哪些案子、
+  // 各案產值與效率，不會被同一案子的多天紀錄洗版。
+  var prodMap={TWD:0,USD:0,CNY:0,JPY:0};
+  var totalHrsByPid={};
+  DLOGS.forEach(l=>{ totalHrsByPid[l.pid]=(totalHrsByPid[l.pid]||0)+(l.hrs||0); });
+  var prodLogs=selMonth ? DLOGS.filter(l=>l.date && l.date.startsWith(selMonth)) : DLOGS.slice();
+  var prodAgg={}; // pid -> 彙總列
+  prodLogs.forEach(l=>{
+    var p=pBy(l.pid);
+    if(!p || p.nonBillable) return;
+    var cur=p.budgetCur||'TWD';
+    var effRate, isPiece;
+    if(p.bill==='hourly'){
+      effRate=p.hrate||0; isPiece=false;
+    } else {
+      var tot=totalHrsByPid[p.id]||0;
+      effRate=tot>0?((p.earned||0)/tot):0; isPiece=true; // 計件等效時薪
+    }
+    var val=(l.hrs||0)*effRate;
+    prodMap[cur]=(prodMap[cur]||0)+val;
+    if(!prodAgg[p.id]){
+      prodAgg[p.id]={pid:p.id, name:p.name, isPiece:isPiece, hrs:0, val:0, rate:effRate,
+                     cur:cur, totHrs:totalHrsByPid[p.id]||0, earned:p.earned||0, lastDate:l.date};
+    }
+    prodAgg[p.id].hrs+=(l.hrs||0);
+    prodAgg[p.id].val+=val;
+    if((l.date||'')>(prodAgg[p.id].lastDate||'')) prodAgg[p.id].lastDate=l.date;
+  });
+  // 依產值（換算 TWD）由大到小：最有貢獻的案子在上、低效率的容易對照
+  var prodRows=Object.keys(prodAgg).map(k=>prodAgg[k])
+                 .sort((a,b)=>toTWD(b.val,b.cur)-toTWD(a.val,a.cur));
+  // 「全部」時的歷史產值，仍以任務總應收為準（與工時明細加總一致）
+  if(!selMonth){
+    prodMap={TWD:0,USD:0,CNY:0,JPY:0};
+    PJ.forEach(p=>{ if(!p.nonBillable){var r=projAR(p.id); if(r.earned>0) prodMap[r.cur]=(prodMap[r.cur]||0)+r.earned;} });
+  }
   
   var recvLabel=selMonth?selMonth+' 收款':'歷史收款合計';
   var expLabel=selMonth?selMonth+' 付款':'歷史付款合計';
-  st.innerHTML=sc(recvLabel,formatMultiCurMap(recvMap))+sc('目前待收帳款',formatMultiCurMap(arMap))+(expenses.length?sc(expLabel,'<span class=\"text-amber-400\">'+formatMultiCurMap(expMap,true)+'</span>'):'');
+  var prodLabel=selMonth?selMonth+' 產值':'歷史產值合計';
+  // 與「目前待收帳款總計」統一的盒裝樣式
+  var scBox=function(l,v){return '<div class="rounded-lg border border-slate-800 bg-slate-900 px-4 py-3"><p class="text-xs text-slate-500 mb-1">'+l+'</p><div class="text-lg font-semibold text-white leading-tight">'+v+'</div></div>';};
+  st.innerHTML=scBox(recvLabel,formatMultiCurMap(recvMap))+scBox(prodLabel,formatMultiCurMap(prodMap))+(expenses.length?scBox(expLabel,'<span class=\"text-amber-400\">'+formatMultiCurMap(expMap,true)+'</span>'):'');
   
   body.innerHTML=filteredP.map(p=>{
     var isExp=p.payType==='expense';
     var typeBdg=isExp?'<span class=\"badge bg-amber-950/50 text-amber-400 border border-amber-900/50\">付款</span>':'<span class=\"badge bg-emerald-950/50 text-emerald-400 border border-emerald-900/50\">收款</span>';
     return `<tr><td class=\"text-slate-400\">${p.date}</td><td>${typeBdg}</td><td class=\"font-medium text-slate-300\">${p.pid?esc(pname(p.pid)):'未分類'}</td><td class=\"${isExp?'text-amber-400':'text-emerald-400'} font-medium\">${isExp?'-':''}${fmtMoney(p.amt,p.cur)}</td><td class=\"text-slate-500 text-xs\">${esc(p.note||'')}</td><td><button class=\"text-xs text-red-400\" onclick=\"P=P.filter(x=>x.id!==${p.id});save();rPay();rProj()\">刪除</button></td></tr>`;
   }).join('');
+
+  // ===== 產值明細表格 =====
+  var prodBody=document.getElementById('pay-prod-body');
+  var prodFoot=document.getElementById('pay-prod-foot');
+  var prodEmpty=document.getElementById('pay-prod-empty');
+  if(prodBody){
+    if(!prodRows.length){
+      prodBody.innerHTML=''; prodFoot.innerHTML='';
+      prodEmpty.style.display='block';
+      prodEmpty.textContent=selMonth?selMonth+' 沒有工時紀錄':'尚無工時紀錄';
+    } else {
+      prodEmpty.style.display='none';
+      prodBody.innerHTML=prodRows.map(r=>{
+        var billBdg = r.isPiece
+          ? '<span class="badge bg-purple-950/50 text-purple-300 border border-purple-900/50">計件</span>'
+          : '<span class="badge bg-sky-950/50 text-sky-300 border border-sky-900/50">計時</span>';
+        var rateCell = r.isPiece
+          ? '<span class="text-slate-300">'+fmtMoney(Math.round(r.rate*100)/100,r.cur)+'</span><div class="text-[10px] text-slate-500">'+fmtMoney(r.earned,r.cur)+' ÷ '+formatHrs(r.totHrs)+'</div>'
+          : '<span class="text-slate-300">'+fmtMoney(r.rate,r.cur)+'</span>';
+        return `<tr class="cursor-pointer hover:bg-slate-800/30" onclick="openDetail(${r.pid})">`+
+          `<td class="font-medium text-slate-300">${esc(r.name)}</td>`+
+          `<td>${billBdg}</td>`+
+          `<td class="text-right text-blue-300 font-mono">${formatHrs(r.hrs)}</td>`+
+          `<td class="text-right text-xs">${rateCell}</td>`+
+          `<td class="text-right font-medium text-emerald-400">${fmtMoney(Math.round(r.val),r.cur)}</td>`+
+        `</tr>`;
+      }).join('');
+      var totHrsAll=prodRows.reduce((s,r)=>s+r.hrs,0);
+      prodFoot.innerHTML=`<tr class="border-t-2 border-slate-700"><td colspan="2" class="font-semibold text-slate-300 py-2">合計（${prodRows.length} 個案子）</td>`+
+        `<td class="text-right font-mono text-blue-300 py-2">${formatHrs(totHrsAll)}</td>`+
+        `<td></td>`+
+        `<td class="text-right font-semibold text-emerald-400 py-2">${formatMultiCurMap(prodMap,true)}</td></tr>`;
+    }
+  }
 }
 
 
+var PAY_VIEW='flow'; // 'flow' = 收付款紀錄, 'prod' = 產值明細
+var PAY_MONTH_TOUCHED=false; // 使用者是否手動操作過月份篩選器
+function setPayView(v){
+  PAY_VIEW=v;
+  rPay();
+}
+
 function payMonthReset(){
   var sel=document.getElementById('pay-month');
-  if(sel){ sel.value=''; rPay(); }
+  if(sel){ PAY_MONTH_TOUCHED=true; sel.value=''; rPay(); }
 }
 
 function togglePayAR(){
@@ -4841,7 +5047,7 @@ function go(id,btn){
   document.querySelectorAll('.tab-main,.tab-sub').forEach(el=>el.classList.remove('active'));
   document.getElementById(VIEWS[id]).classList.remove('hidden');
   btn.classList.add('active');
-  if(id==='dash')renderDash(); if(id==='tag')rTagStats(); if(id==='grp')rGrp(); if(id==='cal')renderCal(); if(id==='vendor')rVendors(); if(id==='cat')rTagStats();
+  if(id==='dash')renderDash(); if(id==='tag')rTagStats(); if(id==='grp')rGrp(); if(id==='cal')renderCal(); if(id==='vendor')rVendors(); if(id==='cat')rTagStats(); if(id==='pay')rPay();
 }
 function toggleCalTracks() {
   var chk = document.getElementById('cal-toggle-tracks');
@@ -4889,6 +5095,7 @@ function init(){
   var wtEl = document.getElementById('weekly-target'); if(wtEl) wtEl.value = getWeeklyTarget();
   applyWorkMode();
   applyHintVisibility();
+  applyUnifyCurUI();
   fetchFX(); 
 }
 function showCloudMask(show){
