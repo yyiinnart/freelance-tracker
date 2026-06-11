@@ -5581,7 +5581,8 @@ function renderSched(){
       g += '<div class="'+numCls+'" onclick="toggleVacation(\''+c.str+'\')" title="點擊設定/取消休假">'+c.date.getDate()+'</div>';
       (dlByDate[c.str]||[]).forEach(function(u){
         var late = u.lastDay && u.deadline && u.lastDay > u.deadline;
-        g += '<div class="cal-ev" '+(u.pid===-1?'':'onclick="openDetail('+u.pid+')"')+' style="color:'+(u.hard?'#fb7185':pColor(u.pid))+';font-weight:600;font-size:9px;" title="'+esc(u.pname+(u.phaseLabel?' · '+u.phaseLabel:'')+' 截止')+'">'+(late?'🚨':'◼')+' '+esc((u.phaseLabel||u.pname))+' 截止</div>';
+        var dlName = u.pname + (u.phaseLabel ? ' · ' + u.phaseLabel : '');
+        g += '<div class="cal-ev" '+(u.pid===-1?'':'onclick="openDetail('+u.pid+')"')+' style="color:'+(u.hard?'#fb7185':pColor(u.pid))+';font-weight:600;font-size:9px;" title="'+esc(dlName+' 截止')+'">'+(late?'🚨':'◼')+' '+esc(dlName)+' 截止</div>';
       });
       var allocs = R.allocByDate[c.str]||[];
       allocs.forEach(function(a){
