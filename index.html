@@ -264,6 +264,15 @@ tbody tr[onclick]:hover td{background:#131f2e;}
 .deleg-card.deleg-done{opacity:.45;background:#0f1520;border-color:#151d2a;}
 .deleg-card.deleg-done:hover{opacity:.7;}
 
+/* 排程試算樣式 */
+.cal-table td.sched-off{background:#0a0f18;}
+.cal-table td.sched-off .cal-day-num{color:#475569;}
+.sched-chip{display:flex;align-items:center;justify-content:space-between;gap:4px;font-size:9px;padding:1px 3px 1px 5px;margin:1px 0;background:rgba(30,41,59,.5);border-radius:0 4px 4px 0;cursor:pointer;overflow:hidden;}
+.sched-chip:hover{background:rgba(51,65,85,.6);}
+.sched-chip>span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sched-hrs{color:#94a3b8;font-family:monospace;font-size:9px;flex-shrink:0;}
+.sched-day-total{position:absolute;bottom:2px;right:4px;font-size:9px;color:#475569;font-family:monospace;}
+
 /* 休假日樣式 */
 .vacation-day {
   background: #111827 !important; 
@@ -639,13 +648,18 @@ tbody tr[onclick]:hover td{background:#131f2e;}
   </div>
 
   <div id="v-cal" class="hidden">
-    <div class="hint-bar">以月曆方式呈現所有任務的起訖區間，快速確認排程衝突與空檔。點擊色條可展開任務詳情。截止日臨近的任務會以顏色警示標記。</div>
+    <div class="hint-bar" id="cal-hint-cal">以月曆方式呈現所有任務的起訖區間，快速確認排程衝突與空檔。點擊色條可展開任務詳情。截止日臨近的任務會以顏色警示標記。</div>
+    <div class="hint-bar" id="cal-hint-sched" style="display:none;">依各任務的<strong>預估工時</strong>與<strong>截止日</strong>自動試算每日該做什麼：硬截止優先、截止日近的先排，自動跳過週末與休假日。試算僅供參考，不會寫入任何資料；在任務詳情填寫預估工時即可加入試算（委外／轉包任務不佔用工時，不參與）。</div>
+    <div class="flex items-center gap-1 mb-4 bg-slate-900 border border-slate-800 rounded-lg p-1 w-fit">
+      <button id="cal-mode-cal" class="tab-sub active" onclick="setCalMode('cal')">📅 月曆檢視</button>
+      <button id="cal-mode-sched" class="tab-sub" onclick="setCalMode('sched')">🧮 排程試算</button>
+    </div>
     <div class="flex items-center justify-between mb-4">
       <button class="btn btn-sm hover:bg-slate-800" onclick="calNav(-1)">◀ 上月</button>
       <h2 id="cal-title" class="text-lg font-semibold text-slate-200"></h2>
       <button class="btn btn-sm hover:bg-slate-800" onclick="calNav(1)">下月 ▶</button>
     </div>
-    <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+    <div id="cal-toolbar-cal" class="flex items-center justify-between mb-4 flex-wrap gap-2">
       <div class="flex items-center gap-3 text-[10px] text-slate-600">
         <span>▸ 開始</span><span>◼ 截止</span><span>◇ 階段</span>
         <span class="text-slate-700">│</span>
@@ -668,6 +682,22 @@ tbody tr[onclick]:hover td{background:#131f2e;}
           </select>
         </div>
       </div>
+    </div>
+    <div id="cal-toolbar-sched" class="mb-4" style="display:none;">
+      <div class="flex items-center justify-between flex-wrap gap-2 mb-4">
+        <div class="flex items-center gap-3 text-[10px] text-slate-600">
+          <span class="text-rose-400">●</span><span>硬截止</span>
+          <span class="text-slate-700">│</span>
+          <span>◼ 階段截止</span>
+          <span class="text-slate-700">│</span>
+          <span>反灰＝週末／休假（不排工）</span>
+        </div>
+        <label class="flex items-center gap-1.5 text-[11px] text-slate-400">
+          每日可用 <input type="number" id="sched-day-cap" class="bg-slate-800 border border-slate-700 rounded px-1 py-0.5 w-12 text-center outline-none hover:border-slate-500 text-slate-300" min="1" max="24" step="0.5" onchange="saveDayCap()"> 小時
+          <span class="text-slate-600 text-[10px]">（週一～五）</span>
+        </label>
+      </div>
+      <div id="sched-summary"></div>
     </div>
     <div id="cal-grid" style="overflow-x:auto;"></div>
 
@@ -2177,7 +2207,7 @@ function updateProjField(id, field, value) {
   if (!p) return;
   var old = {budget:p.budget, hrate:p.hrate, earned:p.earned, bill:p.bill, st:p.st};
   
-  if (['budget', 'hrate', 'vendorCost', 'earned'].indexOf(field) !== -1) {
+  if (['budget', 'hrate', 'vendorCost', 'earned', 'estHrs'].indexOf(field) !== -1) {
     p[field] = parseFloat(value) || 0;
   } else if (field === 'nonBillable') {
     p[field] = value;
@@ -3119,6 +3149,19 @@ function openDetail(id){
             ${(function(){var d=deadlineInfo(p.edate,p.st);return d&&d.cls?`<span class="text-slate-500 ml-1">(${d.label})</span>`:'';})()}
           </div>
 
+          <div class="text-slate-500">預估工時</div>
+          <div class="flex items-center gap-3 text-slate-400 -ml-1.5">
+            <div class="flex items-center gap-1">
+              <input type="number" min="0" step="0.5" class="bg-transparent outline-none hover:bg-slate-800/60 border border-transparent hover:border-slate-700 rounded px-1.5 py-0.5 w-16 transition-colors text-slate-300" value="${p.estHrs||''}" placeholder="—" onchange="updateProjField(${id}, 'estHrs', this.value)">
+              <span class="text-slate-600 text-[10px]">h</span>
+              ${p.estHrs?`<span class="text-[10px] text-slate-600 ml-1">已投入 ${formatHrs(p.hrs||0)} / 剩餘 ${formatHrs(Math.max(0,(p.estHrs||0)-(p.hrs||0)))}</span>`:'<span class="text-[10px] text-slate-700 ml-1">填寫後可參與排程試算</span>'}
+            </div>
+            <label class="flex items-center gap-1.5 cursor-pointer select-none" title="硬截止：交期不可調整，排程時最優先保障">
+              <input type="checkbox" class="accent-rose-500 w-3.5 h-3.5 cursor-pointer" ${p.dlHard?'checked':''} onchange="updateProjField(${id}, 'dlHard', this.checked)">
+              <span class="text-[11px] ${p.dlHard?'text-rose-400':'text-slate-500'}">硬截止</span>
+            </label>
+          </div>
+
           <div class="text-slate-500">標籤設定</div>
           <div class="-ml-1.5">
             <div id="dt-tag-dd" class="tag-dd"></div>
@@ -3218,6 +3261,10 @@ function openDetail(id){
                 <input class="bg-transparent text-sm outline-none w-full ${m.done?'text-slate-500 line-through':'text-slate-300'}" value="${esc(m.name)}" data-msf="name" onchange="editMS(${id},${i},this)">
               </div>
               <div class="flex items-center gap-2 flex-shrink-0">
+                <span class="flex items-center gap-0.5" title="此階段預估工時（排程分段檢查用）">
+                  <input type="number" min="0" step="0.5" class="bg-transparent hover:bg-slate-900/50 border border-transparent hover:border-slate-700 rounded px-1 py-1 text-xs outline-none w-12 text-right ${m.done?'text-slate-500':'text-slate-400'} transition-colors" value="${m.estHrs||''}" placeholder="—" data-msf="estHrs" onchange="editMS(${id},${i},this)">
+                  <span class="text-[9px] text-slate-600">h</span>
+                </span>
                 <input type="date" class="bg-transparent hover:bg-slate-900/50 border border-transparent hover:border-slate-700 rounded px-1.5 py-1 text-xs outline-none ${m.done?'text-slate-500':'text-slate-400'} transition-colors" value="${m.date||''}" data-msf="date" onchange="editMS(${id},${i},this)">
                 <button class="text-slate-600 hover:text-red-400 px-1" onclick="delMS(${id},${i})">✕</button>
               </div>
@@ -3227,9 +3274,16 @@ function openDetail(id){
         </div>
         <div class="flex gap-2">
           <input type="text" id="dt-ms-name" class="inp text-sm flex-1 bg-slate-800/40 border-slate-700/50 rounded-xl placeholder-slate-600" placeholder="階段名稱（如：草稿）" onkeydown="if(event.key==='Enter')addMS(${id})">
+          <input type="number" id="dt-ms-est" min="0" step="0.5" class="inp text-sm w-20 bg-slate-800/40 border-slate-700/50 rounded-xl text-slate-400 placeholder-slate-600" placeholder="工時h" title="此階段預估工時（選填）">
           <input type="date" id="dt-ms-date" class="inp text-sm w-36 bg-slate-800/40 border-slate-700/50 rounded-xl text-slate-400" value="${toLocalDate()}">
           <button class="btn btn-sm bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 rounded-xl" onclick="addMS(${id})">+ 新增</button>
         </div>
+        ${(function(){
+          var msSum=(p.milestones||[]).reduce(function(s,m){return s+(+m.estHrs||0);},0);
+          if(p.estHrs&&msSum>p.estHrs)return '<div class="text-[10px] text-amber-400 mt-2 px-1">⚠ 各階段工時加總 '+formatHrs(msSum)+' 已超過任務總預估 '+formatHrs(p.estHrs)+'，請調整其中一邊</div>';
+          if(p.estHrs&&msSum>0&&msSum<p.estHrs)return '<div class="text-[10px] text-slate-600 mt-2 px-1">階段工時合計 '+formatHrs(msSum)+'，最終階段（至截止日）自動分配剩餘 '+formatHrs(p.estHrs-msSum)+'</div>';
+          return '';
+        })()}
       </div>
 
       <div class="mb-6">
@@ -3341,9 +3395,12 @@ function addMS(pid){
   var p=pBy(pid);if(!p)return;
   var name=document.getElementById('dt-ms-name').value.trim();
   var date=document.getElementById('dt-ms-date').value;
+  var est=+((document.getElementById('dt-ms-est')||{}).value)||0;
   if(!name)return;
   if(!p.milestones)p.milestones=[];
-  p.milestones.push({name:name,date:date,done:false});
+  var ms={name:name,date:date,done:false};
+  if(est>0)ms.estHrs=est;
+  p.milestones.push(ms);
   p.milestones.sort(function(a,b){return(a.date||'9').localeCompare(b.date||'9');});
   save();openDetail(pid);
 }
@@ -3359,6 +3416,7 @@ function editMS(pid,idx,el){
   var p=pBy(pid);if(!p||!p.milestones)return;
   var f=el.getAttribute('data-msf');
   if(f==='name')p.milestones[idx].name=el.value;
+  if(f==='estHrs')p.milestones[idx].estHrs=(+el.value)||0;
   if(f==='date'){p.milestones[idx].date=el.value;p.milestones.sort(function(a,b){return(a.date||'9').localeCompare(b.date||'9');});}
   save();openDetail(pid);
 }
@@ -4959,7 +5017,7 @@ function doExport(){
 
 var calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
 function calNav(d){calMonth+=d;if(calMonth>11){calMonth=0;calYear++;}if(calMonth<0){calMonth=11;calYear--;}renderCal();}
-function renderCal(){
+function renderCalGrid(){
   var el=document.getElementById('cal-grid');if(!el)return;
   document.getElementById('cal-title').textContent=calYear+'年 '+(calMonth+1)+'月';
   var first=new Date(calYear,calMonth,1);
@@ -5092,6 +5150,246 @@ function renderCal(){
   el.innerHTML=html;
 }
 
+/* ============================================================
+   排程試算引擎（純函數：不寫入任何資料，每次切換視圖即時重算）
+   規則：
+   - 僅納入 active、自己執行（非委外/轉包）、已填 estHrs 的任務
+   - 任務依 milestones(含estHrs者) 拆為多個階段單位，階段需依序完成
+   - 已投入工時以瀑布式扣抵：從最早階段開始填
+   - 逐日模擬：跳過週六日與 VACS；每日容量 getDayCap()
+   - 分配優先序：硬截止 > 軟截止，同類依截止日近者優先 (EDF)
+   - 單日單案最少 min(4h, 剩餘)，避免過碎切換
+   ============================================================ */
+function getDayCap(){ return parseFloat(localStorage.getItem('ft_day_cap')) || 8; }
+function saveDayCap(){
+  var v = parseFloat(document.getElementById('sched-day-cap').value) || 8;
+  localStorage.setItem('ft_day_cap', v);
+  renderCal();
+}
+var SCHED_MIN_CHUNK = 4;     // 單日單案最低時數
+var SCHED_HORIZON_DAYS = 400; // 模擬上限，防無窮迴圈
+
+function computeSchedule(){
+  var todayStr = toLocalDate();
+  var units = [];      // 待排階段單位
+  var noEst = [];      // 未填預估工時的任務（提示用）
+  var overSum = [];    // 階段工時加總超過總預估的任務
+
+  PJ.forEach(function(p){
+    if(p.st !== 'active') return;
+    if(p.execMode === 'outsource' || p.execMode === 'resell') return;
+    if(!p.estHrs || p.estHrs <= 0){
+      if(p.edate && p.edate >= todayStr) noEst.push(p);
+      return;
+    }
+    // ---- 組階段：有 estHrs 的 milestone 依日期排序，最後加最終階段(至 edate) ----
+    var phases = (p.milestones||[])
+      .filter(function(m){ return (+m.estHrs||0) > 0 && m.date; })
+      .slice().sort(function(a,b){ return a.date.localeCompare(b.date); })
+      .map(function(m){ return {label:m.name, deadline:m.date, est:+m.estHrs, done:!!m.done}; });
+    var msSum = phases.reduce(function(s,ph){ return s+ph.est; }, 0);
+    if(msSum > p.estHrs){ overSum.push(p); return; } // 資料矛盾，不排，請使用者修正
+    var finalEst = p.estHrs - msSum;
+    if(finalEst > 0 || phases.length === 0){
+      phases.push({label: phases.length ? '完稿' : '', deadline: p.edate || '', est: finalEst > 0 ? finalEst : p.estHrs, done:false});
+    }
+    // ---- 瀑布式扣抵已投入工時 ----
+    var pool = p.hrs || 0;
+    phases.forEach(function(ph, i){
+      var consumed = ph.done ? ph.est : Math.min(pool, ph.est);
+      pool = Math.max(0, pool - ph.est);
+      var remaining = ph.done ? 0 : ph.est - consumed;
+      if(remaining <= 0) return;
+      units.push({
+        pid: p.id, pname: p.name, phaseLabel: ph.label, phaseIdx: i,
+        deadline: ph.deadline, hard: !!p.dlHard,
+        remaining: Math.round(remaining*100)/100, total: ph.est,
+        startConstraint: (p.sdate && p.sdate > todayStr) ? p.sdate : todayStr,
+        firstDay: null, lastDay: null
+      });
+    });
+  });
+
+  // ---- 逐日模擬 ----
+  var cap = getDayCap();
+  var allocByDate = {}; // {dateStr: [{pid,pname,phaseLabel,hrs,hard,deadline}]}
+  var d = new Date(); d.setHours(0,0,0,0);
+  var dayCount = 0;
+  function unitEligible(u, dateStr){
+    if(u.remaining <= 0) return false;
+    if(dateStr < u.startConstraint) return false;
+    // 同任務的前一階段需已排完（瀑布式相依）
+    return !units.some(function(o){ return o.pid===u.pid && o.phaseIdx < u.phaseIdx && o.remaining > 0; });
+  }
+  function priority(a,b){
+    if(a.hard !== b.hard) return a.hard ? -1 : 1;
+    return (a.deadline||'9999').localeCompare(b.deadline||'9999');
+  }
+  while(dayCount < SCHED_HORIZON_DAYS && units.some(function(u){ return u.remaining > 0; })){
+    var ds = toLocalDate(d);
+    var dow = d.getDay();
+    var workday = dow !== 0 && dow !== 6 && VACS.indexOf(ds) === -1;
+    if(workday){
+      var left = cap;
+      var guard = 0;
+      while(left > 0.01 && guard++ < 20){
+        var elig = units.filter(function(u){ return unitEligible(u, ds); }).sort(priority);
+        var picked = null;
+        for(var i=0;i<elig.length;i++){
+          var need = Math.min(SCHED_MIN_CHUNK, elig[i].remaining);
+          if(left >= need - 0.001){ picked = elig[i]; break; }
+        }
+        if(!picked) break;
+        var alloc = Math.min(left, picked.remaining);
+        alloc = Math.round(alloc*100)/100;
+        picked.remaining = Math.round((picked.remaining - alloc)*100)/100;
+        if(!picked.firstDay) picked.firstDay = ds;
+        picked.lastDay = ds;
+        if(!allocByDate[ds]) allocByDate[ds] = [];
+        allocByDate[ds].push({pid:picked.pid, pname:picked.pname, phaseLabel:picked.phaseLabel, hrs:alloc, hard:picked.hard, deadline:picked.deadline});
+        left -= alloc;
+      }
+    }
+    d.setDate(d.getDate()+1);
+    dayCount++;
+  }
+  return {units:units, allocByDate:allocByDate, noEst:noEst, overSum:overSum};
+}
+
+var calViewMode = localStorage.getItem('ft_cal_mode') || 'cal';
+function setCalMode(m){
+  calViewMode = m;
+  localStorage.setItem('ft_cal_mode', m);
+  var isS = m === 'sched';
+  document.getElementById('cal-mode-cal').classList.toggle('active', !isS);
+  document.getElementById('cal-mode-sched').classList.toggle('active', isS);
+  document.getElementById('cal-toolbar-cal').style.display = isS ? 'none' : '';
+  document.getElementById('cal-toolbar-sched').style.display = isS ? '' : 'none';
+  document.getElementById('cal-hint-cal').style.display = isS ? 'none' : '';
+  document.getElementById('cal-hint-sched').style.display = isS ? '' : 'none';
+  renderCal();
+}
+function renderCal(){
+  if(calViewMode === 'sched') renderSched();
+  else renderCalGrid();
+}
+
+function renderSched(){
+  var el = document.getElementById('cal-grid'); if(!el) return;
+  document.getElementById('cal-title').textContent = calYear+'年 '+(calMonth+1)+'月';
+  var capInp = document.getElementById('sched-day-cap');
+  if(capInp && document.activeElement !== capInp) capInp.value = getDayCap();
+
+  var R = computeSchedule();
+  var todayStr = toLocalDate();
+
+  // ---- 任務色票（與月曆檢視同邏輯，跨視圖顏色一致）----
+  var trackColors=['#3b82f6','#8b5cf6','#06b6d4','#f59e0b','#ec4899','#10b981','#f97316','#6366f1'];
+  var colorOf = {};
+  function pColor(pid){
+    if(!colorOf[pid]){
+      var hash = String(pid).split('').reduce(function(a,b){ return a + b.charCodeAt(0); }, 0);
+      colorOf[pid] = trackColors[hash % trackColors.length];
+    }
+    return colorOf[pid];
+  }
+
+  // ---- 摘要表 ----
+  var sm = document.getElementById('sched-summary');
+  var rows = R.units.map(function(u){
+    var name = u.pname + (u.phaseLabel ? ' · ' + u.phaseLabel : '');
+    var finish = u.lastDay;
+    var st, stCls;
+    if(!u.firstDay || u.remaining > 0.01){
+      st = '排不進（超出試算範圍）'; stCls = 'text-red-400';
+    } else if(!u.deadline){
+      st = '無截止日'; stCls = 'text-slate-500';
+    } else if(finish <= u.deadline){
+      var slack = Math.round((new Date(u.deadline) - new Date(finish)) / 86400000);
+      st = '✓ 來得及（餘 '+slack+' 天）'; stCls = slack <= 2 ? 'text-amber-400' : 'text-emerald-400';
+    } else {
+      var overD = Math.round((new Date(finish) - new Date(u.deadline)) / 86400000);
+      st = (u.hard ? '✗ 來不及' : '⚠ 需協調') + '（晚 '+overD+' 天）';
+      stCls = u.hard ? 'text-red-400 font-semibold' : 'text-amber-400';
+    }
+    return '<tr class="cursor-pointer" onclick="openDetail('+u.pid+')">'
+      +'<td><span class="inline-block w-2 h-2 rounded-full mr-2" style="background:'+pColor(u.pid)+'"></span>'+esc(name)+(u.hard?' <span class="text-rose-400 text-[10px]">●硬</span>':'')+'</td>'
+      +'<td class="font-mono text-xs">'+formatHrs(u.total)+'</td>'
+      +'<td class="font-mono text-xs">'+(u.deadline||'<span class="text-slate-600">—</span>')+'</td>'
+      +'<td class="font-mono text-xs">'+(u.firstDay||'—')+'</td>'
+      +'<td class="font-mono text-xs">'+(finish||'—')+'</td>'
+      +'<td class="'+stCls+'">'+st+'</td></tr>';
+  }).join('');
+  var html = '';
+  if(R.overSum.length){
+    html += '<div class="text-[11px] text-amber-400 bg-amber-950/20 border border-amber-900/40 rounded-lg px-3 py-2 mb-3">⚠ '+R.overSum.map(function(p){return esc(p.name);}).join('、')+'：階段工時加總超過任務總預估，已暫不排程。請至任務詳情修正。</div>';
+  }
+  if(rows){
+    html += '<div class="tbl-wrap mb-3"><table><thead><tr><th>任務 · 階段</th><th>階段工時</th><th>截止日</th><th>預計開工</th><th>預計完工</th><th>試算結果</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  } else {
+    html += '<div class="text-center py-10 text-sm text-slate-500 bg-slate-900/40 border border-slate-800 rounded-xl mb-3">目前沒有可排程的任務<br><span class="text-xs text-slate-600">在任務詳情填寫「預估工時」即可加入試算</span></div>';
+  }
+  if(R.noEst.length){
+    html += '<div class="text-[11px] text-slate-500 px-1 mb-1">未填預估工時（不參與試算）：'+R.noEst.map(function(p){
+      return '<span class="cursor-pointer underline decoration-dotted hover:text-slate-300" onclick="openDetail('+p.id+')">'+esc(p.name)+'</span>';
+    }).join('、')+'</div>';
+  }
+  sm.innerHTML = html;
+
+  // ---- 月曆格：每日分配 ----
+  var first = new Date(calYear, calMonth, 1);
+  var startDay = first.getDay();
+  var startDate = new Date(calYear, calMonth, 1 - startDay);
+  var cells = [];
+  for(var i=0;i<42;i++){
+    var dd = new Date(startDate); dd.setDate(startDate.getDate()+i);
+    cells.push({date:dd, str:toLocalDate(dd), inMonth:dd.getMonth()===calMonth});
+  }
+  // 階段截止日標記
+  var dlByDate = {};
+  R.units.forEach(function(u){
+    if(!u.deadline) return;
+    if(!dlByDate[u.deadline]) dlByDate[u.deadline] = [];
+    dlByDate[u.deadline].push(u);
+  });
+  var weekDays=['日','一','二','三','四','五','六'];
+  var g='<table class="cal-table"><thead><tr>';
+  weekDays.forEach(function(w){g+='<th>'+w+'</th>';});
+  g+='</tr></thead><tbody>';
+  for(var row=0;row<6;row++){
+    g+='<tr>';
+    for(var col=0;col<7;col++){
+      var c=cells[row*7+col];
+      var isToday = c.str === todayStr;
+      var dow = c.date.getDay();
+      var isOff = dow===0 || dow===6 || VACS.indexOf(c.str)!==-1;
+      var isVac = VACS.indexOf(c.str)!==-1;
+      var tdCls = (isToday?' today':'') + (c.inMonth?'':' other-month') + (isVac?' vacation-day':'') + (isOff&&c.inMonth&&!isVac?' sched-off':'');
+      var numCls = 'cal-day-num' + (isToday?' today':'') + (c.inMonth?'':' other-month');
+      g += '<td class="'+tdCls.trim()+'">';
+      g += '<div class="'+numCls+'" onclick="toggleVacation(\''+c.str+'\')" title="點擊設定/取消休假">'+c.date.getDate()+'</div>';
+      (dlByDate[c.str]||[]).forEach(function(u){
+        var late = u.lastDay && u.deadline && u.lastDay > u.deadline;
+        g += '<div class="cal-ev" onclick="openDetail('+u.pid+')" style="color:'+(u.hard?'#fb7185':pColor(u.pid))+';font-weight:600;font-size:9px;" title="'+esc(u.pname+(u.phaseLabel?' · '+u.phaseLabel:'')+' 截止')+'">'+(late?'🚨':'◼')+' '+esc((u.phaseLabel||u.pname))+' 截止</div>';
+      });
+      var allocs = R.allocByDate[c.str]||[];
+      allocs.forEach(function(a){
+        g += '<div class="cal-ev sched-chip" onclick="openDetail('+a.pid+')" style="border-left:2px solid '+pColor(a.pid)+';" title="'+esc(a.pname+(a.phaseLabel?' · '+a.phaseLabel:''))+' '+a.hrs+'h">'
+          + '<span style="color:'+pColor(a.pid)+'">'+esc(a.pname)+(a.phaseLabel?'<span style="opacity:.6"> · '+esc(a.phaseLabel)+'</span>':'')+'</span>'
+          + '<span class="sched-hrs">'+(Math.round(a.hrs*10)/10)+'h</span></div>';
+      });
+      if(allocs.length){
+        var dayTotal = allocs.reduce(function(s,a){return s+a.hrs;},0);
+        g += '<div class="sched-day-total">'+(Math.round(dayTotal*10)/10)+'h</div>';
+      }
+      g += '</td>';
+    }
+    g+='</tr>';
+  }
+  g+='</tbody></table>';
+  el.innerHTML=g;
+}
+
 var VIEWS={proj:'v-proj',pay:'v-pay',cal:'v-cal',grp:'v-grp',vendor:'v-vendor',tag:'v-tag',cat:'v-cat',dash:'v-dash',cfg:'v-cfg',sync:'v-sync',help:'v-help'};
 function go(id,btn){
   Object.values(VIEWS).forEach(v=>document.getElementById(v).classList.add('hidden'));
@@ -5125,6 +5423,7 @@ function init(){
   loadLocal();
   var limitInp = document.getElementById('cal-track-limit');
   if(limitInp) limitInp.value = parseInt(localStorage.getItem('ft_track_limit')) || 21;
+  setCalMode(calViewMode);
   toggleCalTracks();
   var showTracks = localStorage.getItem('ft_show_tracks') !== '0';
   var trkChk = document.getElementById('cal-toggle-tracks');
