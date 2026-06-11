@@ -272,6 +272,8 @@ tbody tr[onclick]:hover td{background:#131f2e;}
 .sched-chip>span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .sched-hrs{color:#94a3b8;font-family:monospace;font-size:9px;flex-shrink:0;}
 .sched-day-total{position:absolute;bottom:2px;right:4px;font-size:9px;color:#475569;font-family:monospace;}
+.sched-chip-wi{background:rgba(226,232,240,.07);}
+.sched-wi-row td{background:rgba(226,232,240,.04) !important;border-top:1px dashed #475569;border-bottom:1px dashed #475569 !important;}
 
 /* 休假日樣式 */
 .vacation-day {
@@ -697,6 +699,19 @@ tbody tr[onclick]:hover td{background:#131f2e;}
           <span class="text-slate-600 text-[10px]">（週一～五）</span>
         </label>
       </div>
+      <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-3.5 mb-4">
+        <div class="text-[11px] font-semibold text-slate-400 mb-2.5">🆕 接新案試算 <span class="font-normal text-slate-600">— 客戶來問檔期時用：填入條件即時試排，不會儲存任何資料</span></div>
+        <div class="flex flex-wrap items-end gap-2">
+          <div class="flex flex-col gap-1"><label class="text-[10px] text-slate-600">名稱（選填）</label><input type="text" id="wi-name" class="inp py-1.5 text-xs w-32" placeholder="新案試算"></div>
+          <div class="flex flex-col gap-1"><label class="text-[10px] text-slate-600">預估工時 *</label><input type="number" id="wi-est" min="0.5" step="0.5" class="inp py-1.5 text-xs w-20" placeholder="h"></div>
+          <div class="flex flex-col gap-1"><label class="text-[10px] text-slate-600">截止日</label><input type="date" id="wi-dl" class="inp py-1.5 text-xs w-36"></div>
+          <div class="flex flex-col gap-1"><label class="text-[10px] text-slate-600">最早開工（選填）</label><input type="date" id="wi-sd" class="inp py-1.5 text-xs w-36"></div>
+          <label class="flex items-center gap-1.5 cursor-pointer select-none pb-2"><input type="checkbox" id="wi-hard" class="accent-rose-500 w-3.5 h-3.5"><span class="text-[11px] text-slate-400">硬截止</span></label>
+          <button class="btn btn-sm btn-solid" onclick="runWhatIf()">試算</button>
+          <button class="btn btn-sm" id="wi-clear" style="display:none;" onclick="clearWhatIf()">清除試算</button>
+        </div>
+        <div id="wi-result" class="mt-2.5" style="display:none;"></div>
+      </div>
       <div id="sched-summary"></div>
     </div>
     <div id="cal-grid" style="overflow-x:auto;"></div>
@@ -914,6 +929,16 @@ tbody tr[onclick]:hover td{background:#131f2e;}
         </div>
       </div>
     </div>    
+
+    <!-- 估時準確度 -->
+    <div class="bg-slate-900 rounded-xl border border-slate-800 p-5 mb-6">
+      <div class="flex items-center justify-between mb-1">
+        <h3 class="text-sm font-semibold text-slate-300">🎯 估時準確度</h3>
+        <span class="text-[10px] text-slate-600">統計所有已填預估工時的任務，不受月份篩選影響</span>
+      </div>
+      <p class="text-[11px] text-slate-500 mb-4">比較「預估工時」與「實際工時」，讓你知道自己的估時習慣偏樂觀還是保守，回饋到報價與排程。</p>
+      <div id="est-acc-body"></div>
+    </div>
 
     <div id="export-box" class="hidden bg-slate-900 border border-slate-800 rounded-xl p-5 text-sm font-mono text-slate-400 leading-relaxed whitespace-pre-wrap overflow-auto" style="max-height:400px"></div>
 
@@ -4479,7 +4504,99 @@ function editMonthExpense(mon){
   setTimeout(function(){var el=document.getElementById('mexp-input');if(el){el.focus();el.select();}},50);
 }
 
+/* ===== 估時準確度報表 =====
+   只看「預估 vs 實際」兩個欄位，已完成案算偏差、進行中案顯示進度。
+   整體建議係數採加權比（Σ實際/Σ預估），比逐案平均更不受小案波動影響。 */
+function renderEstAcc(){
+  var el = document.getElementById('est-acc-body'); if(!el) return;
+  var withEst = PJ.filter(function(p){ return (+p.estHrs||0) > 0; });
+  var done = withEst.filter(function(p){ return p.st === 'done'; });
+  var active = withEst.filter(function(p){ return p.st === 'active' && (p.hrs||0) > 0; });
+
+  if(!withEst.length){
+    el.innerHTML = '<div class="text-center py-8 text-sm text-slate-600">尚無填寫預估工時的任務<br><span class="text-xs text-slate-700">在任務詳情填寫「預估工時」，結案後即可累積估時數據</span></div>';
+    return;
+  }
+  var html = '';
+
+  // ---- 已完成：總體統計 ----
+  if(done.length){
+    var sumEst = done.reduce(function(s,p){ return s + p.estHrs; }, 0);
+    var sumAct = done.reduce(function(s,p){ return s + (p.hrs||0); }, 0);
+    var ratio = sumEst > 0 ? sumAct / sumEst : 1;
+    var ratioTxt, ratioCls, advice;
+    if(ratio > 1.05){
+      ratioTxt = '+' + Math.round((ratio-1)*100) + '%（偏樂觀）'; ratioCls = 'text-red-400';
+      advice = '報價與排程時，建議將直覺估時 × <span class="font-mono text-amber-300">' + (Math.ceil(ratio*20)/20).toFixed(2) + '</span> 作為保守值';
+    } else if(ratio < 0.95){
+      ratioTxt = Math.round((ratio-1)*100) + '%（偏保守）'; ratioCls = 'text-blue-400';
+      advice = '你實際比預估快，估時可放心沿用，甚至有議價空間';
+    } else {
+      ratioTxt = (ratio>=1?'+':'') + Math.round((ratio-1)*100) + '%（相當準確）'; ratioCls = 'text-emerald-400';
+      advice = '估時與實際高度吻合，維持現在的估法';
+    }
+    html += '<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">'
+      + '<div class="stat-card"><div class="text-[10px] text-slate-500 mb-1">已結案樣本</div><div class="text-lg font-semibold text-slate-200">' + done.length + ' 件</div></div>'
+      + '<div class="stat-card"><div class="text-[10px] text-slate-500 mb-1">預估合計</div><div class="text-lg font-semibold text-slate-200">' + formatHrs(sumEst) + '</div></div>'
+      + '<div class="stat-card"><div class="text-[10px] text-slate-500 mb-1">實際合計</div><div class="text-lg font-semibold text-slate-200">' + formatHrs(sumAct) + '</div></div>'
+      + '<div class="stat-card"><div class="text-[10px] text-slate-500 mb-1">整體偏差</div><div class="text-lg font-semibold ' + ratioCls + '">' + ratioTxt + '</div></div>'
+      + '</div>'
+      + '<div class="text-[11px] text-slate-400 bg-slate-950/50 border border-slate-800 rounded-lg px-3 py-2 mb-4">💡 ' + advice + '</div>';
+
+    // ---- 依案型分組 ----
+    var byType = {};
+    done.forEach(function(p){
+      var t = p.type || '_none';
+      if(!byType[t]) byType[t] = {est:0, act:0, n:0};
+      byType[t].est += p.estHrs; byType[t].act += (p.hrs||0); byType[t].n++;
+    });
+    var typeKeys = Object.keys(byType);
+    if(typeKeys.length > 1){
+      html += '<div class="flex flex-wrap gap-2 mb-4">' + typeKeys.map(function(t){
+        var g = byType[t];
+        var r = g.est > 0 ? g.act/g.est : 1;
+        var cls = r > 1.05 ? 'text-red-400' : (r < 0.95 ? 'text-blue-400' : 'text-emerald-400');
+        var nm = t === '_none' ? '未分類' : catBy(t).name;
+        return '<span class="badge bg-slate-800 border border-slate-700"><span class="text-slate-400">' + esc(nm) + '</span><span class="text-slate-600 mx-1">×' + g.n + '</span><span class="' + cls + '">' + (r>=1?'+':'') + Math.round((r-1)*100) + '%</span></span>';
+      }).join('') + '</div>';
+    }
+
+    // ---- 已完成明細表（近 15 件） ----
+    var rows = done.slice().sort(function(a,b){ return (b.edate||'').localeCompare(a.edate||''); }).slice(0,15).map(function(p){
+      var dev = (p.hrs - p.estHrs) / p.estHrs;
+      var devCls = dev > 0.1 ? 'text-red-400' : (dev < -0.1 ? 'text-blue-400' : 'text-emerald-400');
+      return '<tr class="cursor-pointer" onclick="openDetail(' + p.id + ')">'
+        + '<td>' + esc(p.name) + '</td>'
+        + '<td class="text-slate-500 text-xs">' + esc(catBy(p.type||'').name) + '</td>'
+        + '<td class="font-mono text-xs">' + formatHrs(p.estHrs) + '</td>'
+        + '<td class="font-mono text-xs">' + formatHrs(p.hrs||0) + '</td>'
+        + '<td class="font-mono text-xs ' + devCls + '">' + (dev>=0?'+':'') + Math.round(dev*100) + '%</td></tr>';
+    }).join('');
+    html += '<div class="tbl-wrap mb-4"><table><thead><tr><th>任務</th><th>類型</th><th>預估</th><th>實際</th><th>偏差</th></tr></thead><tbody>' + rows + '</tbody></table></div>'
+      + (done.length > 15 ? '<div class="text-[10px] text-slate-600 px-1 mb-3">僅顯示最近 15 件結案</div>' : '');
+  } else {
+    html += '<div class="text-[11px] text-slate-500 bg-slate-950/50 border border-slate-800 rounded-lg px-3 py-2 mb-4">尚無已結案的估時樣本——結案幾件後，這裡會告訴你估時習慣偏樂觀還是保守。</div>';
+  }
+
+  // ---- 進行中：進度燃燒 ----
+  if(active.length){
+    html += '<div class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2 px-1">進行中任務的工時消耗</div>'
+      + active.map(function(p){
+        var pct = Math.round((p.hrs / p.estHrs) * 100);
+        var over = pct > 100;
+        var barPct = Math.min(pct, 100);
+        return '<div class="mb-2.5 cursor-pointer" onclick="openDetail(' + p.id + ')">'
+          + '<div class="flex items-center justify-between text-xs mb-1"><span class="text-slate-300">' + esc(p.name) + '</span>'
+          + '<span class="font-mono ' + (over ? 'text-red-400 font-semibold' : (pct > 80 ? 'text-amber-400' : 'text-slate-500')) + '">' + formatHrs(p.hrs) + ' / ' + formatHrs(p.estHrs) + '（' + pct + '%）' + (over ? ' 已超估 ⚠' : '') + '</span></div>'
+          + '<div class="h-1.5 bg-slate-800 rounded-full overflow-hidden"><div class="h-full rounded-full" style="width:' + barPct + '%;background:' + (over ? '#ef4444' : (pct > 80 ? '#f59e0b' : '#3b82f6')) + '"></div></div>'
+          + '</div>';
+      }).join('');
+  }
+  el.innerHTML = html;
+}
+
 function renderDash(){
+  renderEstAcc();
   var mon=document.getElementById('f-month').value;
   var fp=mon?P.filter(p=>p.date.indexOf(mon)===0):P;
   var fLogs=mon?DLOGS.filter(l=>l.date.indexOf(mon)===0):DLOGS;
@@ -4694,6 +4811,7 @@ function applyDashPanels() {
     cf: document.getElementById('dash-cf'),
     month: document.getElementById('c-month'),
     pie: document.getElementById('c-pie'),
+    estacc: document.getElementById('est-acc-body'),
     timeline: document.getElementById('dl-timeline')
   };
   
@@ -4715,6 +4833,7 @@ function openDashSettings() {
     '<label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white"><input type="checkbox" id="dc-cf" class="accent-blue-500 w-4 h-4" '+(cfg.cf!==false?'checked':'')+'> 💰 現金流與獲利</label>' +
     '<label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white"><input type="checkbox" id="dc-month" class="accent-blue-500 w-4 h-4" '+(cfg.month!==false?'checked':'')+'> 📈 月度每日工時 (長條圖)</label>' +
     '<label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white"><input type="checkbox" id="dc-pie" class="accent-blue-500 w-4 h-4" '+(cfg.pie!==false?'checked':'')+'> 🍩 專案時間分佈 (圓餅圖)</label>' +
+    '<label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white"><input type="checkbox" id="dc-estacc" class="accent-blue-500 w-4 h-4" '+(cfg.estacc!==false?'checked':'')+'> 🎯 估時準確度</label>' +
     '<label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white"><input type="checkbox" id="dc-timeline" class="accent-blue-500 w-4 h-4" '+(cfg.timeline!==false?'checked':'')+'> 📝 每日工時紀錄列表</label>' +
   '</div>';
   
@@ -4725,6 +4844,7 @@ function openDashSettings() {
       cf: document.getElementById('dc-cf').checked,
       month: document.getElementById('dc-month').checked,
       pie: document.getElementById('dc-pie').checked,
+      estacc: document.getElementById('dc-estacc').checked,
       timeline: document.getElementById('dc-timeline').checked
     };
     localStorage.setItem('ft_dash_cfg', JSON.stringify(newCfg));
@@ -5169,7 +5289,7 @@ function saveDayCap(){
 var SCHED_MIN_CHUNK = 4;     // 單日單案最低時數
 var SCHED_HORIZON_DAYS = 400; // 模擬上限，防無窮迴圈
 
-function computeSchedule(){
+function computeSchedule(extra){
   var todayStr = toLocalDate();
   var units = [];      // 待排階段單位
   var noEst = [];      // 未填預估工時的任務（提示用）
@@ -5209,6 +5329,17 @@ function computeSchedule(){
       });
     });
   });
+
+  // ---- 接新案試算：注入虛擬單位（pid=-1，不寫入任何資料）----
+  if(extra && extra.est > 0){
+    units.push({
+      pid: -1, pname: extra.name || '新案試算', phaseLabel: '', phaseIdx: 0,
+      deadline: extra.deadline || '', hard: !!extra.hard,
+      remaining: extra.est, total: extra.est,
+      startConstraint: (extra.sdate && extra.sdate > todayStr) ? extra.sdate : todayStr,
+      firstDay: null, lastDay: null
+    });
+  }
 
   // ---- 逐日模擬 ----
   var cap = getDayCap();
@@ -5274,19 +5405,99 @@ function renderCal(){
   else renderCalGrid();
 }
 
+var SCHED_WHATIF = null; // 接新案試算狀態（僅存在記憶體，重新整理即清空）
+function runWhatIf(){
+  var est = parseFloat(document.getElementById('wi-est').value) || 0;
+  var estInp = document.getElementById('wi-est');
+  if(est <= 0){ estInp.style.borderColor = '#f87171'; estInp.focus(); return; }
+  estInp.style.borderColor = '';
+  SCHED_WHATIF = {
+    est: est,
+    deadline: document.getElementById('wi-dl').value,
+    sdate: document.getElementById('wi-sd').value,
+    hard: document.getElementById('wi-hard').checked,
+    name: '🆕 ' + (document.getElementById('wi-name').value.trim() || '新案試算')
+  };
+  renderCal();
+}
+function clearWhatIf(){
+  SCHED_WHATIF = null;
+  renderCal();
+}
+
 function renderSched(){
   var el = document.getElementById('cal-grid'); if(!el) return;
   document.getElementById('cal-title').textContent = calYear+'年 '+(calMonth+1)+'月';
   var capInp = document.getElementById('sched-day-cap');
   if(capInp && document.activeElement !== capInp) capInp.value = getDayCap();
 
-  var R = computeSchedule();
+  // ---- 試算：有 what-if 時先跑基準版供比對 ----
+  var baseMap = null;
+  if(SCHED_WHATIF){
+    var B = computeSchedule(null);
+    baseMap = {};
+    B.units.forEach(function(u){ baseMap[u.pid+':'+u.phaseIdx] = u; });
+  }
+  var R = computeSchedule(SCHED_WHATIF);
   var todayStr = toLocalDate();
+
+  // ---- what-if 結果與影響分析 ----
+  var wiClear = document.getElementById('wi-clear');
+  var wiRes = document.getElementById('wi-result');
+  if(wiClear) wiClear.style.display = SCHED_WHATIF ? '' : 'none';
+  if(wiRes){
+    if(!SCHED_WHATIF){ wiRes.style.display='none'; wiRes.innerHTML=''; }
+    else {
+      var vu = R.units.find(function(u){ return u.pid === -1; });
+      var lines = [];
+      if(!vu || !vu.firstDay || vu.remaining > 0.01){
+        lines.push('<span class="text-red-400 font-semibold">✗ 試算範圍內排不進</span>');
+      } else {
+        var head;
+        if(!vu.deadline){
+          head = '<span class="text-slate-300">預計 <span class="font-mono">'+vu.firstDay+'</span> 開工、<span class="font-mono">'+vu.lastDay+'</span> 完工</span><span class="text-slate-500">（未填截止日，僅供報期參考）</span>';
+        } else if(vu.lastDay <= vu.deadline){
+          var slack = Math.round((new Date(vu.deadline) - new Date(vu.lastDay)) / 86400000);
+          head = '<span class="'+(slack<=2?'text-amber-400':'text-emerald-400')+' font-semibold">✓ 塞得進</span><span class="text-slate-300">：<span class="font-mono">'+vu.firstDay+'</span> 開工 → <span class="font-mono">'+vu.lastDay+'</span> 完工（截止前餘 '+slack+' 天）</span>';
+        } else {
+          var over = Math.round((new Date(vu.lastDay) - new Date(vu.deadline)) / 86400000);
+          head = '<span class="text-red-400 font-semibold">✗ 來不及</span><span class="text-slate-300">：最快 <span class="font-mono">'+vu.lastDay+'</span> 完工，比截止日晚 '+over+' 天。可回覆客戶最早交期為 <span class="font-mono text-amber-300">'+vu.lastDay+'</span></span>';
+        }
+        lines.push(head);
+        // 對既有案子的衝擊
+        var impacts = [];
+        R.units.forEach(function(u){
+          if(u.pid === -1) return;
+          var b = baseMap[u.pid+':'+u.phaseIdx];
+          if(!b || !b.lastDay || !u.lastDay) return;
+          if(u.lastDay > b.lastDay){
+            var push = Math.round((new Date(u.lastDay) - new Date(b.lastDay)) / 86400000);
+            var nowLate = u.deadline && u.lastDay > u.deadline;
+            var wasLate = b.deadline && b.lastDay > b.deadline;
+            var nm = u.pname + (u.phaseLabel ? '·' + u.phaseLabel : '');
+            if(nowLate && !wasLate){
+              impacts.push('<span class="text-red-400">'+esc(nm)+' 完工延後 '+push+' 天 → 變成來不及'+(u.hard?'（硬截止！）':'')+'</span>');
+            } else {
+              impacts.push('<span class="'+(nowLate?'text-red-400':'text-slate-400')+'">'+esc(nm)+' 完工延後 '+push+' 天'+(u.deadline?(nowLate?'':'（仍來得及）'):'')+'</span>');
+            }
+          }
+        });
+        if(impacts.length){
+          lines.push('<span class="text-slate-500">代價：</span>' + impacts.join('<span class="text-slate-700"> ｜ </span>'));
+        } else {
+          lines.push('<span class="text-slate-500">代價：不影響任何既有案子的完工日</span>');
+        }
+      }
+      wiRes.innerHTML = '<div class="text-xs leading-relaxed bg-slate-950/50 border border-slate-800 rounded-lg px-3 py-2 flex flex-col gap-1">'+lines.map(function(l){return '<div>'+l+'</div>';}).join('')+'</div>';
+      wiRes.style.display = '';
+    }
+  }
 
   // ---- 任務色票（與月曆檢視同邏輯，跨視圖顏色一致）----
   var trackColors=['#3b82f6','#8b5cf6','#06b6d4','#f59e0b','#ec4899','#10b981','#f97316','#6366f1'];
   var colorOf = {};
   function pColor(pid){
+    if(pid === -1) return '#e2e8f0'; // 試算虛擬案：亮灰白，與案件色票區隔
     if(!colorOf[pid]){
       var hash = String(pid).split('').reduce(function(a,b){ return a + b.charCodeAt(0); }, 0);
       colorOf[pid] = trackColors[hash % trackColors.length];
@@ -5312,7 +5523,7 @@ function renderSched(){
       st = (u.hard ? '✗ 來不及' : '⚠ 需協調') + '（晚 '+overD+' 天）';
       stCls = u.hard ? 'text-red-400 font-semibold' : 'text-amber-400';
     }
-    return '<tr class="cursor-pointer" onclick="openDetail('+u.pid+')">'
+    return '<tr class="'+(u.pid===-1?'sched-wi-row':'cursor-pointer')+'" '+(u.pid===-1?'':'onclick="openDetail('+u.pid+')"')+'>'
       +'<td><span class="inline-block w-2 h-2 rounded-full mr-2" style="background:'+pColor(u.pid)+'"></span>'+esc(name)+(u.hard?' <span class="text-rose-400 text-[10px]">●硬</span>':'')+'</td>'
       +'<td class="font-mono text-xs">'+formatHrs(u.total)+'</td>'
       +'<td class="font-mono text-xs">'+(u.deadline||'<span class="text-slate-600">—</span>')+'</td>'
@@ -5370,11 +5581,12 @@ function renderSched(){
       g += '<div class="'+numCls+'" onclick="toggleVacation(\''+c.str+'\')" title="點擊設定/取消休假">'+c.date.getDate()+'</div>';
       (dlByDate[c.str]||[]).forEach(function(u){
         var late = u.lastDay && u.deadline && u.lastDay > u.deadline;
-        g += '<div class="cal-ev" onclick="openDetail('+u.pid+')" style="color:'+(u.hard?'#fb7185':pColor(u.pid))+';font-weight:600;font-size:9px;" title="'+esc(u.pname+(u.phaseLabel?' · '+u.phaseLabel:'')+' 截止')+'">'+(late?'🚨':'◼')+' '+esc((u.phaseLabel||u.pname))+' 截止</div>';
+        g += '<div class="cal-ev" '+(u.pid===-1?'':'onclick="openDetail('+u.pid+')"')+' style="color:'+(u.hard?'#fb7185':pColor(u.pid))+';font-weight:600;font-size:9px;" title="'+esc(u.pname+(u.phaseLabel?' · '+u.phaseLabel:'')+' 截止')+'">'+(late?'🚨':'◼')+' '+esc((u.phaseLabel||u.pname))+' 截止</div>';
       });
       var allocs = R.allocByDate[c.str]||[];
       allocs.forEach(function(a){
-        g += '<div class="cal-ev sched-chip" onclick="openDetail('+a.pid+')" style="border-left:2px solid '+pColor(a.pid)+';" title="'+esc(a.pname+(a.phaseLabel?' · '+a.phaseLabel:''))+' '+a.hrs+'h">'
+        var isWI = a.pid === -1;
+        g += '<div class="cal-ev sched-chip'+(isWI?' sched-chip-wi':'')+'" '+(isWI?'':'onclick="openDetail('+a.pid+')"')+' style="border-left:2px '+(isWI?'dashed':'solid')+' '+pColor(a.pid)+';" title="'+esc(a.pname+(a.phaseLabel?' · '+a.phaseLabel:''))+' '+a.hrs+'h">'
           + '<span style="color:'+pColor(a.pid)+'">'+esc(a.pname)+(a.phaseLabel?'<span style="opacity:.6"> · '+esc(a.phaseLabel)+'</span>':'')+'</span>'
           + '<span class="sched-hrs">'+(Math.round(a.hrs*10)/10)+'h</span></div>';
       });
