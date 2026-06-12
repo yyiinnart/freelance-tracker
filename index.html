@@ -700,13 +700,14 @@ tbody tr[onclick]:hover td{background:#131f2e;}
         </label>
       </div>
       <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-3.5 mb-4">
-        <div class="text-[11px] font-semibold text-slate-400 mb-2.5">🆕 接新案試算 <span class="font-normal text-slate-600">— 客戶來問檔期時用：填入條件即時試排，不會儲存任何資料</span></div>
-        <div class="flex flex-wrap items-end gap-2">
-          <div class="flex flex-col gap-1"><label class="text-[10px] text-slate-600">名稱（選填）</label><input type="text" id="wi-name" class="inp py-1.5 text-xs w-32" placeholder="新案試算"></div>
-          <div class="flex flex-col gap-1"><label class="text-[10px] text-slate-600">預估工時 *</label><input type="number" id="wi-est" min="0.5" step="0.5" class="inp py-1.5 text-xs w-20" placeholder="h"></div>
-          <div class="flex flex-col gap-1"><label class="text-[10px] text-slate-600">截止日</label><input type="date" id="wi-dl" class="inp py-1.5 text-xs w-36"></div>
+        <div class="text-[11px] font-semibold text-slate-400 mb-2.5">🆕 接新案試算 <span class="font-normal text-slate-600">— 客戶來問檔期時用：填入條件即時試排。可拆多階段（廠商給的各階段期望日），每階段可分別標記硬截止；試算 OK 後可一鍵代入建立任務</span></div>
+        <div class="flex flex-wrap items-end gap-2 mb-2">
+          <div class="flex flex-col gap-1"><label class="text-[10px] text-slate-600">名稱（選填）</label><input type="text" id="wi-name" class="inp py-1.5 text-xs w-36" placeholder="新案試算"></div>
           <div class="flex flex-col gap-1"><label class="text-[10px] text-slate-600">最早開工（選填）</label><input type="date" id="wi-sd" class="inp py-1.5 text-xs w-36"></div>
-          <label class="flex items-center gap-1.5 cursor-pointer select-none pb-2"><input type="checkbox" id="wi-hard" class="accent-rose-500 w-3.5 h-3.5"><span class="text-[11px] text-slate-400">硬截止</span></label>
+        </div>
+        <div id="wi-stages" class="flex flex-col gap-1.5 mb-2"></div>
+        <div class="flex items-center gap-2">
+          <button class="btn btn-sm" onclick="wiAddStage()">+ 加一階段</button>
           <button class="btn btn-sm btn-solid" onclick="runWhatIf()">試算</button>
           <button class="btn btn-sm" id="wi-clear" style="display:none;" onclick="clearWhatIf()">清除試算</button>
         </div>
@@ -3290,6 +3291,10 @@ function openDetail(id){
                   <input type="number" min="0" step="0.5" class="bg-transparent hover:bg-slate-900/50 border border-transparent hover:border-slate-700 rounded px-1 py-1 text-xs outline-none w-12 text-right ${m.done?'text-slate-500':'text-slate-400'} transition-colors" value="${m.estHrs||''}" placeholder="—" data-msf="estHrs" onchange="editMS(${id},${i},this)">
                   <span class="text-[9px] text-slate-600">h</span>
                 </span>
+                <label class="flex items-center gap-1 cursor-pointer select-none" title="此階段為硬截止（不可調整，排程最優先保障）；未勾選則視為期望日（軟截止）">
+                  <input type="checkbox" class="accent-rose-500 w-3.5 h-3.5 cursor-pointer" ${(typeof m.hard==='boolean'?m.hard:p.dlHard)?'checked':''} data-msf="hard" onchange="editMS(${id},${i},this)">
+                  <span class="text-[9px] ${(typeof m.hard==='boolean'?m.hard:p.dlHard)?'text-rose-400':'text-slate-600'}">硬</span>
+                </label>
                 <input type="date" class="bg-transparent hover:bg-slate-900/50 border border-transparent hover:border-slate-700 rounded px-1.5 py-1 text-xs outline-none ${m.done?'text-slate-500':'text-slate-400'} transition-colors" value="${m.date||''}" data-msf="date" onchange="editMS(${id},${i},this)">
                 <button class="text-slate-600 hover:text-red-400 px-1" onclick="delMS(${id},${i})">✕</button>
               </div>
@@ -3300,6 +3305,7 @@ function openDetail(id){
         <div class="flex gap-2">
           <input type="text" id="dt-ms-name" class="inp text-sm flex-1 bg-slate-800/40 border-slate-700/50 rounded-xl placeholder-slate-600" placeholder="階段名稱（如：草稿）" onkeydown="if(event.key==='Enter')addMS(${id})">
           <input type="number" id="dt-ms-est" min="0" step="0.5" class="inp text-sm w-20 bg-slate-800/40 border-slate-700/50 rounded-xl text-slate-400 placeholder-slate-600" placeholder="工時h" title="此階段預估工時（選填）">
+          <label class="flex items-center gap-1 cursor-pointer select-none px-1" title="此階段為硬截止"><input type="checkbox" id="dt-ms-hard" class="accent-rose-500 w-3.5 h-3.5"><span class="text-[10px] text-slate-500">硬</span></label>
           <input type="date" id="dt-ms-date" class="inp text-sm w-36 bg-slate-800/40 border-slate-700/50 rounded-xl text-slate-400" value="${toLocalDate()}">
           <button class="btn btn-sm bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 rounded-xl" onclick="addMS(${id})">+ 新增</button>
         </div>
@@ -3425,6 +3431,8 @@ function addMS(pid){
   if(!p.milestones)p.milestones=[];
   var ms={name:name,date:date,done:false};
   if(est>0)ms.estHrs=est;
+  var hardEl=document.getElementById('dt-ms-hard');
+  if(hardEl&&hardEl.checked)ms.hard=true; // 未勾選不寫入，沿用任務層級硬截止設定
   p.milestones.push(ms);
   p.milestones.sort(function(a,b){return(a.date||'9').localeCompare(b.date||'9');});
   save();openDetail(pid);
@@ -3442,6 +3450,7 @@ function editMS(pid,idx,el){
   var f=el.getAttribute('data-msf');
   if(f==='name')p.milestones[idx].name=el.value;
   if(f==='estHrs')p.milestones[idx].estHrs=(+el.value)||0;
+  if(f==='hard')p.milestones[idx].hard=el.checked;
   if(f==='date'){p.milestones[idx].date=el.value;p.milestones.sort(function(a,b){return(a.date||'9').localeCompare(b.date||'9');});}
   save();openDetail(pid);
 }
@@ -5306,12 +5315,12 @@ function computeSchedule(extra){
     var phases = (p.milestones||[])
       .filter(function(m){ return (+m.estHrs||0) > 0 && m.date; })
       .slice().sort(function(a,b){ return a.date.localeCompare(b.date); })
-      .map(function(m){ return {label:m.name, deadline:m.date, est:+m.estHrs, done:!!m.done}; });
+      .map(function(m){ return {label:m.name, deadline:m.date, est:+m.estHrs, done:!!m.done, hard:(typeof m.hard==='boolean') ? m.hard : !!p.dlHard}; });
     var msSum = phases.reduce(function(s,ph){ return s+ph.est; }, 0);
     if(msSum > p.estHrs){ overSum.push(p); return; } // 資料矛盾，不排，請使用者修正
     var finalEst = p.estHrs - msSum;
     if(finalEst > 0 || phases.length === 0){
-      phases.push({label: phases.length ? '完稿' : '', deadline: p.edate || '', est: finalEst > 0 ? finalEst : p.estHrs, done:false});
+      phases.push({label: phases.length ? '完稿' : '', deadline: p.edate || '', est: finalEst > 0 ? finalEst : p.estHrs, done:false, hard: !!p.dlHard});
     }
     // ---- 瀑布式扣抵已投入工時 ----
     var pool = p.hrs || 0;
@@ -5322,7 +5331,7 @@ function computeSchedule(extra){
       if(remaining <= 0) return;
       units.push({
         pid: p.id, pname: p.name, phaseLabel: ph.label, phaseIdx: i,
-        deadline: ph.deadline, hard: !!p.dlHard,
+        deadline: ph.deadline, hard: !!ph.hard,
         remaining: Math.round(remaining*100)/100, total: ph.est,
         startConstraint: (p.sdate && p.sdate > todayStr) ? p.sdate : todayStr,
         firstDay: null, lastDay: null
@@ -5330,14 +5339,17 @@ function computeSchedule(extra){
     });
   });
 
-  // ---- 接新案試算：注入虛擬單位（pid=-1，不寫入任何資料）----
-  if(extra && extra.est > 0){
-    units.push({
-      pid: -1, pname: extra.name || '新案試算', phaseLabel: '', phaseIdx: 0,
-      deadline: extra.deadline || '', hard: !!extra.hard,
-      remaining: extra.est, total: extra.est,
-      startConstraint: (extra.sdate && extra.sdate > todayStr) ? extra.sdate : todayStr,
-      firstDay: null, lastDay: null
+  // ---- 接新案試算：注入虛擬單位（pid=-1，不寫入任何資料；多階段依序相依）----
+  if(extra && extra.phases && extra.phases.length){
+    extra.phases.forEach(function(ph, i){
+      units.push({
+        pid: -1, pname: extra.name || '新案試算',
+        phaseLabel: ph.label || (extra.phases.length > 1 ? '階段'+(i+1) : ''), phaseIdx: i,
+        deadline: ph.deadline || '', hard: !!ph.hard,
+        remaining: ph.est, total: ph.est,
+        startConstraint: (extra.sdate && extra.sdate > todayStr) ? extra.sdate : todayStr,
+        firstDay: null, lastDay: null
+      });
     });
   }
 
@@ -5406,16 +5418,69 @@ function renderCal(){
 }
 
 var SCHED_WHATIF = null; // 接新案試算狀態（僅存在記憶體，重新整理即清空）
+function wiStageRowHTML(){
+  return '<div class="wi-stage-row flex flex-wrap items-end gap-2 bg-slate-950/40 border border-slate-800/60 rounded-lg px-2.5 py-2">'
+    +'<span class="wi-stage-no text-[10px] text-slate-600 font-mono pb-2 w-6"></span>'
+    +'<div class="flex flex-col gap-1"><label class="text-[10px] text-slate-600">階段名稱（選填）</label><input type="text" class="wi-ph-name inp py-1.5 text-xs w-28" placeholder="如：草稿"></div>'
+    +'<div class="flex flex-col gap-1"><label class="text-[10px] text-slate-600">工時 *</label><input type="number" min="0.5" step="0.5" class="wi-ph-est inp py-1.5 text-xs w-20" placeholder="h"></div>'
+    +'<div class="flex flex-col gap-1"><label class="text-[10px] text-slate-600">期望截止日</label><input type="date" class="wi-ph-dl inp py-1.5 text-xs w-36"></div>'
+    +'<label class="flex items-center gap-1.5 cursor-pointer select-none pb-2" title="此階段交期不可調整，排程時最優先保障"><input type="checkbox" class="wi-ph-hard accent-rose-500 w-3.5 h-3.5"><span class="text-[11px] text-slate-400">硬截止</span></label>'
+    +'<button class="text-slate-600 hover:text-red-400 px-1 pb-1.5" title="移除此階段" onclick="wiDelStage(this)">✕</button>'
+    +'</div>';
+}
+function wiAddStage(){
+  var box = document.getElementById('wi-stages'); if(!box) return;
+  box.insertAdjacentHTML('beforeend', wiStageRowHTML());
+  wiRenumber();
+}
+function wiDelStage(btn){
+  var rows = document.querySelectorAll('#wi-stages .wi-stage-row');
+  if(rows.length <= 1){ // 只剩一列：清空欄位而不移除
+    var r = rows[0];
+    r.querySelector('.wi-ph-name').value=''; r.querySelector('.wi-ph-est').value='';
+    r.querySelector('.wi-ph-dl').value=''; r.querySelector('.wi-ph-hard').checked=false;
+    return;
+  }
+  btn.closest('.wi-stage-row').remove();
+  wiRenumber();
+}
+function wiRenumber(){
+  document.querySelectorAll('#wi-stages .wi-stage-row').forEach(function(r,i){
+    r.querySelector('.wi-stage-no').textContent = '#'+(i+1);
+  });
+}
+function wiReset(){
+  var n=document.getElementById('wi-name'), s=document.getElementById('wi-sd');
+  if(n)n.value=''; if(s)s.value='';
+  var box=document.getElementById('wi-stages');
+  if(box){ box.innerHTML=''; wiAddStage(); }
+}
 function runWhatIf(){
-  var est = parseFloat(document.getElementById('wi-est').value) || 0;
-  var estInp = document.getElementById('wi-est');
-  if(est <= 0){ estInp.style.borderColor = '#f87171'; estInp.focus(); return; }
-  estInp.style.borderColor = '';
+  var rows = document.querySelectorAll('#wi-stages .wi-stage-row');
+  var phases = []; var bad = null;
+  rows.forEach(function(r){
+    var estInp = r.querySelector('.wi-ph-est');
+    estInp.style.borderColor = '';
+    var est = parseFloat(estInp.value) || 0;
+    var name = r.querySelector('.wi-ph-name').value.trim();
+    var dl = r.querySelector('.wi-ph-dl').value;
+    var hard = r.querySelector('.wi-ph-hard').checked;
+    if(est <= 0){
+      // 整列全空白直接略過；有填其他欄但缺工時 → 標紅
+      if(name || dl || hard) bad = bad || estInp;
+      return;
+    }
+    phases.push({label:name, est:est, deadline:dl, hard:hard});
+  });
+  if(bad){ bad.style.borderColor='#f87171'; bad.focus(); return; }
+  if(!phases.length){
+    var first = document.querySelector('#wi-stages .wi-ph-est');
+    if(first){ first.style.borderColor='#f87171'; first.focus(); }
+    return;
+  }
   SCHED_WHATIF = {
-    est: est,
-    deadline: document.getElementById('wi-dl').value,
+    phases: phases,
     sdate: document.getElementById('wi-sd').value,
-    hard: document.getElementById('wi-hard').checked,
     name: '🆕 ' + (document.getElementById('wi-name').value.trim() || '新案試算')
   };
   renderCal();
@@ -5424,6 +5489,53 @@ function clearWhatIf(){
   SCHED_WHATIF = null;
   renderCal();
 }
+
+// ---- 試算 OK → 一鍵代入「任務與工時」建立正式任務 ----
+// 階段 1..N-1 → 階段截止日（milestones，含各自工時與硬截止旗標）
+// 最後一階段 → 任務截止日 edate + dlHard；引擎的「最終階段＝總預估−里程碑加總」會還原出一模一樣的排程
+function createTaskFromWhatIf(){
+  if(!SCHED_WHATIF || !SCHED_WHATIF.phases || !SCHED_WHATIF.phases.length) return;
+  var W = SCHED_WHATIF;
+  var phases = W.phases;
+  var last = phases[phases.length - 1];
+  var total = phases.reduce(function(s,ph){ return s + ph.est; }, 0);
+  total = Math.round(total*100)/100;
+  var name = (W.name||'').replace(/^🆕\s*/,'').trim() || '新案';
+  var noDl = []; // 中間階段缺截止日者（轉成里程碑後不參與分段排程）
+  var ms = phases.slice(0, -1).map(function(ph, i){
+    if(!ph.deadline) noDl.push(ph.label || ('階段'+(i+1)));
+    var m = { name: ph.label || ('階段'+(i+1)), date: ph.deadline || '', done: false, estHrs: ph.est, hard: !!ph.hard };
+    return m;
+  });
+  var p = {
+    id: nextNumId(),
+    name: name,
+    gid: '', bill: 'piece', type: (CATS[0]||{}).id || '',
+    budget: 0, budgetCur: 'TWD',
+    st: 'active',
+    sdate: W.sdate || '',
+    edate: last.deadline || '',
+    dlHard: !!last.hard,
+    estHrs: total,
+    milestones: ms,
+    tags: [], hrs: 0, earned: 0, hrate: 0,
+    notes: '', contact: '', nonBillable: false,
+    execMode: 'self', vendorName: '', vendorId: '',
+    vendorCost: 0, vendorCostCur: 'TWD', vendorPaid: false,
+    upstreamReceived: false, deliverySt: 'wip'
+  };
+  PJ.unshift(p);
+  save(); rProj(); rGrp(); syncSel();
+  SCHED_WHATIF = null;
+  wiReset();
+  renderCal();
+  if(noDl.length) alert('提醒：「'+noDl.join('、')+'」沒填期望截止日，已建立為階段但暫不參與分段排程，可在任務詳情補上日期。');
+  // 切到任務頁並開啟詳情，方便補預算、業務類型等
+  var tabBtn = document.querySelector('.tab-main');
+  if(tabBtn) go('proj', tabBtn);
+  openDetail(p.id);
+}
+if(document.getElementById('wi-stages')) wiAddStage(); // 初始一列
 
 function renderSched(){
   var el = document.getElementById('cal-grid'); if(!el) return;
@@ -5448,22 +5560,45 @@ function renderSched(){
   if(wiRes){
     if(!SCHED_WHATIF){ wiRes.style.display='none'; wiRes.innerHTML=''; }
     else {
-      var vu = R.units.find(function(u){ return u.pid === -1; });
+      var vus = R.units.filter(function(u){ return u.pid === -1; });
       var lines = [];
-      if(!vu || !vu.firstDay || vu.remaining > 0.01){
+      var allPlaced = vus.length > 0 && vus.every(function(u){ return u.firstDay && u.remaining <= 0.01; });
+      if(!allPlaced){
         lines.push('<span class="text-red-400 font-semibold">✗ 試算範圍內排不進</span>');
       } else {
+        var firstU = vus[0], lastU = vus[vus.length-1];
+        var anyDl = vus.some(function(u){ return u.deadline; });
+        var lateStages = vus.filter(function(u){ return u.deadline && u.lastDay > u.deadline; });
         var head;
-        if(!vu.deadline){
-          head = '<span class="text-slate-300">預計 <span class="font-mono">'+vu.firstDay+'</span> 開工、<span class="font-mono">'+vu.lastDay+'</span> 完工</span><span class="text-slate-500">（未填截止日，僅供報期參考）</span>';
-        } else if(vu.lastDay <= vu.deadline){
-          var slack = Math.round((new Date(vu.deadline) - new Date(vu.lastDay)) / 86400000);
-          head = '<span class="'+(slack<=2?'text-amber-400':'text-emerald-400')+' font-semibold">✓ 塞得進</span><span class="text-slate-300">：<span class="font-mono">'+vu.firstDay+'</span> 開工 → <span class="font-mono">'+vu.lastDay+'</span> 完工（截止前餘 '+slack+' 天）</span>';
+        if(!anyDl){
+          head = '<span class="text-slate-300">預計 <span class="font-mono">'+firstU.firstDay+'</span> 開工、<span class="font-mono">'+lastU.lastDay+'</span> 完工</span><span class="text-slate-500">（未填截止日，僅供報期參考）</span>';
+        } else if(!lateStages.length){
+          var lastDlU = null; for(var li=vus.length-1; li>=0; li--){ if(vus[li].deadline){ lastDlU = vus[li]; break; } }
+          var slack = lastDlU ? Math.round((new Date(lastDlU.deadline) - new Date(lastDlU.lastDay)) / 86400000) : 0;
+          head = '<span class="'+(slack<=2?'text-amber-400':'text-emerald-400')+' font-semibold">✓ 塞得進</span><span class="text-slate-300">：<span class="font-mono">'+firstU.firstDay+'</span> 開工 → <span class="font-mono">'+lastU.lastDay+'</span> 完工'+(lastDlU?'（最終截止前餘 '+slack+' 天）':'')+'</span>';
         } else {
-          var over = Math.round((new Date(vu.lastDay) - new Date(vu.deadline)) / 86400000);
-          head = '<span class="text-red-400 font-semibold">✗ 來不及</span><span class="text-slate-300">：最快 <span class="font-mono">'+vu.lastDay+'</span> 完工，比截止日晚 '+over+' 天。可回覆客戶最早交期為 <span class="font-mono text-amber-300">'+vu.lastDay+'</span></span>';
+          var hardLate = lateStages.some(function(u){ return u.hard; });
+          head = '<span class="'+(hardLate?'text-red-400':'text-amber-400')+' font-semibold">'+(hardLate?'✗ 有硬截止階段來不及':'⚠ 部分階段超出期望日')+'</span><span class="text-slate-300">：全案最快 <span class="font-mono">'+lastU.lastDay+'</span> 完工'+(hardLate?'':'，可拿下方各階段最快完工日與廠商協調期望日')+'</span>';
         }
         lines.push(head);
+        // 各階段逐項判定（多階段時）
+        if(vus.length > 1){
+          var stLines = vus.map(function(u){
+            var nm = esc(u.phaseLabel || ('階段'+(u.phaseIdx+1)));
+            var seg = '<span class="font-mono">'+u.firstDay+'</span>→<span class="font-mono">'+u.lastDay+'</span>';
+            var verdict;
+            if(!u.deadline) verdict = '<span class="text-slate-500">無截止</span>';
+            else if(u.lastDay <= u.deadline){
+              var s2 = Math.round((new Date(u.deadline) - new Date(u.lastDay)) / 86400000);
+              verdict = '<span class="'+(s2<=1?'text-amber-400':'text-emerald-400')+'">✓ 餘 '+s2+' 天</span>';
+            } else {
+              var o2 = Math.round((new Date(u.lastDay) - new Date(u.deadline)) / 86400000);
+              verdict = '<span class="'+(u.hard?'text-red-400 font-semibold':'text-amber-400')+'">'+(u.hard?'✗':'⚠')+' 晚 '+o2+' 天</span>';
+            }
+            return '<span class="text-slate-400">'+nm+(u.hard?'<span class="text-rose-400 text-[10px]">●</span>':'')+' '+seg+' '+verdict+'</span>';
+          });
+          lines.push('<span class="text-slate-500">各階段：</span>'+stLines.join('<span class="text-slate-700"> ｜ </span>'));
+        }
         // 對既有案子的衝擊
         var impacts = [];
         R.units.forEach(function(u){
@@ -5488,6 +5623,7 @@ function renderSched(){
           lines.push('<span class="text-slate-500">代價：不影響任何既有案子的完工日</span>');
         }
       }
+      lines.push('<div class="pt-1.5 mt-0.5 border-t border-slate-800/60 flex items-center gap-2 flex-wrap"><button class="btn btn-sm btn-solid" onclick="createTaskFromWhatIf()">✚ 代入建立任務</button><span class="text-[10px] text-slate-600">各階段自動轉為「階段截止日」、最後階段轉為任務截止日；建立後開啟詳情可補預算等資訊</span></div>');
       wiRes.innerHTML = '<div class="text-xs leading-relaxed bg-slate-950/50 border border-slate-800 rounded-lg px-3 py-2 flex flex-col gap-1">'+lines.map(function(l){return '<div>'+l+'</div>';}).join('')+'</div>';
       wiRes.style.display = '';
     }
