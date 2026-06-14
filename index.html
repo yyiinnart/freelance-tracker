@@ -370,7 +370,7 @@ tbody tr[onclick]:hover td{background:#131f2e;}
   <div id="v-proj">
     <div class="hint-bar flex flex-col gap-1">
       <div><strong>建立任務</strong>：輸入名稱後點「+ 建立」，其餘欄位（截止日、合約金額、標籤等）可事後點「✎ 編輯」補填。</div>
-      <div><strong>計時器</strong>：每次只能有一個執行中任務，點擊任務列的播放鍵啟動；停止時自動寫入工時紀錄。拖曳列表前方「☰」可調整任務優先順序。</div>
+      <div><strong>計時器</strong>：每次只能有一個執行中任務，點擊任務列的播放鍵啟動；停止時自動寫入工時紀錄。拖曳前方「☰」可調整順序；跨區拖曳（如拖進焦點區）即可手動改分類，標 📌 者為手動指定，點 ✕ 恢復自動。</div>
     </div>
 
     <div class="bg-slate-900/80 border border-slate-800/80 rounded-xl mb-8 shadow-sm">
@@ -498,7 +498,7 @@ tbody tr[onclick]:hover td{background:#131f2e;}
               <th>操作</th>
             </tr>            
           </thead>
-          <tbody id="proj-body-focus"></tbody>
+          <tbody id="proj-body-focus" ondragover="handleBucketDragOver(event)" ondrop="handleBucketDrop(event,'focus')"></tbody>
         </table>
       </div></div>
     </div>
@@ -524,7 +524,7 @@ tbody tr[onclick]:hover td{background:#131f2e;}
               <th>操作</th>
             </tr>
           </thead>
-          <tbody id="proj-body-active"></tbody>
+          <tbody id="proj-body-active" ondragover="handleBucketDragOver(event)" ondrop="handleBucketDrop(event,'active')"></tbody>
         </table>
       </div></div>
     </div>
@@ -551,7 +551,7 @@ tbody tr[onclick]:hover td{background:#131f2e;}
               <th>操作</th>
             </tr>
           </thead>
-          <tbody id="proj-body-standby"></tbody>
+          <tbody id="proj-body-standby" ondragover="handleBucketDragOver(event)" ondrop="handleBucketDrop(event,'standby')"></tbody>
         </table>
       </div></div>
     </div>
@@ -1189,7 +1189,7 @@ tbody tr[onclick]:hover td{background:#131f2e;}
     <div class="flex flex-col gap-3 max-w-3xl">
       <div class="flex items-start bg-slate-900 border border-slate-800 rounded-lg px-4 py-3"><div class="step-num">1</div><div><p style="color:#94a3b8;font-weight:500;margin:0 0 3px">設定工作模式與基礎參數</p><p style="margin:0">前往「⚙ 設定」選擇工作模式（個人接案或專案管理），設定「目標時薪」與「緊急門檻」。再於「類型管理」、「專案群組」建立分類。</p></div></div>
       <div class="flex items-start bg-slate-900 border border-slate-800 rounded-lg px-4 py-3"><div class="step-num">2</div><div><p style="color:#94a3b8;font-weight:500;margin:0 0 3px">「任務」建立具體案子</p><p style="margin:0">填寫任務名稱、計費模式、合約金額與起訖日期。建立後，即可在列表追蹤進度。</p></div></div>
-      <div class="flex items-start bg-slate-900 border border-slate-800 rounded-lg px-4 py-3"><div class="step-num">3</div><div><p style="color:#e2e8f0;font-weight:500;margin:0 0 3px">拖曳任務，啟動專一計時</p><p style="margin:0">透過拖曳前方的 ☰ 將最重要的任務排到第一順位。系統規定<strong>只有頂部的任務才能啟動計時</strong>，幫助您維持專注。</p></div></div>
+      <div class="flex items-start bg-slate-900 border border-slate-800 rounded-lg px-4 py-3"><div class="step-num">3</div><div><p style="color:#e2e8f0;font-weight:500;margin:0 0 3px">拖曳任務，啟動專一計時</p><p style="margin:0">透過拖曳前方的 ☰ 將最重要的任務排到第一順位。系統規定<strong>只有頂部的任務才能啟動計時</strong>，幫助您維持專注。臨時想做別的任務時，把它<strong>跨區拖進「本週焦點」</strong>頂端即可啟動計時。</p></div></div>
       <div class="flex items-start bg-slate-900 border border-slate-800 rounded-lg px-4 py-3"><div class="step-num">4</div><div><p style="color:#94a3b8;font-weight:500;margin:0 0 3px">任務詳情與自動工時</p><p style="margin:0">點擊任務列開啟詳情面板，可以填寫案件備註與客戶資訊。所有工時由計時器停止或進度更新時<strong>自動記錄</strong>，包含日期、時數與來源。可在詳情面板或「分析匯出」中查看、編輯或刪除。</p></div></div>
       <div class="flex items-start bg-slate-900 border border-slate-800 rounded-lg px-4 py-3"><div class="step-num">5</div><div><p style="color:#94a3b8;font-weight:500;margin:0 0 3px">注意虧本紅線預警</p><p style="margin:0">系統會即時換算您的工時與合約/應收金額，若逼近您設定的目標時薪紅線，卡片會亮起進度條警告。</p></div></div>
       <div class="flex items-start bg-slate-900 border border-slate-800 rounded-lg px-4 py-3"><div class="step-num">6</div><div><p style="color:#94a3b8;font-weight:500;margin:0 0 3px">錢入帳時於「任務詳情」登記</p><p style="margin:0">客戶匯款時，請到各任務的詳情面板中登記。系統會自動從該任務的「總應收」中扣除，核銷「待收帳款」。</p></div></div>
@@ -1416,6 +1416,12 @@ var daysLeft=null, deadlineLabel='無截止日';
   else if(isUrgent) bucket='focus';                     // 急件 → 焦點
   else if(daysLeft!==null && daysLeft<=7) bucket='focus';
   else bucket='active';
+  // 手動覆寫：使用者跨區拖曳後寫入 bucketOverride，優先於自動推導
+  // （paused 仍強制 standby，避免暫停任務被釘在焦點區造成混淆）
+  var overridden=false;
+  if(p.st!=='paused' && p.bucketOverride && p.bucketOverride!==bucket){
+    bucket=p.bucketOverride; overridden=true;
+  }
   
   // 排序鍵（字典序升序，越小越優先）
   //   0_          = 計時中 (絕對置頂)
@@ -1439,6 +1445,7 @@ var daysLeft=null, deadlineLabel='無截止日';
     isUrgent:isUrgent,
     isTimerActive:isTimerActive,
     sortKey:sortKey,
+    overridden:overridden,
     score:0  // 保留欄位相容性，但已不用於排序
   };
 }
@@ -2027,21 +2034,64 @@ function handleDragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'mo
 function handleDragLeave(e) { var tr = e.target.closest('tr'); if(tr) tr.classList.remove('drag-over'); }
 function handleDrop(e, targetId, targetBucket) {
   e.preventDefault();
+  e.stopPropagation();
   var tr = e.target.closest('tr'); if(tr) tr.classList.remove('drag-over');
   if (!draggedId || draggedId === targetId) { draggedId=null; draggedBucket=null; return; }
-  // 嚴格禁止跨區拖曳：兩端必須屬於同一個有效 bucket（focus/active/standby）
-  // 過去條件 (a && b && a!==b) 在任一 bucket 為空字串時會放行（已完成列表的 bucket 是空），
-  // 造成 PJ 陣列順序被搞亂後存上雲端。
-  if(draggedBucket !== targetBucket || !draggedBucket || !targetBucket){
-    showToast('無法跨區拖曳 (僅能在相同分類內排序)', 'amber');
+  // 已完成列表不參與（bucket 為空字串）：禁止拖入/拖出，避免 PJ 順序被搞亂
+  if(!draggedBucket || !targetBucket){
+    showToast('已完成任務無法拖曳', 'amber');
     draggedId=null; draggedBucket=null; return;
+  }
+  var dragged = PJ.find(x => x.id === draggedId);
+  // 跨區拖曳 → 改分類：將被拖任務的 bucket 手動覆寫為目標區
+  if(draggedBucket !== targetBucket && dragged){
+    if(dragged.st==='paused'){
+      showToast('暫停任務請先恢復再改分類', 'amber');
+      draggedId=null; draggedBucket=null; return;
+    }
+    setBucketTarget(dragged, targetBucket);
   }
   var fromIdx = PJ.findIndex(x => x.id === draggedId);
   var toIdx = PJ.findIndex(x => x.id === targetId);
-  if(fromIdx < 0 || toIdx < 0) return;
+  if(fromIdx < 0 || toIdx < 0){ draggedId=null; draggedBucket=null; return; }
   var item = PJ.splice(fromIdx, 1)[0];
   PJ.splice(toIdx, 0, item);
   save(); rProj(); draggedId = null; draggedBucket = null;
+}
+function bucketLabel(k){ return k==='focus'?'本週焦點':k==='active'?'排程中':k==='standby'?'待命':k; }
+// 設定手動分區；若目標正好等於自動推導的分區，則清除覆寫（回歸自動，不留贅餘 📌）
+function setBucketTarget(p, targetBucket){
+  var saved=p.bucketOverride; delete p.bucketOverride;
+  var natural=urgencyScore(p).bucket;    // 不含 override 的自然分區
+  if(targetBucket===natural){
+    showToast('已移回自動分類「'+bucketLabel(targetBucket)+'」','green');
+    // override 已被刪除，維持清除狀態
+  }else{
+    p.bucketOverride=targetBucket;
+    showToast('已移至「'+bucketLabel(targetBucket)+'」（手動分類）','green');
+  }
+}
+// 清除手動分類，回歸自動推導
+function clearBucketOverride(id){
+  var p=pBy(id); if(!p) return;
+  delete p.bucketOverride;
+  save(); rProj();
+  showToast('已恢復自動分類', 'green');
+}
+// 拖到分區空白處（含空分區）：改分類至該區，並移到 PJ 末端附近（不卡在某列）
+function handleBucketDragOver(e){ e.preventDefault(); e.dataTransfer.dropEffect='move'; }
+function handleBucketDrop(e, targetBucket){
+  e.preventDefault();
+  if(!draggedId || !draggedBucket || !targetBucket){ draggedId=null; draggedBucket=null; return; }
+  if(draggedBucket===targetBucket){ draggedId=null; draggedBucket=null; return; } // 同區空白處放手 → 不動作
+  var dragged = PJ.find(x=>x.id===draggedId);
+  if(!dragged){ draggedId=null; draggedBucket=null; return; }
+  if(dragged.st==='paused'){
+    showToast('暫停任務請先恢復再改分類','amber');
+    draggedId=null; draggedBucket=null; return;
+  }
+  setBucketTarget(dragged, targetBucket);
+  save(); rProj(); draggedId=null; draggedBucket=null;
 }
 
 function openModal(t,b,cb,okLabel,infoOnly){
@@ -3825,6 +3875,7 @@ function renderRows(list, isDone, scores, bucketKey, currentTopId) {
         }
         
         var topBadge = isTop ? `<span class=\"badge bg-blue-900 text-blue-200 border border-blue-700 mb-1 scale-90 origin-left shadow-sm\">當前執行</span><br>` : '';
+        var ovBadge = (urg && urg.overridden && !isDone) ? `<span class=\"badge bg-slate-800 text-amber-400/90 border border-amber-700/40 mb-1 scale-90 origin-left cursor-pointer\" onclick=\"clearBucketOverride(${p.id});event.stopPropagation()\" title=\"此任務已手動指定分區，點擊恢復自動分類\">📌 手動 ✕</span> ` : '';
 
         var urgBadge = '';
         if(urg && !isDone){
@@ -3850,7 +3901,7 @@ function renderRows(list, isDone, scores, bucketKey, currentTopId) {
           rowVisualClass = arForRow > 0 ? 'row-done-pending' : 'row-archived';
         }
 
-        var dragHandle = isDone ? `<td class=\"text-slate-800 px-2 text-center text-lg\">☰</td>` : `<td class=\"text-slate-600 cursor-grab px-2 text-center text-lg hover:text-slate-400\" title=\"拖曳排序（僅區內）\">☰</td>`;
+        var dragHandle = isDone ? `<td class=\"text-slate-800 px-2 text-center text-lg\">☰</td>` : `<td class=\"text-slate-600 cursor-grab px-2 text-center text-lg hover:text-slate-400\" title=\"拖曳排序；跨區拖曳可改分類\">☰</td>`;
         var trClass = isDone ? rowVisualClass : "drag-row transition-colors hover:bg-slate-800/40";
         var dragEvents = isDone ? "" : `draggable=\"true\" data-bucket=\"${bucketKey||''}\" ondragstart=\"handleDragStart(event, ${p.id}, '${bucketKey||''}')\" ondragover=\"handleDragOver(event)\" ondragleave=\"handleDragLeave(event)\" ondrop=\"handleDrop(event, ${p.id}, '${bucketKey||''}')\"`;
 
@@ -3917,7 +3968,7 @@ function renderRows(list, isDone, scores, bucketKey, currentTopId) {
         return `<tr class=\"${trClass}\" ${dragEvents} onclick=\"rowClick(event,${p.id})\" style=\"cursor:pointer\">
           ${dragHandle}
           <td class="py-3">
-            ${topBadge}
+            ${ovBadge}${topBadge}
             <div class=\"font-medium text-slate-200\">${esc(p.name)}${nbBadge}${execBadge}</div>
             ${urgBadge}
             <div class=\"text-xs text-slate-500 mt-1\">${gn?esc(gn):'無群組'}</div>
@@ -3953,6 +4004,14 @@ function renderRows(list, isDone, scores, bucketKey, currentTopId) {
     scores[p.id]=s;
     buckets[s.bucket].push(p);
   });
+  // 計時中的任務「視覺上」浮到其所屬分區頂端（穩定排序，不更動 PJ 陣列／不寫入，
+  // 停止計時即回到拖曳原位）。解決：臨時抓任務計時時看不到、不置頂的問題。
+  ['focus','active','standby'].forEach(function(k){
+    var arr=buckets[k]; if(arr.length<2) return;
+    var timing=[], rest=[];
+    arr.forEach(function(p){ (activeTimers[p.id] ? timing : rest).push(p); });
+    if(timing.length) buckets[k]=timing.concat(rest);
+  });
   
   // ===== 決定「當前執行」任務：優先焦點區第一名，否則排程區第一名 =====
   var currentTopId = null;
@@ -3960,9 +4019,9 @@ function renderRows(list, isDone, scores, bucketKey, currentTopId) {
   else if(buckets.active.length) currentTopId = buckets.active[0].id;
   
   var secDefs=[
-    {key:'focus', bodyId:'proj-body-focus', secId:'proj-sec-focus', countId:'proj-focus-count', hint:'7 天內到期 / 含急件標籤'},
+    {key:'focus', bodyId:'proj-body-focus', secId:'proj-sec-focus', countId:'proj-focus-count', hint:'7 天內到期 / 急件 / 手動置頂'},
     {key:'active', bodyId:'proj-body-active', secId:'proj-sec-active', countId:'proj-active-count', hint:'其他進行中任務'},
-    {key:'standby', bodyId:'proj-body-standby', secId:'proj-sec-standby', countId:'proj-standby-count', hint:'暫停或無截止日'}
+    {key:'standby', bodyId:'proj-body-standby', secId:'proj-sec-standby', countId:'proj-standby-count', hint:'暫停 / 無截止日 / 手動釘選'}
   ];
   var anyActive=false;
   secDefs.forEach(function(sec){
@@ -3982,6 +4041,8 @@ function renderRows(list, isDone, scores, bucketKey, currentTopId) {
   });
   // 恢復待命區摺疊狀態
   var standbyCollapsed = localStorage.getItem('ft_standby_collapsed')!=='0'; // 預設摺疊
+  // 若待命區內有任務正在計時，強制展開，避免「臨時抓待命任務計時卻看不到」
+  if(buckets.standby.some(function(p){ return activeTimers[p.id]; })) standbyCollapsed=false;
   var standbyWrap=document.getElementById('proj-standby-wrap');
   var standbyToggleLabel=document.getElementById('proj-standby-toggle');
   if(standbyWrap){
