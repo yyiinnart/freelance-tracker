@@ -148,6 +148,12 @@ tbody tr:hover td{background:#131f2e;}
 .cal-day-num{color:#94a3b8;font-size:11px;padding:2px 4px;font-weight:600;}
 .cal-day-num.today{color:#60a5fa;}
 .cal-ev{display:flex;align-items:center;gap:3px;font-size:9px;padding:1px 4px;margin:1px 0;border-radius:3px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.5;}
+.hist-total{font-size:9px;font-weight:700;color:#60a5fa;float:right;padding:2px 4px;font-family:ui-monospace,monospace;}
+.hist-row{display:flex;align-items:center;gap:4px;font-size:9px;padding:1px 4px;margin:1px 0;border-radius:3px;cursor:pointer;white-space:nowrap;overflow:hidden;line-height:1.6;background:#0d1526;}
+.hist-row:hover{background:#172032;}
+.hist-dot{width:6px;height:6px;border-radius:2px;flex-shrink:0;}
+.hist-name{flex:1;overflow:hidden;text-overflow:ellipsis;color:#cbd5e1;}
+.hist-hrs{flex-shrink:0;font-family:ui-monospace,monospace;color:#94a3b8;}
 .cal-ev:hover{filter:brightness(1.3);}
 .cal-ev.ev-deadline{font-weight:600;font-size:10px;}
 .cal-ev.ev-dl-crit{font-weight:700;}.cal-ev.ev-dl-crit .dl-icon{color:#f87171;animation:dl-blink 1.5s ease-in-out infinite;}
@@ -655,9 +661,11 @@ tbody tr[onclick]:hover td{background:#131f2e;}
   <div id="v-cal" class="hidden">
     <div class="hint-bar" id="cal-hint-cal">以月曆方式呈現所有任務的起訖區間，快速確認排程衝突與空檔。點擊色條可展開任務詳情。截止日臨近的任務會以顏色警示標記。</div>
     <div class="hint-bar" id="cal-hint-sched" style="display:none;">依各任務的<strong>預估工時</strong>與<strong>截止日</strong>自動試算每日該做什麼：硬截止優先、截止日近的先排，自動跳過週末與休假日。試算僅供參考，不會寫入任何資料；在任務詳情填寫預估工時即可加入試算（委外／轉包任務不佔用工時，不參與）。</div>
+    <div class="hint-bar" id="cal-hint-hist" style="display:none;">以月曆回顧<strong>每天實際做了哪些專案、各花多少工時</strong>，資料來自工時紀錄（計時器自動記錄＋手動補登）。色塊依業務類型上色，方便看出時間流向；點擊任一專案列可直接開啟該案詳情。可依業務類型篩選，月份切換沿用上方箭頭。</div>
     <div class="flex items-center gap-1 mb-4 bg-slate-900 border border-slate-800 rounded-lg p-1 w-fit">
       <button id="cal-mode-cal" class="tab-sub active" onclick="setCalMode('cal')">📅 月曆檢視</button>
       <button id="cal-mode-sched" class="tab-sub" onclick="setCalMode('sched')">🧮 排程試算</button>
+      <button id="cal-mode-hist" class="tab-sub" onclick="setCalMode('hist')">🔍 工時回顧</button>
     </div>
     <div class="flex items-center justify-between mb-4">
       <button class="btn btn-sm hover:bg-slate-800" onclick="calNav(-1)">◀ 上月</button>
@@ -717,6 +725,19 @@ tbody tr[onclick]:hover td{background:#131f2e;}
         <div id="wi-result" class="mt-2.5" style="display:none;"></div>
       </div>
       <div id="sched-summary"></div>
+    </div>
+    <div id="cal-toolbar-hist" class="flex items-center justify-between mb-4 flex-wrap gap-2" style="display:none;">
+      <div class="flex items-center gap-2">
+        <span class="text-xs text-slate-500">業務類型</span>
+        <select id="hist-type-filter" class="inp w-32 py-1 text-xs" onchange="renderCal()">
+          <option value="all">全部類型</option>
+        </select>
+      </div>
+      <div class="flex items-center gap-3 text-[11px] text-slate-400">
+        <span>本月實際工時 <strong id="hist-month-total" class="text-blue-400 font-mono">0h</strong></span>
+        <span class="text-slate-700">│</span>
+        <span>有紀錄 <strong id="hist-month-days" class="text-slate-300 font-mono">0</strong> 天</span>
+      </div>
     </div>
     <div id="cal-grid" style="overflow-x:auto;"></div>
 
@@ -5283,6 +5304,94 @@ function renderCalGrid(){
 }
 
 /* ============================================================
+   工時回顧：以月曆呈現每天實際投入的專案與工時（純讀取 DLOGS）
+   ============================================================ */
+function renderHist(){
+  var el=document.getElementById('cal-grid');if(!el)return;
+  document.getElementById('cal-title').textContent=calYear+'年 '+(calMonth+1)+'月';
+
+  // 業務類型篩選下拉：每次重建以反映 CATS 異動
+  var sel=document.getElementById('hist-type-filter');
+  if(sel){
+    var cur=sel.value||'all';
+    sel.innerHTML='<option value="all">全部類型</option>'+CATS.map(function(c){
+      return '<option value="'+c.id+'"'+(cur===c.id?' selected':'')+'>'+esc(c.name)+'</option>';
+    }).join('');
+    if(!CATS.some(function(c){return c.id===cur;})&&cur!=='all') sel.value='all';
+  }
+  var typeFilter=(sel&&sel.value)||'all';
+
+  var today=new Date();var todayStr=toLocalDate(today);
+  var cells=[];
+  var first=new Date(calYear,calMonth,1);
+  var startDay=first.getDay();
+  var startDate=new Date(calYear,calMonth,1-startDay);
+  for(var i=0;i<42;i++){
+    var d=new Date(startDate);d.setDate(startDate.getDate()+i);
+    cells.push({date:d,str:toLocalDate(d),inMonth:d.getMonth()===calMonth});
+  }
+
+  // 依「日期→專案」彙整工時（套用業務類型篩選；pid 找不到專案者歸入未知）
+  var byDate={};
+  DLOGS.forEach(function(l){
+    var p=pBy(l.pid);
+    if(typeFilter!=='all' && (!p || p.type!==typeFilter)) return;
+    if(!byDate[l.date]) byDate[l.date]={};
+    if(!byDate[l.date][l.pid]) byDate[l.date][l.pid]={pid:l.pid, name:p?p.name:'（已刪除任務）', color:p?catBy(p.type).color:'gray', hrs:0};
+    byDate[l.date][l.pid].hrs += l.hrs;
+  });
+
+  // 本月合計（僅當月，不含跨月補格）
+  var monthTotal=0, monthDays=0;
+  cells.forEach(function(c){
+    if(!c.inMonth) return;
+    var g=byDate[c.str]; if(!g) return;
+    var any=false;
+    Object.keys(g).forEach(function(pid){ monthTotal+=g[pid].hrs; any=true; });
+    if(any) monthDays++;
+  });
+  var mt=document.getElementById('hist-month-total'); if(mt) mt.textContent=formatHrs(monthTotal);
+  var md=document.getElementById('hist-month-days'); if(md) md.textContent=monthDays;
+
+  var weekDays=['日','一','二','三','四','五','六'];
+  var html='<table class="cal-table"><thead><tr>';
+  weekDays.forEach(function(w){html+='<th>'+w+'</th>';});
+  html+='</tr></thead><tbody>';
+  for(var row=0;row<6;row++){
+    html+='<tr>';
+    for(var col=0;col<7;col++){
+      var c=cells[row*7+col];
+      var isToday=c.str===todayStr;
+      var isVacation=VACS.indexOf(c.str)!==-1;
+      var tdCls=(isToday?' today':'')+(c.inMonth?'':' other-month')+(isVacation?' vacation-day':'');
+      var numCls='cal-day-num'+(isToday?' today':'')+(c.inMonth?'':' other-month');
+      html+='<td class="'+tdCls.trim()+'">';
+
+      var groups=byDate[c.str]?Object.keys(byDate[c.str]).map(function(pid){return byDate[c.str][pid];}):[];
+      var dayTotal=groups.reduce(function(s,g){return s+g.hrs;},0);
+      if(dayTotal>0) html+='<span class="hist-total">'+formatHrs(dayTotal)+'</span>';
+      html+='<div class="'+numCls+'">'+c.date.getDate()+'</div>';
+
+      groups.sort(function(a,b){return b.hrs-a.hrs;});
+      groups.slice(0,6).forEach(function(g){
+        var col2=(BC[g.color]||BC.gray).text;
+        var clickable=(g.pid>0 && pBy(g.pid));
+        html+='<div class="hist-row"'+(clickable?' onclick="openDetail('+g.pid+')"':'')+' title="'+esc(g.name)+' · '+formatHrs(g.hrs)+'">';
+        html+='<span class="hist-dot" style="background:'+col2+'"></span>';
+        html+='<span class="hist-name">'+esc(g.name)+'</span>';
+        html+='<span class="hist-hrs">'+formatHrs(g.hrs)+'</span></div>';
+      });
+      if(groups.length>6) html+='<div style="font-size:8px;color:#475569;text-align:center">+'+(groups.length-6)+' 更多</div>';
+
+      html+='</td>';
+    }
+    html+='</tr>';
+  }
+  html+='</tbody></table>';
+  el.innerHTML=html;
+}
+
+/* ============================================================
    排程試算引擎（純函數：不寫入任何資料，每次切換視圖即時重算）
    規則：
    - 僅納入 active、自己執行（非委外/轉包）、已填 estHrs 的任務
@@ -5409,17 +5518,17 @@ var calViewMode = localStorage.getItem('ft_cal_mode') || 'cal';
 function setCalMode(m){
   calViewMode = m;
   localStorage.setItem('ft_cal_mode', m);
-  var isS = m === 'sched';
-  document.getElementById('cal-mode-cal').classList.toggle('active', !isS);
-  document.getElementById('cal-mode-sched').classList.toggle('active', isS);
-  document.getElementById('cal-toolbar-cal').style.display = isS ? 'none' : '';
-  document.getElementById('cal-toolbar-sched').style.display = isS ? '' : 'none';
-  document.getElementById('cal-hint-cal').style.display = isS ? 'none' : '';
-  document.getElementById('cal-hint-sched').style.display = isS ? '' : 'none';
+  ['cal','sched','hist'].forEach(function(k){
+    var on = (m===k);
+    var btn=document.getElementById('cal-mode-'+k); if(btn) btn.classList.toggle('active', on);
+    var tb=document.getElementById('cal-toolbar-'+k); if(tb) tb.style.display = on ? '' : 'none';
+    var hb=document.getElementById('cal-hint-'+k); if(hb) hb.style.display = on ? '' : 'none';
+  });
   renderCal();
 }
 function renderCal(){
   if(calViewMode === 'sched') renderSched();
+  else if(calViewMode === 'hist') renderHist();
   else renderCalGrid();
 }
 
