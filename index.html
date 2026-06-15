@@ -283,6 +283,10 @@ tbody tr[onclick]:hover td{background:#131f2e;}
 .sched-task-cell{vertical-align:top;max-width:190px;}
 .sched-task-name{display:inline-block;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;}
 .sched-grp-first td{border-top:1px solid #1e293b;}
+/* 排程摘要表：用分隔線把「同任務多階段」收束、任務之間拉開 */
+#sched-summary .tbl-wrap tbody td{border-bottom:1px solid #141d2c;}
+#sched-summary .tbl-wrap tbody tr.sched-grp-first:not(.sched-wi-row) td{border-top:2px solid #334155;}
+#sched-summary .tbl-wrap tbody tr.sched-grp-first:first-child td{border-top:none;}
 
 /* 休假日樣式 */
 .vacation-day {
@@ -5996,7 +6000,7 @@ function renderSched(){
           head = '<span class="'+(slack<=2?'text-amber-400':'text-emerald-400')+' font-semibold">✓ 塞得進</span><span class="text-slate-300">：<span class="font-mono">'+firstU.firstDay+'</span> 開工 → <span class="font-mono">'+lastU.lastDay+'</span> 完工'+(lastDlU?'（最終截止前餘 '+slack+' 天）':'')+'</span>';
         } else {
           var hardLate = lateStages.some(function(u){ return u.hard; });
-          head = '<span class="'+(hardLate?'text-red-400':'text-amber-400')+' font-semibold">'+(hardLate?'✗ 有硬截止階段來不及':'⚠ 部分階段超出期望日')+'</span><span class="text-slate-300">：全案最快 <span class="font-mono">'+lastU.lastDay+'</span> 完工'+(hardLate?'':'，可拿下方各階段最快完工日與廠商協調期望日')+'</span>';
+          head = '<span class="'+(hardLate?'text-red-400':'text-slate-400')+' font-semibold">'+(hardLate?'✗ 有硬截止階段來不及':'排程偏晚（軟性）')+'</span><span class="text-slate-300">：全案最快 <span class="font-mono">'+lastU.lastDay+'</span> 完工'+(hardLate?'':'，部分階段晚於期望日，可與廠商協調')+'</span>';
         }
         lines.push(head);
         // 各階段逐項判定（多階段時）
@@ -6011,7 +6015,7 @@ function renderSched(){
               verdict = '<span class="'+(s2<=1?'text-amber-400':'text-emerald-400')+'">✓ 餘 '+s2+' 天</span>';
             } else {
               var o2 = Math.round((new Date(u.lastDay) - new Date(u.deadline)) / 86400000);
-              verdict = '<span class="'+(u.hard?'text-red-400 font-semibold':'text-amber-400')+'">'+(u.hard?'✗':'⚠')+' 晚 '+o2+' 天</span>';
+              verdict = '<span class="'+(u.hard?'text-red-400 font-semibold':'text-slate-500')+'">'+(u.hard?'✗ 晚 '+o2+' 天':'晚 '+o2+' 天')+'</span>';
             }
             return '<span class="text-slate-400">'+nm+(u.hard?'<span class="text-rose-400 text-[10px]">●</span>':'')+' '+seg+' '+verdict+'</span>';
           });
@@ -6087,8 +6091,11 @@ function renderSched(){
       st = '✓ 餘 '+slack+' 天'; stCls = slack <= 2 ? 'text-amber-400' : 'text-emerald-400';
     } else {
       var overD = Math.round((new Date(finish) - new Date(u.deadline)) / 86400000);
-      st = (u.hard ? '✗ 來不及' : '⚠ 需協調') + '（晚 '+overD+' 天）';
-      stCls = u.hard ? 'text-red-400 font-semibold' : 'text-amber-400';
+      if(u.hard){
+        st = '✗ 來不及（晚 '+overD+' 天）'; stCls = 'text-red-400 font-semibold';
+      } else {
+        st = '排程偏晚（晚 '+overD+' 天）'; stCls = 'text-slate-500';
+      }
     }
     return {st:st, cls:stCls};
   }
@@ -6105,7 +6112,7 @@ function renderSched(){
           +(multi?'<span class="block text-[9px] text-slate-600 mt-0.5 ml-4">'+g.units.length+' 個階段</span>':'')
           +'</td>';
       }
-      cells += '<td class="text-xs '+(multi?'text-slate-400':'text-slate-600')+'">'+(multi&&i>0?'<span class="text-slate-700 mr-1">└</span>':'')+esc(phaseName)+(u.hard?' <span class="text-rose-400 text-[10px]">●硬</span>':'')+'</td>'
+      cells += '<td class="text-xs '+(multi?'text-slate-400':'text-slate-600')+'">'+esc(phaseName)+(u.hard?' <span class="text-rose-400 text-[10px]">●硬</span>':'')+'</td>'
         +'<td class="font-mono text-xs">'+formatHrs(u.total)+'</td>'
         +'<td class="font-mono text-xs">'+(u.deadline||'<span class="text-slate-600">—</span>')+'</td>'
         +'<td class="font-mono text-xs">'+(u.firstDay||'—')+'</td>'
