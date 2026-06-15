@@ -976,7 +976,46 @@ tbody tr[onclick]:hover td{background:#131f2e;}
       <div id="dl-timeline" class="flex flex-col gap-2 max-h-[400px] overflow-y-auto"></div>
       <div id="dl-empty" class="text-center py-8 text-sm text-slate-600 hidden">尚無工時紀錄</div>
     </div>
+
+    <!-- 📣 忙碌公告（可於「自訂面板」開關，預設關閉） -->
+    <div class="bg-slate-900 rounded-xl border border-slate-800 p-5 mt-6" id="busy-panel-wrap">
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="text-sm font-semibold text-slate-300 flex items-center gap-2">📣 忙碌公告</h3>
+        <div class="flex items-center gap-3">
+          <label class="text-[11px] text-slate-500 flex items-center gap-1.5">展望
+            <input type="number" id="busy-weeks" class="inp w-16 py-1 text-center" min="1" max="26" value="13" onchange="renderBusy()">週
+          </label>
+          <label class="text-[11px] text-slate-500 flex items-center gap-1.5 cursor-pointer" title="勾選後，沒填截止日的待命任務也會計入忙碌度（仍不影響「排到哪」的日期）">
+            <input type="checkbox" id="busy-incl-nodl" class="accent-blue-500 w-3.5 h-3.5" checked onchange="renderBusy()">含無截止日
+          </label>
+          <span id="busy-wtarget" class="text-[11px] text-slate-600"></span>
+          <button class="btn btn-sm bg-transparent border-slate-700 text-slate-500 hover:text-blue-400 hover:bg-slate-800 transition-colors" id="busy-copy-btn" onclick="copyBusyAnnounce()">📋 複製公告</button>
+        </div>
+      </div>
+      <p class="text-[11px] text-slate-600 mb-4">依未完成任務的剩餘工時與截止日推算整體忙碌度，產生可貼出的對外公告。僅為現況快照。</p>
+
+      <div class="relative overflow-hidden rounded-lg border border-slate-800 mb-4">
+        <div id="busy-overall-bar" class="absolute top-0 left-0 w-full h-1"></div>
+        <div class="p-4">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-semibold text-slate-400">整體忙碌度</span>
+            <span id="busy-overall-window" class="text-[11px] text-slate-500"></span>
+          </div>
+          <div id="busy-overall" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+          <div id="busy-overall-sub" class="text-[11px] text-slate-500 mt-3 text-center"></div>
+        </div>
+      </div>
+
+      <div id="busy-by-cat" class="hidden"></div>
+
+      <div>
+        <div class="text-xs font-semibold text-slate-400 mb-2">對外公告文字</div>
+        <textarea id="busy-announce" class="inp w-full font-mono text-sm leading-relaxed" rows="9" spellcheck="false"></textarea>
+        <p class="text-[11px] text-slate-600 mt-2">可直接編輯後再複製。正式檔期仍以個別確認為準。</p>
+      </div>
+    </div>
   </div>
+
   <div id="v-cfg" class="hidden">
     <div class="hint-bar"><strong>工作模式</strong>決定介面功能範圍；<strong>目標時薪</strong>是虧損預警的計算基準，任務工時換算後低於此值會亮起警示條；<strong>緊急門檻</strong>決定截止日多近時觸發橘色警示。參數設定一次即可，之後不需頻繁調整。</div>
     <div class="max-w-2xl">
@@ -4892,7 +4931,7 @@ function renderDash(){
 // ==========================================
 function getDashConfig() {
   return safeJSONParse(localStorage.getItem('ft_dash_cfg') || '{}', {
-    pacing: true, stats: true, cf: true, month: true, pie: true, timeline: true
+    pacing: true, stats: true, cf: true, month: true, pie: true, timeline: true, busy: false, busyInclNoDl: true, busyWeeks: 13
   });
 }
 
@@ -4916,6 +4955,14 @@ function applyDashPanels() {
       if (panel) panel.style.display = cfg[k] === false ? 'none' : '';
     }
   });
+
+  // 忙碌公告：預設關閉，僅在明確勾選 (=== true) 時顯示
+  var bw = document.getElementById('busy-panel-wrap');
+  if (bw) {
+    var showBusy = cfg.busy === true;
+    bw.style.display = showBusy ? '' : 'none';
+    if (showBusy) renderBusy();
+  }
 }
 
 function openDashSettings() {
@@ -4929,6 +4976,7 @@ function openDashSettings() {
     '<label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white"><input type="checkbox" id="dc-pie" class="accent-blue-500 w-4 h-4" '+(cfg.pie!==false?'checked':'')+'> 🍩 專案時間分佈 (圓餅圖)</label>' +
     '<label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white"><input type="checkbox" id="dc-estacc" class="accent-blue-500 w-4 h-4" '+(cfg.estacc!==false?'checked':'')+'> 🎯 估時準確度</label>' +
     '<label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white"><input type="checkbox" id="dc-timeline" class="accent-blue-500 w-4 h-4" '+(cfg.timeline!==false?'checked':'')+'> 📝 每日工時紀錄列表</label>' +
+    '<label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white"><input type="checkbox" id="dc-busy" class="accent-blue-500 w-4 h-4" '+(cfg.busy===true?'checked':'')+'> 📣 忙碌公告（對外排單狀態）</label>' +
   '</div>';
   
   openModal('👁️ 隱藏/顯示面板', html, function() {
@@ -4939,7 +4987,8 @@ function openDashSettings() {
       month: document.getElementById('dc-month').checked,
       pie: document.getElementById('dc-pie').checked,
       estacc: document.getElementById('dc-estacc').checked,
-      timeline: document.getElementById('dc-timeline').checked
+      timeline: document.getElementById('dc-timeline').checked,
+      busy: document.getElementById('dc-busy').checked
     };
     localStorage.setItem('ft_dash_cfg', JSON.stringify(newCfg));
     applyDashPanels();
@@ -5227,6 +5276,199 @@ function doExport(){
     fallbackCopy(txt);
     done();
   }
+}
+
+/* ===================== 忙碌公告面板 ===================== */
+// 燈號門檻：忙碌比 = 接龍消化所需週數 / 展望週數（≥1 表示工作量已塞滿展望期）
+function busyLight(ratio){
+  if(ratio>=1)    return {emoji:'🔴', label:'已滿載',   color:'#fb7185', cls:'rose'};
+  if(ratio>=0.65) return {emoji:'🟡', label:'偏忙',     color:'#fbbf24', cls:'amber'};
+  return                  {emoji:'🟢', label:'有空檔',   color:'#4ade80', cls:'green'};
+}
+function busyFullPhrase(ratio){
+  if(ratio>=1)    return '近期檔期已滿，可預約後續';
+  if(ratio>=0.85) return '檔期偏滿，僅餘零星空間';
+  if(ratio>=0.65) return '尚有少量空檔';
+  if(ratio>=0.35) return '尚有空檔，歡迎洽詢';
+  return '檔期寬鬆，歡迎洽詢';
+}
+// 旬：把日期轉成「N月上/中/下旬」
+function busyXun(dateStr){
+  if(!dateStr) return '';
+  var p=dateStr.split('-'); var mo=+p[1], d=+p[2];
+  var seg = d<=10?'上旬':(d<=20?'中旬':'下旬');
+  return mo+'月'+seg;
+}
+// 計算展望窗內的可用工時（週目標 × 週數 − 落在窗內的休假日 × 日均）
+function busyCapacity(weeks){
+  var wTarget=getWeeklyTarget();
+  var dailyH = wTarget/7;
+  var gross = wTarget*weeks;
+  // 統計 VACS（休假日字串陣列）落在 今天 ~ 今天+weeks*7 內的天數
+  var today=toLocalDate();
+  var end=new Date(); end.setDate(end.getDate()+weeks*7); var endStr=toLocalDate(end);
+  var vacDays=0;
+  (VACS||[]).forEach(function(v){ if(v>=today && v<=endStr) vacDays++; });
+  var net = Math.max(0, gross - vacDays*dailyH);
+  return {gross:gross, net:net, vacDays:vacDays, dailyH:dailyH, wTarget:wTarget};
+}
+
+// 接龍排程：把 remainHrs 從今天起、依每日產能消化（跳過休假日），回傳推估完成日字串
+// 上限 365 天，避免極端工時造成無窮迴圈
+function busyFinishDate(remainHrs){
+  if(remainHrs<=0) return null;
+  var dailyH = getWeeklyTarget()/7;
+  if(dailyH<=0) return null;
+  var vacSet={}; (VACS||[]).forEach(function(v){vacSet[v]=true;});
+  var acc=0;
+  var d=new Date(); d.setHours(0,0,0,0);
+  for(var i=0;i<365;i++){
+    var ds=toLocalDate(d);
+    if(!vacSet[ds]) acc+=dailyH;   // 休假日不產出
+    if(acc>=remainHrs) return ds;
+    d.setDate(d.getDate()+1);
+  }
+  return toLocalDate(d); // 超過上限，回傳最後一天
+}
+// 蒐集未完成任務、依業務類型分組，算剩餘工時與截止範圍
+function busyCollect(includeNoDeadline){
+  var groups={}; // type -> {cat, projs:[], remain, count, earliestDl, latestDl, hasUrgent}
+  (PJ||[]).filter(function(p){return p.st!=='done';}).forEach(function(p){
+    // 無截止日的任務：依開關決定是否計入
+    if(!p.edate && !includeNoDeadline) return;
+    var c=catBy(p.type);
+    var key=p.type||'__none__';
+    if(!groups[key]) groups[key]={cat:c, projs:[], remain:0, count:0, earliestDl:null, latestDl:null, hasUrgent:false, showCount:0};
+    var g=groups[key];
+    var rem = Math.max(0, (+p.estHrs||0)-(+p.hrs||0));
+    g.projs.push(p); g.remain+=rem; g.count++;
+    if(hasUrgentTag(p)) g.hasUrgent=true;
+    if(p.edate){
+      if(!g.earliestDl||p.edate<g.earliestDl) g.earliestDl=p.edate;
+      if(!g.latestDl||p.edate>g.latestDl) g.latestDl=p.edate;
+    }
+  });
+  return groups;
+}
+
+function renderBusy(){
+  var wt=document.getElementById('busy-wtarget'); if(wt) wt.textContent='週目標 '+getWeeklyTarget()+'h';
+  var cfg=getDashConfig();
+  var weeksEl=document.getElementById('busy-weeks');
+  // 首次進入：套用儲存的展望週數（預設 13 週≈3個月）
+  if(weeksEl && typeof weeksEl._init==='undefined'){
+    weeksEl.value = cfg.busyWeeks || 13;
+    weeksEl._init = true;
+  }
+  var weeks=Math.max(1, Math.min(26, parseInt(weeksEl.value)||13));
+  if(cfg.busyWeeks !== weeks){ cfg.busyWeeks=weeks; localStorage.setItem('ft_dash_cfg', JSON.stringify(cfg)); }
+  var inclChk=document.getElementById('busy-incl-nodl');
+  // 同步既存設定（首次進入時套用儲存值）
+  if(inclChk && typeof inclChk._init==='undefined'){ inclChk.checked = cfg.busyInclNoDl!==false; inclChk._init=true; }
+  var inclNoDl = inclChk ? inclChk.checked : true;
+  // 持久化開關
+  if(cfg.busyInclNoDl !== inclNoDl){ cfg.busyInclNoDl=inclNoDl; localStorage.setItem('ft_dash_cfg', JSON.stringify(cfg)); }
+  var cap=busyCapacity(weeks);
+  var groups=busyCollect(inclNoDl);
+
+  // 統計無截止日任務數（供提示用）
+  var noDlCount=(PJ||[]).filter(function(p){return p.st!=='done' && !p.edate;}).length;
+
+  // ── 整體匯總（跨所有未完成任務，不分類型）──
+  var totalRemain=0, totalCount=0, earliestDl=null, latestDl=null, hasUrgent=false;
+  Object.keys(groups).forEach(function(k){
+    var g=groups[k];
+    totalRemain+=g.remain; totalCount+=g.count;
+    if(g.hasUrgent) hasUrgent=true;
+    if(g.earliestDl&&(!earliestDl||g.earliestDl<earliestDl)) earliestDl=g.earliestDl;
+    if(g.latestDl&&(!latestDl||g.latestDl>latestDl)) latestDl=g.latestDl;
+  });
+  // ── 接龍排程：把全部剩餘工時從今天起依產能消化，得推估完成日 ──
+  var finishDate = busyFinishDate(totalRemain); // null 表示沒工時
+  // 「排到哪」取「最遠真實截止日」與「接龍推估完成日」之較晚者
+  var scheduleTo = null;
+  if(latestDl && finishDate) scheduleTo = latestDl>finishDate ? latestDl : finishDate;
+  else scheduleTo = latestDl || finishDate;
+
+  // ── 忙碌比：需要幾週 ÷ 展望週數（不再把工時硬塞進固定分母）──
+  var weeklyEff = getWeeklyTarget(); // 每週有效產能
+  var weeksNeeded = weeklyEff>0 ? totalRemain/weeklyEff : (totalRemain>0?Infinity:0);
+  var overallRatio = weeks>0 ? weeksNeeded/weeks : (weeksNeeded>0?Infinity:0);
+  var oLight=busyLight(overallRatio);
+  var bar=document.getElementById('busy-overall-bar'); if(bar) bar.style.background=oLight.color;
+  var win=document.getElementById('busy-overall-window');
+  if(win){
+    var end=new Date(); end.setDate(end.getDate()+weeks*7);
+    win.textContent='展望 '+weeks+' 週（至 '+toLocalDate(end).slice(5).replace('-','/')+'）'+(cap.vacDays>0?'　·　扣休假 '+cap.vacDays+' 天':'');
+  }
+  var pct = isFinite(overallRatio)? Math.round(overallRatio*100) : 999;
+  var oWrap=document.getElementById('busy-overall');
+  var freeSlot = cap.net - totalRemain; // 可接空檔 = 可用產能 − 待辦工時，可為負（超載）
+  var freeColor = freeSlot<0 ? '#fb7185' : (freeSlot < getWeeklyTarget() ? '#fbbf24' : '#4ade80');
+  if(oWrap){
+    oWrap.innerHTML=[
+      busyStatCard('狀態', oLight.emoji+' '+oLight.label, oLight.color),
+      busyStatCard('忙碌比', (isFinite(overallRatio)?pct+'%':'∞'), oLight.color),
+      busyStatCard('可接空檔', (freeSlot<0?'-':'')+formatHrs(Math.abs(freeSlot)), freeColor),
+      busyStatCard('推估完成', finishDate ? finishDate.slice(5).replace('-','/') : '—', '#94a3b8')
+    ].join('');
+  }
+  var sub=document.getElementById('busy-overall-sub');
+  if(sub){
+    var parts=[];
+    parts.push('未完成 '+totalCount+' 案');
+    parts.push('待辦 '+formatHrs(totalRemain)+' / 產能 '+formatHrs(cap.net));
+    if(scheduleTo) parts.push('排到 '+busyXun(scheduleTo));
+    if(latestDl) parts.push('最遠截止 '+latestDl.slice(5).replace('-','/'));
+    if(finishDate) parts.push('接龍消化約 '+Math.ceil(weeksNeeded)+' 週');
+    if(hasUrgent) parts.push('⚠ 含急件');
+    if(noDlCount>0) parts.push(inclNoDl ? ('含 '+noDlCount+' 件無截止日') : ('已排除 '+noDlCount+' 件無截止日'));
+    sub.innerHTML=totalCount>0 ? parts.join('　·　') : (noDlCount>0 && !inclNoDl ? '僅有無截止日任務（已排除）' : '目前無未完成任務');
+  }
+
+  // ── 公告文字 ──
+  var ta=document.getElementById('busy-announce');
+  if(ta && document.activeElement!==ta){
+    ta.value=buildBusyAnnounce({remain:totalRemain, count:totalCount, scheduleTo:scheduleTo, hasUrgent:hasUrgent, ratio:overallRatio}, weeks);
+  }
+}
+
+function busyStatCard(label, val, color){
+  return '<div class="text-center"><div class="text-xs text-slate-500 mb-1">'+label+'</div>'
+    +'<div class="text-lg font-bold font-mono" style="color:'+(color||'#e2e8f0')+'">'+val+'</div></div>';
+}
+
+function buildBusyAnnounce(o, weeks){
+  var now=new Date();
+  var hh=String(now.getHours()).padStart(2,'0'), mm=String(now.getMinutes()).padStart(2,'0');
+  var stamp=(now.getMonth()+1)+'/'+now.getDate()+' '+hh+':'+mm;
+  var lines=[];
+  lines.push('接單狀態（更新 '+stamp+'）');
+  lines.push('');
+  if(o.count===0){
+    lines.push('目前無未完成委託，可立即洽詢開工。');
+  }else if(o.scheduleTo){
+    lines.push('目前排到 '+busyXun(o.scheduleTo)+'，'+busyFullPhrase(o.ratio)+'。');
+  }else{
+    lines.push(busyFullPhrase(o.ratio)+'（手上 '+o.count+' 案進行中）。');
+  }
+  lines.push('');
+  lines.push('正式檔期以個別確認為準。');
+  return lines.join('\n');
+}
+
+function copyBusyAnnounce(){
+  var ta=document.getElementById('busy-announce');
+  var txt=ta?ta.value:'';
+  var done=function(){
+    var b=document.getElementById('busy-copy-btn');
+    var o=b.textContent; b.textContent='✅ 已複製';
+    showToast('✅ 公告已複製，可直接貼出', 'green');
+    setTimeout(function(){b.textContent=o;}, 2500);
+  };
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(done).catch(function(){fallbackCopy(txt);done();});
+  }else{ fallbackCopy(txt); done(); }
 }
 
 var calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
