@@ -712,6 +712,10 @@ tbody tr[onclick]:hover td{background:#131f2e;}
         <label class="flex items-center gap-1.5 text-[11px] text-slate-400">
           每日可用 <input type="number" id="sched-day-cap" class="bg-slate-800 border border-slate-700 rounded px-1 py-0.5 w-12 text-center outline-none hover:border-slate-500 text-slate-300" min="1" max="24" step="0.5" onchange="saveDayCap()"> 小時
           <span class="text-slate-600 text-[10px]">（週一～五）</span>
+          <span class="text-slate-700 mx-1">＋</span>
+          <span class="text-amber-400/80">趕工加班</span>
+          <input type="number" id="sched-ot" class="bg-slate-800 border border-slate-700 rounded px-1 py-0.5 w-12 text-center outline-none hover:border-amber-500/60 text-amber-300" min="0" max="16" step="0.5" placeholder="0" oninput="setSchedOT(this.value)">
+          <span class="text-slate-600 text-[10px]">h／工作日（暫時試算，不寫入）</span>
         </label>
       </div>
       <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-3.5 mb-4">
@@ -5734,10 +5738,56 @@ function saveDayCap(){
   localStorage.setItem('ft_day_cap', v);
   renderCal();
 }
+var SCHED_OT = 0; // 全域趕工加班(每工作日額外時數)，僅記憶體，重新整理即清空
+function setSchedOT(v){
+  var n = parseFloat(v) || 0;
+  if(n < 0) n = 0;
+  SCHED_OT = n;
+  renderCal();
+}
+function effCap(){ return getDayCap() + (SCHED_OT || 0); }
+function showOvertime(pid, phaseIdx){
+  var box = document.getElementById('sched-ot-result');
+  if(!box) return;
+  var r = overtimeForUnit(pid, phaseIdx);
+  var base = getDayCap();
+  var head, body;
+  if(r === null){
+    box.innerHTML = '<div class="text-[11px] text-emerald-400 bg-emerald-950/20 border border-emerald-900/40 rounded-lg px-3 py-2">此階段在每日 '+formatHrs(base)+' 的正常排程下即可準時，毋需加班。（若它仍顯示偏晚，可能是被更優先的硬截止案子排擠；可考慮調整優先序或其它案子交期）</div>';
+    box.scrollIntoView({behavior:'smooth', block:'nearest'});
+    return;
+  }
+  if(r.impossible){
+    if(r.reason === 'pastdue'){
+      body = '截止日 '+r.deadline+' 已經過去，無法靠加班補救。請改期或調整截止日。';
+    } else if(r.reason === 'nodays'){
+      body = '到截止日 '+r.deadline+' 之間沒有可用的工作日（全卡在週末／休假）。請改期或先取消部分休假。';
+    } else { // evenmax
+      body = '即使每天加班到 24h，到截止日 '+r.deadline+' 前的 '+r.nDays+' 個工作日也排不完這個階段。<br>'
+           + '<span class="text-slate-400">→ 這個交期單靠加班救不回來，需要：改期、拆轉包、或縮減範圍。</span>';
+    }
+    box.innerHTML = '<div class="text-[11px] text-red-400 bg-red-950/20 border border-red-900/40 rounded-lg px-3 py-2.5 leading-relaxed">'
+      + '<div class="font-semibold mb-1">⚠ 趕工也來不及：'+esc(r.pname||'')+(r.phaseLabel?' · '+esc(r.phaseLabel):'')+'</div>'
+      + body + '</div>';
+    box.scrollIntoView({behavior:'smooth', block:'nearest'});
+    return;
+  }
+  var perDayTxt = formatHrs(r.perDay);
+  var totalTxt = formatHrs(r.totalOT);
+  var capTxt = formatHrs(r.minCap);
+  box.innerHTML = '<div class="text-xs bg-amber-950/15 border border-amber-900/40 rounded-lg px-3.5 py-3 leading-relaxed flex flex-col gap-1.5">'
+    + '<div class="font-semibold text-amber-300">⚡ 趕工試算：'+esc(r.pname||'')+(r.phaseLabel?' · '+esc(r.phaseLabel):'')+(r.hard?' <span class="text-rose-400 text-[10px]">●硬截止</span>':'')+'</div>'
+    + '<div class="text-slate-300">要在 <span class="font-mono text-amber-200">'+r.deadline+'</span> 前準時完工，到期前有 <span class="font-mono">'+r.nDays+'</span> 個工作日，需要：</div>'
+    + '<div class="text-slate-200 pl-1">• 每個工作日從 '+formatHrs(r.base)+' 提高到 <span class="font-mono text-amber-200 font-semibold">'+capTxt+'</span>（每天多 <span class="font-mono text-amber-300 font-semibold">+'+perDayTxt+'</span>）</div>'
+    + '<div class="text-slate-200 pl-1">• 期間總加班量約 <span class="font-mono text-amber-300 font-semibold">'+totalTxt+'</span></div>'
+    + '<div class="text-[10px] text-slate-500 pt-1 border-t border-slate-800/60">此為「每天平均加班」的均勻解；若想集中拚幾天，把上方「趕工加班」欄拉到 +'+perDayTxt.replace(/h.*/,'')+' 左右可預覽整體排程變化。實際加班量已考慮其他案子在這段期間佔用的容量。</div>'
+    + '</div>';
+  box.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
 var SCHED_MIN_CHUNK = 4;     // 單日單案最低時數
 var SCHED_HORIZON_DAYS = 400; // 模擬上限，防無窮迴圈
 
-function computeSchedule(extra){
+function computeSchedule(extra, capOverride){
   var todayStr = toLocalDate();
   var units = [];      // 待排階段單位
   var noEst = [];      // 未填預估工時的任務（提示用）
@@ -5796,7 +5846,7 @@ function computeSchedule(extra){
   }
 
   // ---- 逐日模擬 ----
-  var cap = getDayCap();
+  var cap = (typeof capOverride === 'number' && capOverride > 0) ? capOverride : getDayCap();
   var allocByDate = {}; // {dateStr: [{pid,pname,phaseLabel,hrs,hard,deadline}]}
   var d = new Date(); d.setHours(0,0,0,0);
   var dayCount = 0;
@@ -5839,6 +5889,72 @@ function computeSchedule(extra){
     dayCount++;
   }
   return {units:units, allocByDate:allocByDate, noEst:noEst, overSum:overSum, spent:spent};
+}
+
+/* ============================================================
+   趕工試算：針對「某個會超的階段」反推需要的加班量
+   作法：以 computeSchedule 為基準，二分搜尋「能讓此階段在截止日前
+   完工的最小每日容量」。加班總時數 = (最小容量 − 基準容量) × 截止日前工作日數。
+   與排程引擎共用同一套逐日模擬，結果零誤差。
+   回傳 null 代表：此階段沒有截止日、或在基準容量下本來就準時、或截止日已過。
+   ============================================================ */
+function workdaysUntil(deadlineStr){
+  // 從今天(或開工日)到截止日(含)之間的工作日數，跳過週末與休假
+  var todayStr = toLocalDate();
+  if(!deadlineStr || deadlineStr < todayStr) return 0;
+  var d = new Date(); d.setHours(0,0,0,0);
+  var count = 0, guard = 0;
+  while(guard++ < SCHED_HORIZON_DAYS){
+    var ds = toLocalDate(d);
+    if(ds > deadlineStr) break;
+    var dow = d.getDay();
+    if(dow !== 0 && dow !== 6 && VACS.indexOf(ds) === -1) count++;
+    d.setDate(d.getDate()+1);
+  }
+  return count;
+}
+function unitOnTime(res, pid, phaseIdx, deadline){
+  // 在某次模擬結果 res 中，找到對應階段單位，判斷是否「完工日 ≤ 截止日」且已排完
+  var u = res.units.find(function(x){ return x.pid===pid && x.phaseIdx===phaseIdx; });
+  if(!u) return true;            // 找不到(已完成/剩餘0)視為不需趕工
+  if(u.remaining > 0.01) return false; // 還有沒排進去的工時
+  if(!u.lastDay) return true;
+  return u.lastDay <= deadline;
+}
+function overtimeForUnit(pid, phaseIdx){
+  var base = getDayCap();
+  var baseRes = computeSchedule(null, base);
+  var u = baseRes.units.find(function(x){ return x.pid===pid && x.phaseIdx===phaseIdx; });
+  if(!u || !u.deadline) return null;
+  var todayStr = toLocalDate();
+  if(u.deadline < todayStr) return {impossible:true, reason:'pastdue', deadline:u.deadline};
+  // 基準容量下已經準時 → 不需加班
+  if(unitOnTime(baseRes, pid, phaseIdx, u.deadline)) return null;
+
+  var nDays = workdaysUntil(u.deadline);
+  if(nDays <= 0) return {impossible:true, reason:'nodays', deadline:u.deadline};
+
+  // 二分搜尋最小可行容量（上限設 24h/日）
+  var lo = base, hi = 24, ok = null;
+  // 先確認 24h/日是否真能趕上；趕不上代表單靠加班也來不及
+  if(!unitOnTime(computeSchedule(null, hi), pid, phaseIdx, u.deadline)){
+    return {impossible:true, reason:'evenmax', deadline:u.deadline, nDays:nDays, baseFinish:u.lastDay, baseRemaining:u.remaining};
+  }
+  for(var iter=0; iter<24; iter++){
+    var mid = Math.round(((lo+hi)/2)*4)/4; // 0.25h 精度
+    if(mid <= lo + 0.001) break;
+    if(unitOnTime(computeSchedule(null, mid), pid, phaseIdx, u.deadline)) hi = mid;
+    else lo = mid;
+  }
+  var minCap = Math.ceil(hi*4)/4; // 取可行側、無條件進位到 0.25
+  var perDay = Math.round((minCap - base)*100)/100;
+  var totalOT = Math.round(perDay * nDays *100)/100;
+  return {
+    impossible:false, deadline:u.deadline, nDays:nDays,
+    base:base, minCap:minCap, perDay:perDay, totalOT:totalOT,
+    phaseLabel:u.phaseLabel, pname:u.pname, hard:u.hard,
+    baseFinish:u.lastDay
+  };
 }
 
 var calViewMode = localStorage.getItem('ft_cal_mode') || 'cal';
@@ -5984,15 +6100,18 @@ function renderSched(){
   document.getElementById('cal-title').textContent = calYear+'年 '+(calMonth+1)+'月';
   var capInp = document.getElementById('sched-day-cap');
   if(capInp && document.activeElement !== capInp) capInp.value = getDayCap();
+  var otInp = document.getElementById('sched-ot');
+  if(otInp && document.activeElement !== otInp) otInp.value = SCHED_OT || '';
 
   // ---- 試算：有 what-if 時先跑基準版供比對 ----
+  var otCap = effCap();
   var baseMap = null;
   if(SCHED_WHATIF){
-    var B = computeSchedule(null);
+    var B = computeSchedule(null, otCap);
     baseMap = {};
     B.units.forEach(function(u){ baseMap[u.pid+':'+u.phaseIdx] = u; });
   }
-  var R = computeSchedule(SCHED_WHATIF);
+  var R = computeSchedule(SCHED_WHATIF, otCap);
   var todayStr = toLocalDate();
 
   // ---- what-if 結果與影響分析 ----
@@ -6101,9 +6220,9 @@ function renderSched(){
     return a.start.localeCompare(b.start);
   });
   function unitStatus(u){
-    var finish = u.lastDay, st, stCls;
+    var finish = u.lastDay, st, stCls, late=false, cantfit=false;
     if(!u.firstDay || u.remaining > 0.01){
-      st = '排不進'; stCls = 'text-red-400';
+      st = '排不進'; stCls = 'text-red-400'; cantfit = !!u.deadline;
     } else if(!u.deadline){
       st = '無截止日'; stCls = 'text-slate-500';
     } else if(finish <= u.deadline){
@@ -6111,13 +6230,14 @@ function renderSched(){
       st = '✓ 餘 '+slack+' 天'; stCls = slack <= 2 ? 'text-amber-400' : 'text-emerald-400';
     } else {
       var overD = Math.round((new Date(finish) - new Date(u.deadline)) / 86400000);
+      late = true;
       if(u.hard){
         st = '✗ 來不及（晚 '+overD+' 天）'; stCls = 'text-red-400 font-semibold';
       } else {
         st = '排程偏晚（晚 '+overD+' 天）'; stCls = 'text-slate-500';
       }
     }
-    return {st:st, cls:stCls};
+    return {st:st, cls:stCls, late:late, cantfit:cantfit};
   }
   var rows = groups.map(function(g){
     var multi = g.units.length > 1;
@@ -6132,12 +6252,16 @@ function renderSched(){
           +(multi?'<span class="block text-[9px] text-slate-600 mt-0.5 ml-4">'+g.units.length+' 個階段</span>':'')
           +'</td>';
       }
+      var otBtn = '';
+      if(g.pid !== -1 && (s.late || s.cantfit)){
+        otBtn = ' <button type="button" class="text-[10px] text-amber-400/80 hover:text-amber-300 underline decoration-dotted ml-1" onclick="event.stopPropagation();showOvertime('+g.pid+','+u.phaseIdx+')" title="試算這個階段要加多少班才趕得上">趕工試算</button>';
+      }
       cells += '<td class="text-xs '+(multi?'text-slate-400':'text-slate-600')+'">'+esc(phaseName)+(u.hard?' <span class="text-rose-400 text-[10px]">●硬</span>':'')+'</td>'
         +'<td class="font-mono text-xs">'+formatHrs(u.total)+'</td>'
         +'<td class="font-mono text-xs">'+(u.deadline||'<span class="text-slate-600">—</span>')+'</td>'
         +'<td class="font-mono text-xs">'+(u.firstDay||'—')+'</td>'
         +'<td class="font-mono text-xs">'+(u.lastDay||'—')+'</td>'
-        +'<td class="'+s.cls+'">'+s.st+'</td>';
+        +'<td class="'+s.cls+'">'+s.st+otBtn+'</td>';
       return '<tr class="'+(g.pid===-1?'sched-wi-row':'cursor-pointer')+(i===0?' sched-grp-first':'')+'" '+(g.pid===-1?'':'onclick="openDetail('+g.pid+')"')+'>'+cells+'</tr>';
     }).join('');
   }).join('');
@@ -6147,6 +6271,7 @@ function renderSched(){
   }
   if(rows){
     html += '<div class="tbl-wrap mb-1"><table><thead><tr><th>任務</th><th>階段</th><th>工時</th><th>截止日</th><th>預計開工</th><th>預計完工</th><th>試算結果</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+    html += '<div id="sched-ot-result" class="mb-2"></div>';
     html += '<div class="text-[10px] text-slate-600 px-1 mb-3">依「預計開工日」由近至遠排序，排不進者沉底；同任務的階段已合併分組</div>';
   } else {
     html += '<div class="text-center py-10 text-sm text-slate-500 bg-slate-900/40 border border-slate-800 rounded-xl mb-3">目前沒有可排程的任務<br><span class="text-xs text-slate-600">在任務詳情填寫「預估工時」即可加入試算</span></div>';
