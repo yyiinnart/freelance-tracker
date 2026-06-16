@@ -3394,7 +3394,20 @@ function openDetail(id){
       </div>
 
       <div class="mb-6">
-        <h3 class="font-bold text-white text-sm mb-1 px-1">階段截止日</h3>
+        <div class="flex items-center justify-between mb-1 px-1">
+          <h3 class="font-bold text-white text-sm">階段截止日</h3>
+          ${(function(){
+            var msSum=(p.milestones||[]).reduce(function(s,m){return s+(+m.estHrs||0);},0);
+            if(msSum<=0) return '';
+            var same=(+p.estHrs||0)===msSum;
+            return '<button type="button" onclick="sumEstFromMS('+id+')" '+(same?'disabled':'')
+              +' class="flex items-center justify-center w-6 h-6 rounded-md transition-colors '
+              +(same?'text-slate-700 cursor-default':'text-slate-500 hover:text-sky-400 hover:bg-slate-800/60 cursor-pointer')+'" '
+              +'title="'+(same?'總預估工時已等於各階段加總 '+formatHrs(msSum):'各階段工時加總 '+formatHrs(msSum)+'，點擊帶入「預估工時」')+'">'
+              +'<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 4H6l6 8-6 8h12"/></svg>'
+              +'</button>';
+          })()}
+        </div>
         <p class="text-[10px] text-slate-600 mb-3 px-1">例如：草稿交付、線稿確認、完稿截止等。</p>
         <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl overflow-hidden mb-3">
           ${(p.milestones||[]).map((m,i)=>`
@@ -3569,6 +3582,13 @@ function editMS(pid,idx,el){
   if(f==='estHrs')p.milestones[idx].estHrs=(+el.value)||0;
   if(f==='hard')p.milestones[idx].hard=el.checked;
   if(f==='date'){p.milestones[idx].date=el.value;p.milestones.sort(function(a,b){return(a.date||'9').localeCompare(b.date||'9');});}
+  save();openDetail(pid);
+}
+function sumEstFromMS(pid){
+  var p=pBy(pid);if(!p)return;
+  var msSum=(p.milestones||[]).reduce(function(s,m){return s+(+m.estHrs||0);},0);
+  if(msSum<=0)return; // 沒有任何階段工時可加總，不動作
+  p.estHrs=Math.round(msSum*100)/100;
   save();openDetail(pid);
 }
 
