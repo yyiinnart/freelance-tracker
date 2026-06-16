@@ -2349,18 +2349,20 @@ function save(isImmediate = false) {
   if (!getScriptUrl()) return;
 
   hasUnsynced = true;
-  document.getElementById('sync-dot').style.background = '#fbbf24';
+  // 安靜背景同步：不再跳醒目提示，避免造成「卡頓 / 要等它」的錯覺。
+  // 本地已瞬間存好，雲端在背景同步；真正未同步就關頁時，beforeunload 會攔下提醒。
+  var dot = document.getElementById('sync-dot');
+  if (dot) { dot.style.background = '#475569'; dot.classList.remove('sync-saving'); } // 低調灰點
   var txt = document.getElementById('sync-text');
   if (txt) {
-    txt.textContent = '⚠️ 變更待同步';
-    txt.classList.add('text-amber-400', 'font-medium');
+    txt.textContent = '';
+    txt.classList.remove('text-amber-400', 'font-medium');
   }
-  // 醒目按鈕：浮動琥珀色 + 呼吸光點
+  // 手動同步按鈕維持隱藏，不再閃爍催促
   var btn = document.getElementById('btn-manual-sync');
   if (btn) {
-    btn.classList.remove('hidden', 'text-blue-400', 'border-blue-900/50', 'hover:bg-blue-950/50');
-    btn.classList.add('text-amber-400', 'border-amber-500', 'bg-amber-950/30', 'shadow-[0_0_8px_rgba(245,158,11,0.3)]');
-    btn.innerHTML = '⬆️ 按此同步至雲端 <span class="relative flex h-2 w-2 ml-1"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span></span>';
+    btn.classList.remove('text-amber-400', 'border-amber-500', 'bg-amber-950/30', 'shadow-[0_0_8px_rgba(245,158,11,0.3)]');
+    btn.classList.add('hidden', 'text-blue-400', 'border-blue-900/50', 'hover:bg-blue-950/50');
   }
 
   // 防震處理：停止操作 3 秒後才啟動雲端同步
