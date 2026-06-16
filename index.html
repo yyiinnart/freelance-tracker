@@ -1263,7 +1263,7 @@ tbody tr[onclick]:hover td{background:#131f2e;}
 </div> 
 
 <script>
-var L=[],P=[],PJ=[],CATS=[],TAGS=[],GRPS=[],DLOGS=[],VENDORS=[],CH={},VACS=[],MEXP={},MCB=null,syncTimer=null;
+var L=[],P=[],PJ=[],CATS=[],TAGS=[],GRPS=[],DLOGS=[],VENDORS=[],CH={},VACS=[],WORKDAYS=[],MEXP={},MCB=null,syncTimer=null;
 var hasUnsynced=false;
 
 // ID 產生器：避免 Date.now() 在同一毫秒被連按時撞號
@@ -1779,7 +1779,7 @@ function cloudSave(){
   };
   
   // 2. 加入 VACS (休假) 與 CFG (設定) 到上傳名單
-  var p={version:8,at:new Date().toISOString(),P:P,PJ:PJ,CATS:CATS,TAGS:TAGS,GRPS:GRPS,DLOGS:DLOGS,VENDORS:VENDORS,VACS:VACS,MEXP:MEXP,CFG:cfg};
+  var p={version:8,at:new Date().toISOString(),P:P,PJ:PJ,CATS:CATS,TAGS:TAGS,GRPS:GRPS,DLOGS:DLOGS,VENDORS:VENDORS,VACS:VACS,WORKDAYS:WORKDAYS,MEXP:MEXP,CFG:cfg};
   
   fetch(getAuthUrl(url), {method:'POST', body:JSON.stringify(p)})
     .then(r=>r.json()).then(d=>{
@@ -1807,6 +1807,7 @@ function cloudLoad(){
         
         // 1. 讀取休假日
         VACS=cd.VACS||[]; 
+        WORKDAYS=cd.WORKDAYS||[];
         MEXP=cd.MEXP||{};
         
         // 2. 讀取並覆寫本地端設定檔
@@ -1848,17 +1849,43 @@ function loadLocal() {
   DLOGS = safeJSONParse(localStorage.getItem('ft_DLOGS') || '[]', []);
   VENDORS = safeJSONParse(localStorage.getItem('ft_VENDORS') || '[]', []);
   VACS = safeJSONParse(localStorage.getItem('ft_VACS') || '[]', []); // 新增載入休假資料
+  WORKDAYS = safeJSONParse(localStorage.getItem('ft_WORKDAYS') || '[]', []); // 被取消休假的週末(排工日)
   MEXP = safeJSONParse(localStorage.getItem('ft_MEXP') || '{}', {}); // 載入每月總支出
   if (!CATS) CATS = JSON.parse(JSON.stringify(DCATS));
 }
 
-function saveLocal(){try{localStorage.setItem('ft_P',JSON.stringify(P));localStorage.setItem('ft_PJ',JSON.stringify(PJ));localStorage.setItem('ft_CATS',JSON.stringify(CATS));localStorage.setItem('ft_TAGS',JSON.stringify(TAGS));localStorage.setItem('ft_GRPS',JSON.stringify(GRPS));localStorage.setItem('ft_DLOGS',JSON.stringify(DLOGS));localStorage.setItem('ft_VENDORS',JSON.stringify(VENDORS));localStorage.setItem('ft_VACS',JSON.stringify(VACS));localStorage.setItem('ft_MEXP',JSON.stringify(MEXP));}catch(e){}}
+function saveLocal(){try{localStorage.setItem('ft_P',JSON.stringify(P));localStorage.setItem('ft_PJ',JSON.stringify(PJ));localStorage.setItem('ft_CATS',JSON.stringify(CATS));localStorage.setItem('ft_TAGS',JSON.stringify(TAGS));localStorage.setItem('ft_GRPS',JSON.stringify(GRPS));localStorage.setItem('ft_DLOGS',JSON.stringify(DLOGS));localStorage.setItem('ft_VENDORS',JSON.stringify(VENDORS));localStorage.setItem('ft_VACS',JSON.stringify(VACS));localStorage.setItem('ft_WORKDAYS',JSON.stringify(WORKDAYS));localStorage.setItem('ft_MEXP',JSON.stringify(MEXP));}catch(e){}}
+// 判斷某日是否「休假(不排工)」：
+//  - 在 VACS 內 → 休假
+//  - 週末(六/日) 且 未被 WORKDAYS 取消 → 預設休假
+//  其餘為上班日
+function isDayOff(ds, dow){
+  if(dow === undefined){ dow = new Date(ds+'T00:00:00').getDay(); }
+  if(VACS.indexOf(ds) !== -1) return true;
+  if((dow===0 || dow===6) && WORKDAYS.indexOf(ds) === -1) return true;
+  return false;
+}
+// 週末被取消休假(改為排工)
+function isWorkingWeekend(ds, dow){
+  if(dow === undefined){ dow = new Date(ds+'T00:00:00').getDay(); }
+  return (dow===0 || dow===6) && WORKDAYS.indexOf(ds) !== -1;
+}
 function toggleVacation(dateStr) {
-  var idx = VACS.indexOf(dateStr);
-  if(idx === -1) {
-    VACS.push(dateStr);
+  var dow = new Date(dateStr+'T00:00:00').getDay();
+  var isWeekend = (dow===0 || dow===6);
+  if(isWeekend){
+    // 週末預設休假；點一下＝取消休假改排工，再點一下＝恢復休假
+    var wi = WORKDAYS.indexOf(dateStr);
+    if(wi === -1){
+      WORKDAYS.push(dateStr);
+      var vi = VACS.indexOf(dateStr); if(vi !== -1) VACS.splice(vi,1); // 避免衝突
+    } else {
+      WORKDAYS.splice(wi,1);
+    }
   } else {
-    VACS.splice(idx, 1);
+    // 平日預設上班；點一下＝標記休假，再點一下＝取消休假
+    var idx = VACS.indexOf(dateStr);
+    if(idx === -1){ VACS.push(dateStr); } else { VACS.splice(idx,1); }
   }
   save(); 
   renderCal();
@@ -1886,7 +1913,7 @@ function cloudSaveBeacon(){
   };
   var payload = {version:8, at:new Date().toISOString(),
     P:P, PJ:PJ, CATS:CATS, TAGS:TAGS, GRPS:GRPS,
-    DLOGS:DLOGS, VENDORS:VENDORS, VACS:VACS, MEXP:MEXP, CFG:cfg};
+    DLOGS:DLOGS, VENDORS:VENDORS, VACS:VACS, WORKDAYS:WORKDAYS, MEXP:MEXP, CFG:cfg};
   try {
     var blob = new Blob([JSON.stringify(payload)], {type:'application/json'});
     // GAS doPost 從 e.postData.contents 拿 body、從 e.parameter.token 拿 token
@@ -1931,7 +1958,7 @@ document.addEventListener('visibilitychange', function() {
 });
 function exportJSON(){
   var cfg={wmode:localStorage.getItem('ft_wmode'),trate:localStorage.getItem('ft_trate'),dl_crit:localStorage.getItem('ft_dl_crit'),wtarget:localStorage.getItem('ft_wtarget'),track_limit:localStorage.getItem('ft_track_limit'),show_tracks:localStorage.getItem('ft_show_tracks'),show_hints:localStorage.getItem('ft_show_hints'),dash_cfg:localStorage.getItem('ft_dash_cfg')};
-  var d={version:8,at:new Date().toISOString(),P:P,PJ:PJ,CATS:CATS,TAGS:TAGS,GRPS:GRPS,DLOGS:DLOGS,VENDORS:VENDORS,VACS:VACS,MEXP:MEXP,CFG:cfg};
+  var d={version:8,at:new Date().toISOString(),P:P,PJ:PJ,CATS:CATS,TAGS:TAGS,GRPS:GRPS,DLOGS:DLOGS,VENDORS:VENDORS,VACS:VACS,WORKDAYS:WORKDAYS,MEXP:MEXP,CFG:cfg};
   var a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'}));
   a.download='freelance_'+toLocalDate()+'.json';
@@ -1948,7 +1975,7 @@ function importJSON(e){
       openModal('確認匯入','覆蓋目前所有資料？',function(){
         P=d.P;PJ=d.PJ;CATS=d.CATS||JSON.parse(JSON.stringify(DCATS));
         TAGS=d.TAGS||[];GRPS=d.GRPS||[];DLOGS=d.DLOGS||[];VENDORS=d.VENDORS||[];
-        VACS=d.VACS||[]; // 匯入休假日
+        VACS=d.VACS||[]; WORKDAYS=d.WORKDAYS||[]; // 匯入休假日與排工週末
         MEXP=d.MEXP||{}; // 匯入每月總支出
         if(d.CFG){ // 匯入設定
           ['wmode','trate','dl_crit','wtarget','track_limit','show_tracks','show_hints','dash_cfg'].forEach(k=>{
@@ -5863,7 +5890,7 @@ function computeSchedule(extra, capOverride){
   while(dayCount < SCHED_HORIZON_DAYS && units.some(function(u){ return u.remaining > 0; })){
     var ds = toLocalDate(d);
     var dow = d.getDay();
-    var workday = dow !== 0 && dow !== 6 && VACS.indexOf(ds) === -1;
+    var workday = !isDayOff(ds, dow);
     if(workday){
       var left = cap;
       var guard = 0;
@@ -5908,7 +5935,7 @@ function workdaysUntil(deadlineStr){
     var ds = toLocalDate(d);
     if(ds > deadlineStr) break;
     var dow = d.getDay();
-    if(dow !== 0 && dow !== 6 && VACS.indexOf(ds) === -1) count++;
+    if(!isDayOff(ds, dow)) count++;
     d.setDate(d.getDate()+1);
   }
   return count;
@@ -6314,12 +6341,13 @@ function renderSched(){
       var c=cells[row*7+col];
       var isToday = c.str === todayStr;
       var dow = c.date.getDay();
-      var isOff = dow===0 || dow===6 || VACS.indexOf(c.str)!==-1;
+      var isOff = isDayOff(c.str, dow);
       var isVac = VACS.indexOf(c.str)!==-1;
+      var isWorkWknd = isWorkingWeekend(c.str, dow);
       var tdCls = (isToday?' today':'') + (c.inMonth?'':' other-month') + (isVac?' vacation-day':'') + (isOff&&c.inMonth&&!isVac?' sched-off':'');
       var numCls = 'cal-day-num' + (isToday?' today':'') + (c.inMonth?'':' other-month');
       g += '<td class="'+tdCls.trim()+'">';
-      g += '<div class="'+numCls+'" onclick="toggleVacation(\''+c.str+'\')" title="點擊設定/取消休假">'+c.date.getDate()+'</div>';
+      g += '<div class="'+numCls+'" onclick="toggleVacation(\''+c.str+'\')" title="'+(isWorkWknd?'此週末已排工，點擊恢復休假':'點擊設定/取消休假')+'">'+c.date.getDate()+'</div>';
       (dlByDate[c.str]||[]).forEach(function(u){
         var late = u.lastDay && u.deadline && u.lastDay > u.deadline;
         var dlName = u.pname + (u.phaseLabel ? ' · ' + u.phaseLabel : '');
