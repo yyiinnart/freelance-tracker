@@ -5942,6 +5942,24 @@ function workdaysUntil(deadlineStr){
   }
   return count;
 }
+// 完工日(不含)→截止日(含) 之間的「工作日數」，跳過週末與休假。
+// 同日完工＝0；finish 晚於 deadline 時回傳負的逾期工作日數(deadline 不含、finish 含)。
+function workdaysBetween(fromStr, toStr){
+  if(!fromStr || !toStr || fromStr === toStr) return 0;
+  var late = fromStr > toStr;
+  var lo = late ? toStr : fromStr;
+  var hi = late ? fromStr : toStr;
+  var d = new Date(lo + 'T00:00:00'); d.setHours(0,0,0,0);
+  d.setDate(d.getDate()+1);            // 自較早者隔天起算(較早者不含)
+  var count = 0, guard = 0;
+  while(guard++ < SCHED_HORIZON_DAYS){
+    var ds = toLocalDate(d);
+    if(ds > hi) break;
+    if(!isDayOff(ds, d.getDay())) count++;
+    d.setDate(d.getDate()+1);
+  }
+  return late ? -count : count;
+}
 function unitOnTime(res, pid, phaseIdx, deadline){
   // 在某次模擬結果 res 中，找到對應階段單位，判斷是否「完工日 ≤ 截止日」且已排完
   var u = res.units.find(function(x){ return x.pid===pid && x.phaseIdx===phaseIdx; });
@@ -6164,7 +6182,7 @@ function renderSched(){
           head = '<span class="text-slate-300">預計 <span class="font-mono">'+firstU.firstDay+'</span> 開工、<span class="font-mono">'+lastU.lastDay+'</span> 完工</span><span class="text-slate-500">（未填截止日，僅供報期參考）</span>';
         } else if(!lateStages.length){
           var lastDlU = null; for(var li=vus.length-1; li>=0; li--){ if(vus[li].deadline){ lastDlU = vus[li]; break; } }
-          var slack = lastDlU ? Math.round((new Date(lastDlU.deadline) - new Date(lastDlU.lastDay)) / 86400000) : 0;
+          var slack = lastDlU ? workdaysBetween(lastDlU.lastDay, lastDlU.deadline) : 0;
           head = '<span class="'+(slack<=2?'text-amber-400':'text-emerald-400')+' font-semibold">✓ 塞得進</span><span class="text-slate-300">：<span class="font-mono">'+firstU.firstDay+'</span> 開工 → <span class="font-mono">'+lastU.lastDay+'</span> 完工'+(lastDlU?'（最終截止前餘 '+slack+' 天）':'')+'</span>';
         } else {
           var hardLate = lateStages.some(function(u){ return u.hard; });
@@ -6179,10 +6197,10 @@ function renderSched(){
             var verdict;
             if(!u.deadline) verdict = '<span class="text-slate-500">無截止</span>';
             else if(u.lastDay <= u.deadline){
-              var s2 = Math.round((new Date(u.deadline) - new Date(u.lastDay)) / 86400000);
+              var s2 = workdaysBetween(u.lastDay, u.deadline);
               verdict = '<span class="'+(s2<=1?'text-amber-400':'text-emerald-400')+'">✓ 餘 '+s2+' 天</span>';
             } else {
-              var o2 = Math.round((new Date(u.lastDay) - new Date(u.deadline)) / 86400000);
+              var o2 = -workdaysBetween(u.lastDay, u.deadline);
               verdict = '<span class="'+(u.hard?'text-red-400 font-semibold':'text-slate-500')+'">'+(u.hard?'✗ 晚 '+o2+' 天':'晚 '+o2+' 天')+'</span>';
             }
             return '<span class="text-slate-400">'+nm+(u.hard?'<span class="text-rose-400 text-[10px]">●</span>':'')+' '+seg+' '+verdict+'</span>';
@@ -6196,7 +6214,7 @@ function renderSched(){
           var b = baseMap[u.pid+':'+u.phaseIdx];
           if(!b || !b.lastDay || !u.lastDay) return;
           if(u.lastDay > b.lastDay){
-            var push = Math.round((new Date(u.lastDay) - new Date(b.lastDay)) / 86400000);
+            var push = workdaysBetween(b.lastDay, u.lastDay);
             var nowLate = u.deadline && u.lastDay > u.deadline;
             var wasLate = b.deadline && b.lastDay > b.deadline;
             var nm = u.pname + (u.phaseLabel ? '·' + u.phaseLabel : '');
@@ -6255,10 +6273,10 @@ function renderSched(){
     } else if(!u.deadline){
       st = '無截止日'; stCls = 'text-slate-500';
     } else if(finish <= u.deadline){
-      var slack = Math.round((new Date(u.deadline) - new Date(finish)) / 86400000);
+      var slack = workdaysBetween(finish, u.deadline);
       st = '✓ 餘 '+slack+' 天'; stCls = slack <= 2 ? 'text-amber-400' : 'text-emerald-400';
     } else {
-      var overD = Math.round((new Date(finish) - new Date(u.deadline)) / 86400000);
+      var overD = -workdaysBetween(finish, u.deadline);
       late = true;
       if(u.hard){
         st = '✗ 來不及（晚 '+overD+' 天）'; stCls = 'text-red-400 font-semibold';
