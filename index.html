@@ -172,6 +172,21 @@ tbody tr:hover td{background:#131f2e;}
 .rem-banner .rb-item{display:flex;align-items:center;gap:6px;font-size:13px;color:#fcd34d;}
 .rem-banner .rb-chk{cursor:pointer;font-size:15px;color:#a16207;flex-shrink:0;}
 .rem-banner .rb-chk:hover{color:#fbbf24;}
+/* 排程分頁：缺工時警示 */
+.noest-warn{background:#27160c;border:1px solid #7c2d12;border-left:3px solid #ea580c;border-radius:10px;margin-bottom:12px;overflow:hidden;}
+.noest-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;cursor:pointer;user-select:none;}
+.noest-head:hover{background:#2e1a0f;}
+.noest-title{font-size:12px;color:#fdba74;font-weight:600;}
+.noest-em{color:#fb923c;text-decoration:underline;text-decoration-style:dotted;}
+.noest-toggle{font-size:11px;color:#c2630f;flex-shrink:0;}
+.noest-body{padding:2px 12px 10px 12px;display:flex;flex-direction:column;gap:4px;}
+.noest-row{display:flex;align-items:center;gap:8px;font-size:12px;color:#e7d3c2;padding:3px 0;border-top:1px solid #43200f;}
+.noest-row:first-child{border-top:none;}
+.noest-name{flex:1;color:#fdba74;cursor:pointer;text-decoration:underline;text-decoration-color:#7c2d12;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.noest-name:hover{color:#fed7aa;}
+.noest-dl{font-size:11px;color:#a16207;font-family:ui-monospace,monospace;flex-shrink:0;}
+.noest-inp{width:62px;background:#1c1917;border:1px solid #7c2d12;border-radius:5px;padding:3px 6px;color:#fde68a;font-size:12px;outline:none;text-align:right;}
+.noest-inp:focus{border-color:#ea580c;}
 @keyframes dl-blink{0%,100%{opacity:1;}50%{opacity:.3;}}
 .cal-ev.ev-start{font-size:8px;opacity:.5;}
 .cal-ev.ev-ms{font-size:9px;}
@@ -4040,6 +4055,8 @@ function renderRows(list, isDone, scores, bucketKey, currentTopId) {
         }
 
         var nbBadge = p.nonBillable ? ' <span class=\"badge bg-slate-800 text-slate-500 border border-slate-700 text-[10px] ml-1\">不計酬</span>' : '';
+        var isSelfExec = !p.execMode || p.execMode==='self';
+        var noEstBadge = (isSelfExec && !(+p.estHrs>0)) ? '<div class=\"mt-1\"><span class=\"badge bg-orange-950 text-orange-400 border border-orange-800/60 text-[10px]\" title=\"尚未估工時，不會被排進排程日曆，點擊任務可補填\">⏱ 未估工時</span></div>' : '';
         var execBadge = '';
         if(p.execMode==='outsource') execBadge=' <span class=\"badge bg-amber-950 text-amber-400 border border-amber-900/50 text-[10px] ml-1\">外包</span>';
         else if(p.execMode==='resell') execBadge=' <span class=\"badge bg-purple-950 text-purple-400 border border-purple-900/50 text-[10px] ml-1\">轉包</span>';
@@ -4095,7 +4112,7 @@ function renderRows(list, isDone, scores, bucketKey, currentTopId) {
             ${dlvrBadge}
           </td>
           <td class="py-3 text-center"><div class=\"mb-1 text-slate-400 flex justify-center\">${bdg(c.name,c.color)}</div><div class=\"text-slate-500 text-xs\">${budgetCell}</div></td>
-          <td class=\"text-lg font-medium text-blue-300 py-3\">${formatHrs(p.hrs||0)}</td>
+          <td class=\"text-lg font-medium text-blue-300 py-3\">${formatHrs(p.hrs||0)}${noEstBadge}</td>
           <td class="py-3">
             <div>${arCellFinal}</div>
             ${netProfitHtml}
@@ -6083,6 +6100,24 @@ function renderRemToday(){
     + items + '</div></div>';
 }
 
+// 排程分頁「缺工時警示」折疊開關（記住狀態）
+function toggleNoEstWarn(){
+  var cur = localStorage.getItem('ft_noest_collapsed') === '1';
+  localStorage.setItem('ft_noest_collapsed', cur ? '0' : '1');
+  renderCal();
+}
+// 從警示列就地補工時
+function setEstFromWarn(pid, val){
+  var v = parseFloat(val);
+  if(!(v > 0)) return;           // 空白或非正數：不動作
+  var p = pBy(pid);
+  if(!p) return;
+  p.estHrs = Math.round(v*100)/100;
+  save();
+  renderCal();                   // 重算排程，該筆會即時從警示消失、進入日曆
+  if(typeof rProj === 'function') rProj();
+}
+
 var calViewMode = localStorage.getItem('ft_cal_mode') || 'cal';
 function setCalMode(m){
   calViewMode = m;
@@ -6407,8 +6442,31 @@ function renderSched(){
       return '<span class="cursor-pointer underline decoration-dotted hover:text-slate-300" onclick="openDetail('+p.id+')" title="已投入 '+formatHrs(p.hrs||0)+' / 預估 '+formatHrs(p.estHrs||0)+'">'+esc(p.name)+'</span>';
     }).join('、')+'<span class="text-slate-600">　→ 若還沒做完，請至詳情上調預估工時</span></div>';
   }
-  if(R.noEst.length){
-    html += '<div class="text-[11px] text-slate-500 px-1 mb-1">未填預估工時（不參與試算）：'+R.noEst.map(function(p){
+  // 缺工時警示：只列「有截止日卻沒估工時」的任務（會從排程日曆消失，最危險）
+  var noEstDl = R.noEst.filter(function(p){ return !!p.edate; });
+  if(noEstDl.length){
+    var collapsed = localStorage.getItem('ft_noest_collapsed') === '1';
+    html += '<div class="noest-warn">'
+      + '<div class="noest-head" onclick="toggleNoEstWarn()">'
+      +   '<span class="noest-title">⚠️ '+noEstDl.length+' 筆任務有截止日卻沒估工時，<span class="noest-em">不會被排進日曆</span></span>'
+      +   '<span class="noest-toggle">'+(collapsed?'展開 ▾':'收合 ▴')+'</span>'
+      + '</div>'
+      + '<div class="noest-body" style="'+(collapsed?'display:none;':'')+'">'
+      + noEstDl.map(function(p){
+          return '<div class="noest-row">'
+            + '<span class="noest-name" onclick="openDetail('+p.id+')" title="點擊開啟任務詳情">'+esc(p.name)+'</span>'
+            + '<span class="noest-dl">截止 '+esc(p.edate)+'</span>'
+            + '<input type="number" min="0" step="0.5" class="noest-inp" placeholder="工時" '
+            +   'onkeydown="if(event.key===\'Enter\')this.blur()" '
+            +   'onchange="setEstFromWarn('+p.id+',this.value)"> h'
+            + '</div>';
+        }).join('')
+      + '</div></div>';
+  }
+  // 其餘未估（無截止日）：維持原本低調提示，不打擾
+  var noEstNoDl = R.noEst.filter(function(p){ return !p.edate; });
+  if(noEstNoDl.length){
+    html += '<div class="text-[11px] text-slate-500 px-1 mb-1">未填預估工時（無截止日，不參與試算）：'+noEstNoDl.map(function(p){
       return '<span class="cursor-pointer underline decoration-dotted hover:text-slate-300" onclick="openDetail('+p.id+')">'+esc(p.name)+'</span>';
     }).join('、')+'</div>';
   }
