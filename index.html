@@ -158,6 +158,20 @@ tbody tr:hover td{background:#131f2e;}
 .cal-ev.ev-deadline{font-weight:600;font-size:10px;}
 .cal-ev.ev-dl-crit{font-weight:700;}.cal-ev.ev-dl-crit .dl-icon{color:#f87171;animation:dl-blink 1.5s ease-in-out infinite;}
 .cal-ev.ev-dl-over{font-weight:700;text-decoration:line-through;text-decoration-color:#ef4444;}.cal-ev.ev-dl-over .dl-icon{color:#ef4444;}
+/* 日曆小提醒 */
+.cal-rem{display:flex;align-items:center;gap:3px;font-size:9px;padding:1px 4px;margin:1px 0;border-radius:3px;cursor:pointer;line-height:1.5;background:#1c1917;border-left:2px solid #d97706;color:#fbbf24;}
+.cal-rem:hover{filter:brightness(1.25);}
+.cal-rem.rem-done{opacity:.5;text-decoration:line-through;text-decoration-color:#78716c;border-left-color:#57534e;color:#a8a29e;}
+.cal-rem.rem-over{border-left-color:#ef4444;color:#f87171;}
+.cal-rem .rem-txt{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cal-rem .rem-chk{flex-shrink:0;font-size:10px;}
+.cal-rem-add{position:absolute;top:2px;right:2px;width:16px;height:16px;line-height:14px;text-align:center;border-radius:4px;font-size:13px;color:#64748b;background:#0d1526;border:1px solid #1e293b;cursor:pointer;opacity:0;transition:opacity .12s;z-index:2;}
+.cal-table td:hover .cal-rem-add{opacity:1;}
+.cal-rem-add:hover{color:#fbbf24;border-color:#d97706;background:#1c1917;}
+.rem-banner{display:flex;align-items:flex-start;gap:10px;background:#1c1917;border:1px solid #78350f;border-left:3px solid #d97706;border-radius:10px;padding:10px 14px;margin-bottom:16px;}
+.rem-banner .rb-item{display:flex;align-items:center;gap:6px;font-size:13px;color:#fcd34d;}
+.rem-banner .rb-chk{cursor:pointer;font-size:15px;color:#a16207;flex-shrink:0;}
+.rem-banner .rb-chk:hover{color:#fbbf24;}
 @keyframes dl-blink{0%,100%{opacity:1;}50%{opacity:.3;}}
 .cal-ev.ev-start{font-size:8px;opacity:.5;}
 .cal-ev.ev-ms{font-size:9px;}
@@ -376,6 +390,7 @@ tbody tr[onclick]:hover td{background:#131f2e;}
       <div><strong>建立任務</strong>：輸入名稱後點「+ 建立」，其餘欄位（截止日、合約金額、標籤等）可事後點「✎ 編輯」補填。</div>
       <div><strong>計時器</strong>：每次只能有一個執行中任務，點擊任務列的播放鍵啟動；停止時自動寫入工時紀錄。拖曳前方「☰」可調整順序；跨區拖曳（如拖進焦點區）即可手動改分類，標 📌 者為手動指定，點 ✕ 恢復自動。</div>
     </div>
+    <div id="rem-today-banner"></div>
 
     <div class="bg-slate-900/80 border border-slate-800/80 rounded-xl mb-8 shadow-sm">
       <div class="px-5 py-3 flex flex-wrap items-end gap-3">
@@ -1263,7 +1278,7 @@ tbody tr[onclick]:hover td{background:#131f2e;}
 </div> 
 
 <script>
-var L=[],P=[],PJ=[],CATS=[],TAGS=[],GRPS=[],DLOGS=[],VENDORS=[],CH={},VACS=[],WORKDAYS=[],MEXP={},MCB=null,syncTimer=null;
+var L=[],P=[],PJ=[],CATS=[],TAGS=[],GRPS=[],DLOGS=[],VENDORS=[],CH={},VACS=[],WORKDAYS=[],MEXP={},REM=[],MCB=null,syncTimer=null;
 var hasUnsynced=false;
 
 // ID 產生器：避免 Date.now() 在同一毫秒被連按時撞號
@@ -1779,7 +1794,7 @@ function cloudSave(){
   };
   
   // 2. 加入 VACS (休假) 與 CFG (設定) 到上傳名單
-  var p={version:8,at:new Date().toISOString(),P:P,PJ:PJ,CATS:CATS,TAGS:TAGS,GRPS:GRPS,DLOGS:DLOGS,VENDORS:VENDORS,VACS:VACS,WORKDAYS:WORKDAYS,MEXP:MEXP,CFG:cfg};
+  var p={version:8,at:new Date().toISOString(),P:P,PJ:PJ,CATS:CATS,TAGS:TAGS,GRPS:GRPS,DLOGS:DLOGS,VENDORS:VENDORS,VACS:VACS,WORKDAYS:WORKDAYS,MEXP:MEXP,REM:REM,CFG:cfg};
   
   fetch(getAuthUrl(url), {method:'POST', body:JSON.stringify(p)})
     .then(r=>r.json()).then(d=>{
@@ -1809,6 +1824,7 @@ function cloudLoad(){
         VACS=cd.VACS||[]; 
         WORKDAYS=cd.WORKDAYS||[];
         MEXP=cd.MEXP||{};
+        REM=cd.REM||[];
         
         // 2. 讀取並覆寫本地端設定檔
         if(cd.CFG) {
@@ -1851,10 +1867,11 @@ function loadLocal() {
   VACS = safeJSONParse(localStorage.getItem('ft_VACS') || '[]', []); // 新增載入休假資料
   WORKDAYS = safeJSONParse(localStorage.getItem('ft_WORKDAYS') || '[]', []); // 被取消休假的週末(排工日)
   MEXP = safeJSONParse(localStorage.getItem('ft_MEXP') || '{}', {}); // 載入每月總支出
+  REM = safeJSONParse(localStorage.getItem('ft_REM') || '[]', []); // 載入日曆小提醒
   if (!CATS) CATS = JSON.parse(JSON.stringify(DCATS));
 }
 
-function saveLocal(){try{localStorage.setItem('ft_P',JSON.stringify(P));localStorage.setItem('ft_PJ',JSON.stringify(PJ));localStorage.setItem('ft_CATS',JSON.stringify(CATS));localStorage.setItem('ft_TAGS',JSON.stringify(TAGS));localStorage.setItem('ft_GRPS',JSON.stringify(GRPS));localStorage.setItem('ft_DLOGS',JSON.stringify(DLOGS));localStorage.setItem('ft_VENDORS',JSON.stringify(VENDORS));localStorage.setItem('ft_VACS',JSON.stringify(VACS));localStorage.setItem('ft_WORKDAYS',JSON.stringify(WORKDAYS));localStorage.setItem('ft_MEXP',JSON.stringify(MEXP));}catch(e){}}
+function saveLocal(){try{localStorage.setItem('ft_P',JSON.stringify(P));localStorage.setItem('ft_PJ',JSON.stringify(PJ));localStorage.setItem('ft_CATS',JSON.stringify(CATS));localStorage.setItem('ft_TAGS',JSON.stringify(TAGS));localStorage.setItem('ft_GRPS',JSON.stringify(GRPS));localStorage.setItem('ft_DLOGS',JSON.stringify(DLOGS));localStorage.setItem('ft_VENDORS',JSON.stringify(VENDORS));localStorage.setItem('ft_VACS',JSON.stringify(VACS));localStorage.setItem('ft_WORKDAYS',JSON.stringify(WORKDAYS));localStorage.setItem('ft_MEXP',JSON.stringify(MEXP));localStorage.setItem('ft_REM',JSON.stringify(REM));}catch(e){}}
 // 判斷某日是否「休假(不排工)」：
 //  - 在 VACS 內 → 休假
 //  - 週末(六/日) 且 未被 WORKDAYS 取消 → 預設休假
@@ -1913,7 +1930,7 @@ function cloudSaveBeacon(){
   };
   var payload = {version:8, at:new Date().toISOString(),
     P:P, PJ:PJ, CATS:CATS, TAGS:TAGS, GRPS:GRPS,
-    DLOGS:DLOGS, VENDORS:VENDORS, VACS:VACS, WORKDAYS:WORKDAYS, MEXP:MEXP, CFG:cfg};
+    DLOGS:DLOGS, VENDORS:VENDORS, VACS:VACS, WORKDAYS:WORKDAYS, MEXP:MEXP, REM:REM, CFG:cfg};
   try {
     var blob = new Blob([JSON.stringify(payload)], {type:'application/json'});
     // GAS doPost 從 e.postData.contents 拿 body、從 e.parameter.token 拿 token
@@ -1958,7 +1975,7 @@ document.addEventListener('visibilitychange', function() {
 });
 function exportJSON(){
   var cfg={wmode:localStorage.getItem('ft_wmode'),trate:localStorage.getItem('ft_trate'),dl_crit:localStorage.getItem('ft_dl_crit'),wtarget:localStorage.getItem('ft_wtarget'),track_limit:localStorage.getItem('ft_track_limit'),show_tracks:localStorage.getItem('ft_show_tracks'),show_hints:localStorage.getItem('ft_show_hints'),dash_cfg:localStorage.getItem('ft_dash_cfg')};
-  var d={version:8,at:new Date().toISOString(),P:P,PJ:PJ,CATS:CATS,TAGS:TAGS,GRPS:GRPS,DLOGS:DLOGS,VENDORS:VENDORS,VACS:VACS,WORKDAYS:WORKDAYS,MEXP:MEXP,CFG:cfg};
+  var d={version:8,at:new Date().toISOString(),P:P,PJ:PJ,CATS:CATS,TAGS:TAGS,GRPS:GRPS,DLOGS:DLOGS,VENDORS:VENDORS,VACS:VACS,WORKDAYS:WORKDAYS,MEXP:MEXP,REM:REM,CFG:cfg};
   var a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'}));
   a.download='freelance_'+toLocalDate()+'.json';
@@ -1977,6 +1994,7 @@ function importJSON(e){
         TAGS=d.TAGS||[];GRPS=d.GRPS||[];DLOGS=d.DLOGS||[];VENDORS=d.VENDORS||[];
         VACS=d.VACS||[]; WORKDAYS=d.WORKDAYS||[]; // 匯入休假日與排工週末
         MEXP=d.MEXP||{}; // 匯入每月總支出
+        REM=d.REM||[]; // 匯入日曆小提醒
         if(d.CFG){ // 匯入設定
           ['wmode','trate','dl_crit','wtarget','track_limit','show_tracks','show_hints','dash_cfg'].forEach(k=>{
             if(d.CFG[k]) localStorage.setItem('ft_'+k, d.CFG[k]);
@@ -3773,6 +3791,7 @@ function compressLogs(pid) {
   }, '確定執行'); // 自訂確認按鈕的文字
 }
 function rProj(){
+  renderRemToday();
   var tRate = getGlobalRate();
   var isManager = getWorkMode() === 'manager';
   
@@ -6004,6 +6023,66 @@ function overtimeForUnit(pid, phaseIdx){
   };
 }
 
+/* ============================================================
+   日曆小提醒（綁日期、零工時、不參與排程試算）
+   REM = [{id, date:'YYYY-MM-DD', text, done:false, doneAt:null}]
+   ============================================================ */
+function remByDate(){
+  var m = {};
+  REM.forEach(function(r){ if(!m[r.date]) m[r.date]=[]; m[r.date].push(r); });
+  return m;
+}
+function addReminder(dateStr){
+  var text = prompt('新增提醒（'+dateStr+'）\n例如：催稿、聯絡某某窗口', '');
+  if(text === null) return;
+  text = text.trim();
+  if(!text) return;
+  REM.push({ id: Date.now()+Math.floor(Math.random()*1000), date: dateStr, text: text, done:false, doneAt:null });
+  save(); renderCal(); renderRemToday();
+}
+function toggleReminder(id){
+  var r = REM.find(function(x){ return x.id === id; });
+  if(!r) return;
+  r.done = !r.done;
+  r.doneAt = r.done ? toLocalDate() : null;
+  save(); renderCal(); renderRemToday();
+}
+function delReminder(id){
+  var i = REM.findIndex(function(x){ return x.id === id; });
+  if(i < 0) return;
+  REM.splice(i,1);
+  save(); renderCal(); renderRemToday();
+}
+function editReminder(id){
+  var r = REM.find(function(x){ return x.id === id; });
+  if(!r) return;
+  var nt = prompt('編輯提醒（'+r.date+'）\n清空並確定即可刪除此提醒', r.text);
+  if(nt === null) return;
+  nt = nt.trim();
+  if(!nt){ delReminder(id); return; }
+  r.text = nt;
+  save(); renderCal(); renderRemToday();
+}
+// 首頁：只跳「今天」未完成的提醒
+function renderRemToday(){
+  var box = document.getElementById('rem-today-banner');
+  if(!box) return;
+  var today = toLocalDate();
+  var todays = REM.filter(function(r){ return r.date === today && !r.done; })
+                  .sort(function(a,b){ return a.id - b.id; });
+  if(!todays.length){ box.innerHTML=''; return; }
+  var items = todays.map(function(r){
+    return '<div class="rb-item">'
+      + '<span class="rb-chk" onclick="toggleReminder('+r.id+')" title="標記完成">○</span>'
+      + '<span>'+esc(r.text)+'</span></div>';
+  }).join('');
+  box.innerHTML = '<div class="rem-banner">'
+    + '<span style="font-size:15px;line-height:1.4;flex-shrink:0;">📌</span>'
+    + '<div style="display:flex;flex-direction:column;gap:4px;flex:1;">'
+    + '<span style="font-size:11px;color:#a16207;font-weight:600;">今天的提醒</span>'
+    + items + '</div></div>';
+}
+
 var calViewMode = localStorage.getItem('ft_cal_mode') || 'cal';
 function setCalMode(m){
   calViewMode = m;
@@ -6351,6 +6430,7 @@ function renderSched(){
     if(!dlByDate[u.deadline]) dlByDate[u.deadline] = [];
     dlByDate[u.deadline].push(u);
   });
+  var remMap = remByDate();
   var weekDays=['日','一','二','三','四','五','六'];
   var g='<table class="cal-table"><thead><tr>';
   weekDays.forEach(function(w){g+='<th>'+w+'</th>';});
@@ -6367,7 +6447,16 @@ function renderSched(){
       var tdCls = (isToday?' today':'') + (c.inMonth?'':' other-month') + (isVac?' vacation-day':'') + (isOff&&c.inMonth&&!isVac?' sched-off':'');
       var numCls = 'cal-day-num' + (isToday?' today':'') + (c.inMonth?'':' other-month');
       g += '<td class="'+tdCls.trim()+'">';
+      g += '<div class="cal-rem-add" onclick="addReminder(\''+c.str+'\')" title="在此日新增提醒">＋</div>';
       g += '<div class="'+numCls+'" onclick="toggleVacation(\''+c.str+'\')" title="'+(isWorkWknd?'此週末已排工，點擊恢復休假':'點擊設定/取消休假')+'">'+c.date.getDate()+'</div>';
+      (remMap[c.str]||[]).forEach(function(r){
+        var over = !r.done && c.str < todayStr;
+        var cls = 'cal-rem' + (r.done?' rem-done':'') + (over?' rem-over':'');
+        g += '<div class="'+cls+'" title="'+esc(r.text)+'（點圈圈完成／點文字編輯）">'
+          + '<span class="rem-chk" onclick="event.stopPropagation();toggleReminder('+r.id+')">'+(r.done?'✓':'○')+'</span>'
+          + '<span class="rem-txt" onclick="event.stopPropagation();editReminder('+r.id+')">'+esc(r.text)+'</span>'
+          + '</div>';
+      });
       (dlByDate[c.str]||[]).forEach(function(u){
         var late = u.lastDay && u.deadline && u.lastDay > u.deadline;
         var dlName = u.pname + (u.phaseLabel ? ' · ' + u.phaseLabel : '');
