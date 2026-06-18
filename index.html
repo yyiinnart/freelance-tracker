@@ -172,21 +172,21 @@ tbody tr:hover td{background:#131f2e;}
 .rem-banner .rb-item{display:flex;align-items:center;gap:6px;font-size:13px;color:#fcd34d;}
 .rem-banner .rb-chk{cursor:pointer;font-size:15px;color:#a16207;flex-shrink:0;}
 .rem-banner .rb-chk:hover{color:#fbbf24;}
-/* 排程分頁：缺工時警示 */
-.noest-warn{background:#27160c;border:1px solid #7c2d12;border-left:3px solid #ea580c;border-radius:10px;margin-bottom:12px;overflow:hidden;}
-.noest-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;cursor:pointer;user-select:none;}
-.noest-head:hover{background:#2e1a0f;}
-.noest-title{font-size:12px;color:#fdba74;font-weight:600;}
-.noest-em{color:#fb923c;text-decoration:underline;text-decoration-style:dotted;}
-.noest-toggle{font-size:11px;color:#c2630f;flex-shrink:0;}
-.noest-body{padding:2px 12px 10px 12px;display:flex;flex-direction:column;gap:4px;}
-.noest-row{display:flex;align-items:center;gap:8px;font-size:12px;color:#e7d3c2;padding:3px 0;border-top:1px solid #43200f;}
+/* 排程分頁：缺工時提示（低調，不搶視覺） */
+.noest-warn{background:transparent;border:1px solid #1e293b;border-left:2px solid #b45309;border-radius:8px;margin-bottom:12px;overflow:hidden;}
+.noest-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 12px;cursor:pointer;user-select:none;}
+.noest-head:hover{background:rgba(30,41,59,.35);}
+.noest-title{font-size:11px;color:#94a3b8;font-weight:500;}
+.noest-em{color:#d97706;}
+.noest-toggle{font-size:10px;color:#64748b;flex-shrink:0;}
+.noest-body{padding:2px 12px 8px 12px;display:flex;flex-direction:column;gap:3px;}
+.noest-row{display:flex;align-items:center;gap:8px;font-size:12px;color:#cbd5e1;padding:3px 0;border-top:1px solid #1e293b;}
 .noest-row:first-child{border-top:none;}
-.noest-name{flex:1;color:#fdba74;cursor:pointer;text-decoration:underline;text-decoration-color:#7c2d12;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.noest-name:hover{color:#fed7aa;}
-.noest-dl{font-size:11px;color:#a16207;font-family:ui-monospace,monospace;flex-shrink:0;}
-.noest-inp{width:62px;background:#1c1917;border:1px solid #7c2d12;border-radius:5px;padding:3px 6px;color:#fde68a;font-size:12px;outline:none;text-align:right;}
-.noest-inp:focus{border-color:#ea580c;}
+.noest-name{flex:1;color:#94a3b8;cursor:pointer;text-decoration:underline;text-decoration-color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.noest-name:hover{color:#cbd5e1;}
+.noest-dl{font-size:11px;color:#64748b;font-family:ui-monospace,monospace;flex-shrink:0;}
+.noest-inp{width:62px;background:#0f172a;border:1px solid #334155;border-radius:5px;padding:3px 6px;color:#cbd5e1;font-size:12px;outline:none;text-align:right;}
+.noest-inp:focus{border-color:#d97706;}
 @keyframes dl-blink{0%,100%{opacity:1;}50%{opacity:.3;}}
 .cal-ev.ev-start{font-size:8px;opacity:.5;}
 .cal-ev.ev-ms{font-size:9px;}
@@ -697,8 +697,8 @@ tbody tr[onclick]:hover td{background:#131f2e;}
     <div class="hint-bar" id="cal-hint-sched" style="display:none;">依各任務的<strong>預估工時</strong>與<strong>截止日</strong>自動試算每日該做什麼：硬截止優先、截止日近的先排，自動跳過週末與休假日。試算僅供參考，不會寫入任何資料；在任務詳情填寫預估工時即可加入試算（委外／轉包任務不佔用工時，不參與）。</div>
     <div class="hint-bar" id="cal-hint-hist" style="display:none;">以月曆回顧<strong>每天實際做了哪些專案、各花多少工時</strong>，資料來自工時紀錄（計時器自動記錄＋手動補登）。色塊依業務類型上色，方便看出時間流向；點擊任一專案列可直接開啟該案詳情。可依業務類型篩選，月份切換沿用上方箭頭。</div>
     <div class="flex items-center gap-1 mb-4 bg-slate-900 border border-slate-800 rounded-lg p-1 w-fit">
-      <button id="cal-mode-cal" class="tab-sub active" onclick="setCalMode('cal')">📅 月曆檢視</button>
-      <button id="cal-mode-sched" class="tab-sub" onclick="setCalMode('sched')">🧮 排程試算</button>
+      <button id="cal-mode-sched" class="tab-sub active" onclick="setCalMode('sched')">🧮 排程試算</button>
+      <button id="cal-mode-cal" class="tab-sub" onclick="setCalMode('cal')">📅 月曆檢視</button>
       <button id="cal-mode-hist" class="tab-sub" onclick="setCalMode('hist')">🔍 工時回顧</button>
     </div>
     <div class="flex items-center justify-between mb-4">
@@ -731,7 +731,8 @@ tbody tr[onclick]:hover td{background:#131f2e;}
       </div>
     </div>
     <div id="cal-toolbar-sched" class="mb-4" style="display:none;">
-      <div class="flex items-center justify-between flex-wrap gap-2 mb-4">
+      <!-- 頂列：圖例 + 兩個輕量入口（＋試算新案、⚙產能設定）-->
+      <div class="flex items-center justify-between flex-wrap gap-2 mb-3">
         <div class="flex items-center gap-3 text-[10px] text-slate-600">
           <span class="text-rose-400">●</span><span>硬截止</span>
           <span class="text-slate-700">│</span>
@@ -739,7 +740,15 @@ tbody tr[onclick]:hover td{background:#131f2e;}
           <span class="text-slate-700">│</span>
           <span>反灰＝週末／休假（不排工）</span>
         </div>
-        <label class="flex items-center gap-1.5 text-[11px] text-slate-400">
+        <div class="flex items-center gap-2">
+          <button id="sched-newcase-btn" class="btn btn-sm" onclick="toggleSchedNewcase()" title="客戶來問檔期時，填入條件即時試排">＋ 試算新案檔期</button>
+          <button id="sched-gear-btn" class="btn btn-sm px-2" onclick="toggleSchedGear()" title="每日產能與趕工加班設定">⚙</button>
+        </div>
+      </div>
+
+      <!-- ⚙ 產能設定：預設收合，點齒輪滑出 -->
+      <div id="sched-gear-body" class="mb-3" style="display:none;">
+        <label class="flex items-center gap-1.5 text-[11px] text-slate-400 bg-slate-950/40 border border-slate-800/60 rounded-lg px-3 py-2 w-fit">
           每日可用 <input type="number" id="sched-day-cap" class="bg-slate-800 border border-slate-700 rounded px-1 py-0.5 w-12 text-center outline-none hover:border-slate-500 text-slate-300" min="1" max="24" step="0.5" onchange="saveDayCap()"> 小時
           <span class="text-slate-600 text-[10px]">（週一～五）</span>
           <span class="text-slate-700 mx-1">＋</span>
@@ -747,9 +756,16 @@ tbody tr[onclick]:hover td{background:#131f2e;}
           <input type="number" id="sched-ot" class="bg-slate-800 border border-slate-700 rounded px-1 py-0.5 w-12 text-center outline-none hover:border-amber-500/60 text-amber-300" min="0" max="16" step="0.5" placeholder="0" oninput="setSchedOT(this.value)">
           <span class="text-slate-600 text-[10px]">h／工作日（暫時試算，不寫入）</span>
         </label>
+        <label class="flex items-center gap-1.5 text-[11px] text-slate-400 bg-slate-950/40 border border-slate-800/60 rounded-lg px-3 py-2 w-fit mt-2">
+          試算列表預設展開：餘裕 ≤ <input type="number" id="sched-attn-thresh" class="bg-slate-800 border border-slate-700 rounded px-1 py-0.5 w-12 text-center outline-none hover:border-slate-500 text-slate-300" min="0" max="30" step="1" onchange="saveAttnThresh(this.value)"> 工作天的任務
+          <span class="text-slate-600 text-[10px]">（含來不及；其餘從容任務自動摺疊）</span>
+        </label>
       </div>
-      <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-3.5 mb-4">
-        <div class="text-[11px] font-semibold text-slate-400 mb-2.5">🆕 接新案試算 <span class="font-normal text-slate-600">— 客戶來問檔期時用：填入條件即時試排。可拆多階段（廠商給的各階段期望日），每階段可分別標記硬截止；試算 OK 後可一鍵代入建立任務</span></div>
+
+      <!-- ＋ 接新案試算：預設收合，點按鈕滑出 -->
+      <div id="sched-newcase-body" class="bg-slate-900/60 border border-slate-800 rounded-xl p-3.5 mb-4" style="display:none;">
+        <div class="text-[11px] font-semibold text-slate-400 mb-1">🆕 接新案試算 <span class="font-normal text-slate-600">— 填入條件即時試排</span></div>
+        <div class="text-[10px] text-slate-600 mb-2.5">可拆多階段（廠商給的各階段期望日），每階段可分別標記硬截止；試算 OK 後可一鍵代入建立任務</div>
         <div class="flex flex-wrap items-end gap-2 mb-2">
           <div class="flex flex-col gap-1"><label class="text-[10px] text-slate-600">名稱（選填）</label><input type="text" id="wi-name" class="inp py-1.5 text-xs w-36" placeholder="新案試算"></div>
           <div class="flex flex-col gap-1"><label class="text-[10px] text-slate-600">最早開工（選填）</label><input type="date" id="wi-sd" class="inp py-1.5 text-xs w-36"></div>
@@ -762,6 +778,8 @@ tbody tr[onclick]:hover td{background:#131f2e;}
         </div>
         <div id="wi-result" class="mt-2.5" style="display:none;"></div>
       </div>
+
+      <!-- 📋 試算列表：常用，預設可見 -->
       <div id="sched-summary"></div>
     </div>
     <div id="cal-toolbar-hist" class="flex items-center justify-between mb-4 flex-wrap gap-2" style="display:none;">
@@ -5803,6 +5821,17 @@ function saveDayCap(){
   localStorage.setItem('ft_day_cap', v);
   renderCal();
 }
+// 試算列表「需關注」門檻：餘裕 ≤ N 工作天（含來不及）預設展開，其餘摺疊。預設 2。
+function getAttnThresh(){
+  var v = localStorage.getItem('ft_attn_thresh');
+  return v === null ? 2 : (parseInt(v,10) || 0);
+}
+function saveAttnThresh(val){
+  var n = parseInt(val,10);
+  if(isNaN(n) || n < 0) n = 0;
+  localStorage.setItem('ft_attn_thresh', n);
+  renderCal();
+}
 var SCHED_OT = 0; // 全域趕工加班(每工作日額外時數)，僅記憶體，重新整理即清空
 function setSchedOT(v){
   var n = parseFloat(v) || 0;
@@ -6118,7 +6147,41 @@ function setEstFromWarn(pid, val){
   if(typeof rProj === 'function') rProj();
 }
 
-var calViewMode = localStorage.getItem('ft_cal_mode') || 'cal';
+// 排程分頁：接新案試算（＋按鈕）與產能設定（⚙齒輪），各自獨立、狀態記憶
+function applySchedNewcaseState(){
+  var body = document.getElementById('sched-newcase-body');
+  var btn = document.getElementById('sched-newcase-btn');
+  if(!body) return;
+  var open = localStorage.getItem('ft_sched_newcase_open') === '1'; // 預設收合
+  body.style.display = open ? '' : 'none';
+  if(btn) btn.classList.toggle('btn-solid', open);
+}
+function toggleSchedNewcase(){
+  var cur = localStorage.getItem('ft_sched_newcase_open') === '1';
+  localStorage.setItem('ft_sched_newcase_open', cur ? '0' : '1');
+  applySchedNewcaseState();
+}
+function applySchedGearState(){
+  var body = document.getElementById('sched-gear-body');
+  var btn = document.getElementById('sched-gear-btn');
+  if(!body) return;
+  var open = localStorage.getItem('ft_sched_gear_open') === '1'; // 預設收合
+  body.style.display = open ? '' : 'none';
+  if(btn) btn.classList.toggle('btn-solid', open);
+}
+function toggleSchedGear(){
+  var cur = localStorage.getItem('ft_sched_gear_open') === '1';
+  localStorage.setItem('ft_sched_gear_open', cur ? '0' : '1');
+  applySchedGearState();
+}
+// 試算列表「從容任務」展開／摺疊（預設摺疊，狀態記憶）
+function toggleRelaxRows(){
+  var cur = localStorage.getItem('ft_relax_collapsed') !== '0';
+  localStorage.setItem('ft_relax_collapsed', cur ? '0' : '1');
+  renderCal();
+}
+
+var calViewMode = localStorage.getItem('ft_cal_mode') || 'sched';
 function setCalMode(m){
   calViewMode = m;
   localStorage.setItem('ft_cal_mode', m);
@@ -6261,6 +6324,8 @@ function renderSched(){
   document.getElementById('cal-title').textContent = calYear+'年 '+(calMonth+1)+'月';
   var capInp = document.getElementById('sched-day-cap');
   if(capInp && document.activeElement !== capInp) capInp.value = getDayCap();
+  var attnInp = document.getElementById('sched-attn-thresh');
+  if(attnInp && document.activeElement !== attnInp) attnInp.value = getAttnThresh();
   var otInp = document.getElementById('sched-ot');
   if(otInp && document.activeElement !== otInp) otInp.value = SCHED_OT || '';
 
@@ -6381,13 +6446,14 @@ function renderSched(){
     return a.start.localeCompare(b.start);
   });
   function unitStatus(u){
-    var finish = u.lastDay, st, stCls, late=false, cantfit=false;
+    var finish = u.lastDay, st, stCls, late=false, cantfit=false, slackDays=null;
     if(!u.firstDay || u.remaining > 0.01){
       st = '排不進'; stCls = 'text-red-400'; cantfit = !!u.deadline;
     } else if(!u.deadline){
       st = '無截止日'; stCls = 'text-slate-500';
     } else if(finish <= u.deadline){
       var slack = workdaysBetween(finish, u.deadline);
+      slackDays = slack;
       st = '✓ 餘 '+slack+' 天'; stCls = slack <= 2 ? 'text-amber-400' : 'text-emerald-400';
     } else {
       var overD = -workdaysBetween(finish, u.deadline);
@@ -6398,9 +6464,20 @@ function renderSched(){
         st = '排程偏晚（晚 '+overD+' 天）'; stCls = 'text-slate-500';
       }
     }
-    return {st:st, cls:stCls, late:late, cantfit:cantfit};
+    return {st:st, cls:stCls, late:late, cantfit:cantfit, slackDays:slackDays};
   }
-  var rows = groups.map(function(g){
+  var attnThresh = getAttnThresh();
+  // 判定一個 group 是否「需關注」：任一階段來不及/排不進，或有截止階段餘裕 ≤ 門檻
+  function groupNeedsAttn(g){
+    if(g.pid === -1) return true; // 新案試算虛擬列一律顯示
+    return g.units.some(function(u){
+      var s = unitStatus(u);
+      if(s.late || s.cantfit) return true;
+      if(s.slackDays !== null && s.slackDays <= attnThresh) return true;
+      return false;
+    });
+  }
+  function renderGroupRows(g){
     var multi = g.units.length > 1;
     return g.units.map(function(u, i){
       var s = unitStatus(u);
@@ -6425,15 +6502,36 @@ function renderSched(){
         +'<td class="'+s.cls+'">'+s.st+otBtn+'</td>';
       return '<tr class="'+(g.pid===-1?'sched-wi-row':'cursor-pointer')+(i===0?' sched-grp-first':'')+'" '+(g.pid===-1?'':'onclick="openDetail('+g.pid+')"')+'>'+cells+'</tr>';
     }).join('');
-  }).join('');
+  }
+  var attnGroups = groups.filter(groupNeedsAttn);
+  var relaxGroups = groups.filter(function(g){ return !groupNeedsAttn(g); });
+  var rows = attnGroups.map(renderGroupRows).join('');
+  var relaxRows = relaxGroups.map(renderGroupRows).join('');
+  var relaxCount = relaxGroups.length;
   var html = '';
   if(R.overSum.length){
     html += '<div class="text-[11px] text-amber-400 bg-amber-950/20 border border-amber-900/40 rounded-lg px-3 py-2 mb-3">⚠ '+R.overSum.map(function(p){return esc(p.name);}).join('、')+'：階段工時加總超過任務總預估，已暫不排程。請至任務詳情修正。</div>';
   }
-  if(rows){
-    html += '<div class="tbl-wrap mb-1"><table><thead><tr><th>任務</th><th>階段</th><th>工時</th><th>截止日</th><th>預計開工</th><th>預計完工</th><th>試算結果</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  if(rows || relaxRows){
+    var relaxCollapsed = localStorage.getItem('ft_relax_collapsed') !== '0'; // 預設摺疊
+    var thead = '<thead><tr><th>任務</th><th>階段</th><th>工時</th><th>截止日</th><th>預計開工</th><th>預計完工</th><th>試算結果</th></tr></thead>';
+    var bodyHtml = '';
+    if(rows){
+      bodyHtml += rows;
+    } else if(relaxRows){
+      // 沒有任何需關注：給一句安心提示（在表內）
+      bodyHtml += '<tr><td colspan="7" class="text-center text-xs text-emerald-400/80 py-3">✓ 目前沒有來不及或臨界的任務，全部從容</td></tr>';
+    }
+    if(relaxRows){
+      bodyHtml += '<tr class="relax-toggle-row"><td colspan="7" class="text-center py-2 cursor-pointer select-none text-[11px] text-slate-500 hover:text-slate-300" onclick="toggleRelaxRows()">'
+        + (relaxCollapsed ? '▾ 還有 '+relaxCount+' 筆從容的任務（點開查看）' : '▴ 收合從容任務')
+        + '</td></tr>';
+    }
+    html += '<div class="tbl-wrap mb-1"><table>'+thead+'<tbody>'+bodyHtml+'</tbody>'
+      + (relaxRows ? '<tbody id="sched-relax-body" style="'+(relaxCollapsed?'display:none;':'')+'">'+relaxRows+'</tbody>' : '')
+      + '</table></div>';
     html += '<div id="sched-ot-result" class="mb-2"></div>';
-    html += '<div class="text-[10px] text-slate-600 px-1 mb-3">依「預計開工日」由近至遠排序，排不進者沉底；同任務的階段已合併分組</div>';
+    html += '<div class="text-[10px] text-slate-600 px-1 mb-3">預設只展開來不及或餘裕 ≤ '+attnThresh+' 工作天的任務；其餘從容任務已摺疊（門檻可在 ⚙ 設定調整）</div>';
   } else {
     html += '<div class="text-center py-10 text-sm text-slate-500 bg-slate-900/40 border border-slate-800 rounded-xl mb-3">目前沒有可排程的任務<br><span class="text-xs text-slate-600">在任務詳情填寫「預估工時」即可加入試算</span></div>';
   }
@@ -6448,7 +6546,7 @@ function renderSched(){
     var collapsed = localStorage.getItem('ft_noest_collapsed') === '1';
     html += '<div class="noest-warn">'
       + '<div class="noest-head" onclick="toggleNoEstWarn()">'
-      +   '<span class="noest-title">⚠️ '+noEstDl.length+' 筆任務有截止日卻沒估工時，<span class="noest-em">不會被排進日曆</span></span>'
+      +   '<span class="noest-title">'+noEstDl.length+' 筆有截止日的任務<span class="noest-em">未估工時</span>，不會排進日曆</span>'
       +   '<span class="noest-toggle">'+(collapsed?'展開 ▾':'收合 ▴')+'</span>'
       + '</div>'
       + '<div class="noest-body" style="'+(collapsed?'display:none;':'')+'">'
@@ -6537,6 +6635,8 @@ function renderSched(){
   }
   g+='</tbody></table>';
   el.innerHTML=g;
+  applySchedNewcaseState();
+  applySchedGearState();
 }
 
 var VIEWS={proj:'v-proj',pay:'v-pay',cal:'v-cal',grp:'v-grp',vendor:'v-vendor',tag:'v-tag',cat:'v-cat',dash:'v-dash',cfg:'v-cfg',sync:'v-sync',help:'v-help'};
