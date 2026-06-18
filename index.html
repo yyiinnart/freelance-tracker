@@ -3383,10 +3383,6 @@ function openDetail(id){
               <span class="text-slate-600 text-[10px]">h</span>
               ${p.estHrs?`<span class="text-[10px] text-slate-600 ml-1">已投入 ${formatHrs(p.hrs||0)} / 剩餘 ${formatHrs(Math.max(0,(p.estHrs||0)-(p.hrs||0)))}</span>`:'<span class="text-[10px] text-red-400/90 ml-1">⚠ 尚未填寫，無法排進排程試算</span>'}
             </div>
-            <label class="flex items-center gap-1.5 cursor-pointer select-none" title="硬截止：交期不可調整，排程時最優先保障">
-              <input type="checkbox" class="accent-rose-500 w-3.5 h-3.5 cursor-pointer" ${p.dlHard?'checked':''} onchange="updateProjField(${id}, 'dlHard', this.checked)">
-              <span class="text-[11px] ${p.dlHard?'text-rose-400':'text-slate-500'}">硬截止</span>
-            </label>
           </div>
 
           <div class="text-slate-500">標籤設定</div>
@@ -3506,8 +3502,8 @@ function openDetail(id){
                   <span class="text-[9px] text-slate-600">h</span>
                 </span>
                 <label class="flex items-center gap-1 cursor-pointer select-none" title="此階段為硬截止（不可調整，排程最優先保障）；未勾選則視為期望日（軟截止）">
-                  <input type="checkbox" class="accent-rose-500 w-3.5 h-3.5 cursor-pointer" ${(typeof m.hard==='boolean'?m.hard:p.dlHard)?'checked':''} data-msf="hard" onchange="editMS(${id},${i},this)">
-                  <span class="text-[9px] ${(typeof m.hard==='boolean'?m.hard:p.dlHard)?'text-rose-400':'text-slate-600'}">硬</span>
+                  <input type="checkbox" class="accent-rose-500 w-3.5 h-3.5 cursor-pointer" ${m.hard?'checked':''} data-msf="hard" onchange="editMS(${id},${i},this)">
+                  <span class="text-[9px] ${m.hard?'text-rose-400':'text-slate-600'}">硬</span>
                 </label>
                 <input type="date" class="bg-transparent hover:bg-slate-900/50 border border-transparent hover:border-slate-700 rounded px-1.5 py-1 text-xs outline-none ${m.done?'text-slate-500':'text-slate-400'} transition-colors" value="${m.date||''}" data-msf="date" onchange="editMS(${id},${i},this)">
                 <button class="text-slate-600 hover:text-red-400 px-1" onclick="delMS(${id},${i})">✕</button>
@@ -3646,7 +3642,7 @@ function addMS(pid){
   var ms={name:name,date:date,done:false};
   if(est>0)ms.estHrs=est;
   var hardEl=document.getElementById('dt-ms-hard');
-  if(hardEl&&hardEl.checked)ms.hard=true; // 未勾選不寫入，沿用任務層級硬截止設定
+  ms.hard=!!(hardEl&&hardEl.checked); // 以單階段為準，未勾選即軟截止
   p.milestones.push(ms);
   p.milestones.sort(function(a,b){return(a.date||'9').localeCompare(b.date||'9');});
   save();openDetail(pid);
@@ -5897,12 +5893,12 @@ function computeSchedule(extra, capOverride){
     var phases = (p.milestones||[])
       .filter(function(m){ return (+m.estHrs||0) > 0 && m.date; })
       .slice().sort(function(a,b){ return a.date.localeCompare(b.date); })
-      .map(function(m){ return {label:m.name, deadline:m.date, est:+m.estHrs, done:!!m.done, hard:(typeof m.hard==='boolean') ? m.hard : !!p.dlHard}; });
+      .map(function(m){ return {label:m.name, deadline:m.date, est:+m.estHrs, done:!!m.done, hard:(typeof m.hard==='boolean') ? m.hard : false}; });
     var msSum = phases.reduce(function(s,ph){ return s+ph.est; }, 0);
     if(msSum > p.estHrs){ overSum.push(p); return; } // 資料矛盾，不排，請使用者修正
     var finalEst = p.estHrs - msSum;
     if(finalEst > 0 || phases.length === 0){
-      phases.push({label: phases.length ? '完稿' : '', deadline: p.edate || '', est: finalEst > 0 ? finalEst : p.estHrs, done:false, hard: !!p.dlHard});
+      phases.push({label: phases.length ? '完稿' : '', deadline: p.edate || '', est: finalEst > 0 ? finalEst : p.estHrs, done:false, hard: false});
     }
     // ---- 瀑布式扣抵已投入工時 ----
     var pool = p.hrs || 0;
@@ -6272,7 +6268,7 @@ function clearWhatIf(){
 
 // ---- 試算 OK → 一鍵代入「任務與工時」建立正式任務 ----
 // 階段 1..N-1 → 階段截止日（milestones，含各自工時與硬截止旗標）
-// 最後一階段 → 任務截止日 edate + dlHard；引擎的「最終階段＝總預估−里程碑加總」會還原出一模一樣的排程
+// 最後一階段 → 任務截止日 edate（軟截止）；若標記硬截止則轉為顯式里程碑保留判斷
 function createTaskFromWhatIf(){
   if(!SCHED_WHATIF || !SCHED_WHATIF.phases || !SCHED_WHATIF.phases.length) return;
   var W = SCHED_WHATIF;
@@ -6287,6 +6283,10 @@ function createTaskFromWhatIf(){
     var m = { name: ph.label || ('階段'+(i+1)), date: ph.deadline || '', done: false, estHrs: ph.est, hard: !!ph.hard };
     return m;
   });
+  // 最終階段若標記硬截止，轉成顯式里程碑以保留「單階段硬截止」判斷（任務層級已無硬截止）
+  if(last && last.hard && last.deadline){
+    ms.push({ name: last.label || '完稿', date: last.deadline, done:false, estHrs: last.est, hard:true });
+  }
   var p = {
     id: nextNumId(),
     name: name,
@@ -6295,7 +6295,6 @@ function createTaskFromWhatIf(){
     st: 'active',
     sdate: W.sdate || '',
     edate: last.deadline || '',
-    dlHard: !!last.hard,
     estHrs: total,
     milestones: ms,
     tags: [], hrs: 0, earned: 0, hrate: 0,
