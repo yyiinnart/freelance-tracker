@@ -3381,7 +3381,7 @@ function openDetail(id){
             <div class="flex items-center gap-1">
               <input type="number" min="0" step="0.5" class="bg-transparent outline-none hover:bg-slate-800/60 border border-transparent hover:border-slate-700 rounded px-1.5 py-0.5 w-16 transition-colors text-slate-300" value="${p.estHrs||''}" placeholder="—" onchange="updateProjField(${id}, 'estHrs', this.value)">
               <span class="text-slate-600 text-[10px]">h</span>
-              ${p.estHrs?`<span class="text-[10px] text-slate-600 ml-1">已投入 ${formatHrs(p.hrs||0)} / 剩餘 ${formatHrs(Math.max(0,(p.estHrs||0)-(p.hrs||0)))}</span>`:'<span class="text-[10px] text-slate-700 ml-1">填寫後可參與排程試算</span>'}
+              ${p.estHrs?`<span class="text-[10px] text-slate-600 ml-1">已投入 ${formatHrs(p.hrs||0)} / 剩餘 ${formatHrs(Math.max(0,(p.estHrs||0)-(p.hrs||0)))}</span>`:'<span class="text-[10px] text-red-400/90 ml-1">⚠ 尚未填寫，無法排進排程試算</span>'}
             </div>
             <label class="flex items-center gap-1.5 cursor-pointer select-none" title="硬截止：交期不可調整，排程時最優先保障">
               <input type="checkbox" class="accent-rose-500 w-3.5 h-3.5 cursor-pointer" ${p.dlHard?'checked':''} onchange="updateProjField(${id}, 'dlHard', this.checked)">
@@ -3525,7 +3525,7 @@ function openDetail(id){
         </div>
         ${(function(){
           var msSum=(p.milestones||[]).reduce(function(s,m){return s+(+m.estHrs||0);},0);
-          if(p.estHrs&&msSum>p.estHrs)return '<div class="text-[10px] text-amber-400 mt-2 px-1">⚠ 各階段工時加總 '+formatHrs(msSum)+' 已超過任務總預估 '+formatHrs(p.estHrs)+'，請調整其中一邊</div>';
+          if(p.estHrs&&msSum>p.estHrs)return '<div class="text-[10px] text-amber-400 mt-2 px-1">⚠ 各階段工時加總 '+formatHrs(msSum)+' 已超過任務總預估 '+formatHrs(p.estHrs)+'，請調高總預估或調低某階段。<button type="button" onclick="sumEstFromMS('+id+')" class="underline decoration-dotted hover:text-sky-300 text-sky-400 ml-0.5">一鍵把總預估改為 '+formatHrs(msSum)+'</button></div>';
           if(p.estHrs&&msSum>0&&msSum<p.estHrs)return '<div class="text-[10px] text-slate-600 mt-2 px-1">階段工時合計 '+formatHrs(msSum)+'，最終階段（至截止日）自動分配剩餘 '+formatHrs(p.estHrs-msSum)+'</div>';
           return '';
         })()}
@@ -4073,8 +4073,6 @@ function renderRows(list, isDone, scores, bucketKey, currentTopId) {
         }
 
         var nbBadge = p.nonBillable ? ' <span class=\"badge bg-slate-800 text-slate-500 border border-slate-700 text-[10px] ml-1\">不計酬</span>' : '';
-        var isSelfExec = !p.execMode || p.execMode==='self';
-        var noEstBadge = (isSelfExec && !(+p.estHrs>0)) ? '<div class=\"mt-1\"><span class=\"badge bg-orange-950 text-orange-400 border border-orange-800/60 text-[10px]\" title=\"尚未估工時，不會被排進排程日曆，點擊任務可補填\">⏱ 未估工時</span></div>' : '';
         var execBadge = '';
         if(p.execMode==='outsource') execBadge=' <span class=\"badge bg-amber-950 text-amber-400 border border-amber-900/50 text-[10px] ml-1\">外包</span>';
         else if(p.execMode==='resell') execBadge=' <span class=\"badge bg-purple-950 text-purple-400 border border-purple-900/50 text-[10px] ml-1\">轉包</span>';
@@ -4130,7 +4128,7 @@ function renderRows(list, isDone, scores, bucketKey, currentTopId) {
             ${dlvrBadge}
           </td>
           <td class="py-3 text-center"><div class=\"mb-1 text-slate-400 flex justify-center\">${bdg(c.name,c.color)}</div><div class=\"text-slate-500 text-xs\">${budgetCell}</div></td>
-          <td class=\"text-lg font-medium text-blue-300 py-3\">${formatHrs(p.hrs||0)}${noEstBadge}</td>
+          <td class=\"text-lg font-medium text-blue-300 py-3\">${formatHrs(p.hrs||0)}</td>
           <td class="py-3">
             <div>${arCellFinal}</div>
             ${netProfitHtml}
