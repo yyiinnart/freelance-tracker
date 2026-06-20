@@ -663,10 +663,6 @@ tbody tr[onclick]:hover td{background:#131f2e;}
           <span id="pay-range-label" class="text-xs text-slate-500 font-normal"></span>
         </h3>
         <div class="flex items-center gap-2 flex-wrap">
-          <div class="inline-flex rounded-md border border-slate-700 overflow-hidden text-xs">
-            <button id="pay-tab-flow" class="px-3 py-1.5 transition-colors" onclick="setPayView('flow')">收付款</button>
-            <button id="pay-tab-prod" class="px-3 py-1.5 transition-colors border-l border-slate-700" onclick="setPayView('prod')">產值明細</button>
-          </div>
           <label class="text-xs text-slate-500">月份</label>
           <select id="pay-month" class="inp text-xs" style="width:auto;min-width:130px" onchange="PAY_MONTH_TOUCHED=true;rPay()"></select>
           <button class="btn btn-sm text-xs bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700" onclick="payMonthReset()">全部</button>
@@ -4327,17 +4323,11 @@ function rPay(){
     st.classList.add('hidden'); body.innerHTML=''; empty.style.display='block';
     empty.textContent=selMonth?selMonth+' 沒有收付款或工時紀錄':'尚無收付款紀錄'; return;
   }
-  // ===== 切換鍵 UI 狀態 =====
+  // ===== 切換鍵 UI 狀態（收款／產值卡片即切換鍵，見下方 cardBox）=====
   var flowWrap=document.getElementById('pay-flow-wrap');
   var prodWrap=document.getElementById('pay-prod-wrap');
-  var tabFlow=document.getElementById('pay-tab-flow');
-  var tabProd=document.getElementById('pay-tab-prod');
   var modeTitle=document.getElementById('pay-mode-title');
   var modeDot=document.getElementById('pay-mode-dot');
-  var onCls='bg-blue-600 text-white';
-  var offCls='bg-slate-900 text-slate-400 hover:text-slate-200';
-  if(tabFlow){ tabFlow.className='px-3 py-1.5 transition-colors '+(PAY_VIEW==='flow'?onCls:offCls); }
-  if(tabProd){ tabProd.className='px-3 py-1.5 transition-colors border-l border-slate-700 '+(PAY_VIEW==='prod'?onCls:offCls); }
   if(flowWrap) flowWrap.classList.toggle('hidden', PAY_VIEW!=='flow');
   if(prodWrap) prodWrap.classList.toggle('hidden', PAY_VIEW!=='prod');
   if(modeTitle) modeTitle.textContent = PAY_VIEW==='prod' ? '產值明細' : '收付款紀錄';
@@ -4380,13 +4370,15 @@ function rPay(){
     prodMap[cur]=(prodMap[cur]||0)+val;
     if(!prodAgg[p.id]){
       prodAgg[p.id]={pid:p.id, name:p.name, isPiece:isPiece, hrs:0, val:0, rate:effRate,
-                     cur:cur, totHrs:totalHrsByPid[p.id]||0, earned:p.earned||0, lastDate:l.date};
+                     cur:cur, totHrs:totalHrsByPid[p.id]||0, earned:p.earned||0, budget:p.budget||0, lastDate:l.date};
     }
     prodAgg[p.id].hrs+=(l.hrs||0);
     prodAgg[p.id].val+=val;
     if((l.date||'')>(prodAgg[p.id].lastDate||'')) prodAgg[p.id].lastDate=l.date;
   });
   // 依產值（換算 TWD）由大到小：最有貢獻的案子在上、低效率的容易對照
+  // 注意：earned=0 的計件案產值算出來是 0，排序時沉到底，但因為有工時仍會顯示，
+  // 並在產值欄以灰字「預期 X」呈現（見下方表格渲染），不再另立預期列。
   var prodRows=Object.keys(prodAgg).map(k=>prodAgg[k])
                  .sort((a,b)=>toTWD(b.val,b.cur)-toTWD(a.val,a.cur));
   // 「全部」時的歷史產值，仍以任務總應收為準（與工時明細加總一致）
@@ -4398,9 +4390,23 @@ function rPay(){
   var recvLabel=selMonth?selMonth+' 收款':'歷史收款合計';
   var expLabel=selMonth?selMonth+' 付款':'歷史付款合計';
   var prodLabel=selMonth?selMonth+' 產值':'歷史產值合計';
-  // 與「目前待收帳款總計」統一的盒裝樣式
-  var scBox=function(l,v){return '<div class="rounded-lg border border-slate-800 bg-slate-900 px-4 py-3"><p class="text-xs text-slate-500 mb-1">'+l+'</p><div class="text-lg font-semibold text-white leading-tight">'+v+'</div></div>';};
-  st.innerHTML=scBox(recvLabel,formatMultiCurMap(recvMap))+scBox(prodLabel,formatMultiCurMap(prodMap))+(expenses.length?scBox(expLabel,'<span class=\"text-amber-400\">'+formatMultiCurMap(expMap,true)+'</span>'):'');
+  // 收款／產值卡片化身切換鍵：點擊即切換下方明細表，active 卡片高亮、inactive 卡片低調
+  // 付款卡片屬於金流，點擊歸到「收付款」視圖
+  var cardBox=function(view,l,v,rgb){
+    var on=PAY_VIEW===view;
+    var base='rounded-lg border px-4 py-3 cursor-pointer transition-colors select-none';
+    var style=on
+      ? 'border-color:rgba('+rgb+',0.55);background:#1e293b;box-shadow:0 0 0 1px rgba('+rgb+',0.35) inset;'
+      : 'border-color:#1e293b;background:#0f172a;';
+    var dot=on?'<span style="color:rgb('+rgb+')" class="mr-1">●</span>':'';
+    var hover=on?'':' onmouseover="this.style.background=\'#1e293b99\'" onmouseout="this.style.background=\'#0f172a\'"';
+    return '<div class="'+base+'" style="'+style+'" onclick="setPayView(\''+view+'\')"'+hover+'>'+
+      '<p class="text-xs text-slate-500 mb-1">'+dot+l+'</p>'+
+      '<div class="text-lg font-semibold text-white leading-tight">'+v+'</div></div>';
+  };
+  st.innerHTML=cardBox('flow',recvLabel,formatMultiCurMap(recvMap),'52,211,153')
+    +cardBox('prod',prodLabel,formatMultiCurMap(prodMap),'96,165,250')
+    +(expenses.length?'<div class="rounded-lg border border-slate-800 bg-slate-900 px-4 py-3 cursor-pointer transition-colors" style="background:#0f172a" onclick="setPayView(\'flow\')"><p class="text-xs text-slate-500 mb-1">'+expLabel+'</p><div class="text-lg font-semibold text-amber-400 leading-tight">'+formatMultiCurMap(expMap,true)+'</div></div>':'');
   
   body.innerHTML=filteredP.map(p=>{
     var isExp=p.payType==='expense';
@@ -4423,15 +4429,25 @@ function rPay(){
         var billBdg = r.isPiece
           ? '<span class="badge bg-purple-950/50 text-purple-300 border border-purple-900/50">計件</span>'
           : '<span class="badge bg-sky-950/50 text-sky-300 border border-sky-900/50">計時</span>';
-        var rateCell = r.isPiece
-          ? '<span class="text-slate-300">'+fmtMoney(Math.round(r.rate*100)/100,r.cur)+'</span><div class="text-[10px] text-slate-500">'+fmtMoney(r.earned,r.cur)+' ÷ '+formatHrs(r.totHrs)+'</div>'
-          : '<span class="text-slate-300">'+fmtMoney(r.rate,r.cur)+'</span>';
+        // 計件案尚未認列產值(earned<=0)但已有工時 → 時薪欄與產值欄改灰字提示（不可一鍵認列，避免破壞跨月分攤；正途是按「完成」）
+        var pending = r.isPiece && (r.earned||0)<=0;
+        var rateCell, valCell;
+        if(pending){
+          rateCell = '<span class="text-slate-600 text-xs">尚未回報進度</span>';
+          var expTxt = (r.budget||0)>0 ? '預期 '+fmtMoney(r.budget,r.cur) : '未填合約額';
+          valCell = '<span class="text-slate-500 italic">'+expTxt+'</span>';
+        } else {
+          rateCell = r.isPiece
+            ? '<span class="text-slate-300">'+fmtMoney(Math.round(r.rate*100)/100,r.cur)+'</span><div class="text-[10px] text-slate-500">'+fmtMoney(r.earned,r.cur)+' ÷ '+formatHrs(r.totHrs)+'</div>'
+            : '<span class="text-slate-300">'+fmtMoney(r.rate,r.cur)+'</span>';
+          valCell = '<span class="font-medium text-emerald-400">'+fmtMoney(Math.round(r.val),r.cur)+'</span>';
+        }
         return `<tr class="cursor-pointer hover:bg-slate-800/30" onclick="openDetail(${r.pid})">`+
           `<td class="font-medium text-slate-300">${esc(r.name)}</td>`+
           `<td>${billBdg}</td>`+
           `<td class="text-right text-blue-300 font-mono">${formatHrs(r.hrs)}</td>`+
           `<td class="text-right text-xs">${rateCell}</td>`+
-          `<td class="text-right font-medium text-emerald-400">${fmtMoney(Math.round(r.val),r.cur)}</td>`+
+          `<td class="text-right whitespace-nowrap">${valCell}</td>`+
         `</tr>`;
       }).join('');
       var totHrsAll=prodRows.reduce((s,r)=>s+r.hrs,0);
