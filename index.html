@@ -1362,7 +1362,19 @@ function generateSyncToken() {
     if (!confirmReset) return; // 使用者取消，中斷執行
   }
 
-  const token = 'ft_' + Math.random().toString(36).slice(2, 10);
+  // 密碼學安全亂數：crypto.getRandomValues 取 16 bytes → 32 字元 hex（約 3.4×10^38 組合）
+  // 舊版為 Math.random 取 8 字元（可預測、空間僅約 2.8 兆），此版大幅提升強度。
+  var token;
+  try {
+    var buf = new Uint8Array(16);
+    (window.crypto || window.msCrypto).getRandomValues(buf);
+    var hex = '';
+    for (var i = 0; i < buf.length; i++) hex += buf[i].toString(16).padStart(2, '0');
+    token = 'ft_' + hex;
+  } catch (e) {
+    // 極舊瀏覽器無 crypto API 時退回舊法，確保功能不中斷
+    token = 'ft_' + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
+  }
 
   // 1. 更新步驟 2 的預覽框
   previewInput.value = token;
