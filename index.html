@@ -1145,7 +1145,7 @@ tbody tr[onclick]:hover td{background:#131f2e;}
           <h3 class="text-sm font-semibold text-slate-500 flex items-center gap-2">🗜️ 批量壓平工時</h3>
         </div>
         <p class="text-[10px] text-slate-500 mb-4 leading-relaxed">
-          將<span class="text-slate-400">所有任務</span>同一天的零碎計時紀錄合併為單日總和，節省儲存空間。等同於對每個任務逐一執行「壓平」，但一鍵完成。
+          將<span class="text-slate-400">所有任務</span>同一天的零碎計時紀錄合併為單日總和，節省儲存空間。等同於對每個任務逐一執行「壓平」，但一鍵完成。同日階段標記一致者會保留，混合者清空。
         </p>
         <button class="btn btn-sm bg-transparent border-slate-700 text-slate-500 hover:text-amber-400 hover:bg-amber-950/20 hover:border-amber-900/50 transition-colors" onclick="compressAllLogs()">壓平所有任務工時</button>
       </div>
@@ -2137,6 +2137,12 @@ function executeArchive(y, pjList, logList, payList, pids) {
     showToast('封存完成！資料已清理，請妥善保存下載的 JSON 檔案。', 'green'); 
   }, 500);
 }
+// 回傳此任務「目前第一個未完成階段」的名稱，供工時自動標記。無階段或全完成則回 null。
+function currentPhaseName(p){
+  if(!p || !p.milestones || !p.milestones.length) return null;
+  var m = p.milestones.find(function(x){ return !x.done; });
+  return m && m.name ? m.name : null;
+}
 function startTimer(id){activeTimers[id]=Date.now();localStorage.setItem('ft_timers',JSON.stringify(activeTimers));rProj();}
 function stopTimer(id){
   if(!activeTimers[id])return;
@@ -2146,7 +2152,7 @@ function stopTimer(id){
   if(p){
     var addedHrs = Math.round((elMins/60)*100)/100;
     if(addedHrs > 0) {
-      DLOGS.push({id:nextNumId(),date:toLocalDate(),pid:id,hrs:addedHrs,note:'計時器自動記錄'});
+      DLOGS.push({id:nextNumId(),date:toLocalDate(),pid:id,hrs:addedHrs,note:'計時器自動記錄',ms:currentPhaseName(p)});
       syncProjectHrs(id);
       showToast('已記錄 ' + formatHrs(addedHrs), 'green');
     } else {
@@ -3549,20 +3555,34 @@ function openDetail(id){
             var dayLogs = logsByDate[d];
             var dayTotal = dayLogs.reduce((s,l)=>s+l.hrs, 0);
             var wd = weekdays[new Date(d).getDay()];
+            var hasMs = (p.milestones||[]).length > 0;
+            // 整日階段一致性：若全部相同顯示該階段，否則 null
+            var dayMs = null, mixed = false;
+            dayLogs.forEach(function(l){
+              var v = l.ms || '';
+              if(dayMs===null && !mixed){ dayMs = v; }
+              else if(dayMs !== v){ mixed = true; }
+            });
+            var dayMsLabel = mixed ? '混合' : (dayMs ? esc(dayMs) : '未標');
+            var dayMsCls = mixed ? 'text-amber-400' : (dayMs ? 'text-violet-300' : 'text-slate-600');
             return `
             <div class="mb-4">
               <div class="flex items-center justify-between px-1 mb-2">
                 <span class="text-xs font-semibold text-slate-400">${d} (${wd})</span>
-                <span class="text-xs font-medium text-blue-400">${formatHrs(dayTotal)}</span>
+                <div class="flex items-center gap-2">
+                  ${hasMs ? `<button class="text-[10px] ${dayMsCls} hover:text-violet-200 border border-slate-700/60 hover:border-violet-700/60 rounded px-1.5 py-0.5 transition-colors" onclick="tagDayPhase(${id},'${d}')" title="把這一整天的工時標成同一個階段">◇ ${dayMsLabel}</button>` : ''}
+                  <span class="text-xs font-medium text-blue-400">${formatHrs(dayTotal)}</span>
+                </div>
               </div>
               <div class="bg-slate-800/40 border border-slate-700/50 rounded-lg flex flex-col overflow-hidden">
 ${dayLogs.map(l => `
     <div class="flex items-center justify-between py-1.5 px-2 hover:bg-slate-800/60 transition-colors border-b border-slate-700/50 last:border-b-0">
-        <div class="flex items-center gap-3">
-            <span class="text-blue-300 font-mono text-xs w-10 text-right">${formatHrs(l.hrs)}</span>
-            <span class="text-slate-500 text-xs truncate max-w-[180px]">${esc(l.note || '計時器自動記錄')}</span>
+        <div class="flex items-center gap-3 min-w-0">
+            <span class="text-blue-300 font-mono text-xs w-10 text-right flex-shrink-0">${formatHrs(l.hrs)}</span>
+            ${l.ms ? `<span class="text-[10px] text-violet-300/90 bg-violet-950/30 border border-violet-900/40 rounded px-1.5 py-0.5 flex-shrink-0">◇ ${esc(l.ms)}</span>` : ''}
+            <span class="text-slate-500 text-xs truncate">${esc(l.note || '計時器自動記錄')}</span>
         </div>
-        <div class="flex items-center gap-1.5">
+        <div class="flex items-center gap-1.5 flex-shrink-0">
             <button class="text-blue-400 hover:text-blue-300 px-1" onclick="editLog(${l.id},${id})">✎</button>
             <button class="text-red-400 hover:text-red-300 px-1" onclick="delLog(${l.id},${id})">✕</button>
         </div>
@@ -3726,24 +3746,57 @@ function cycleDelivery(pid){
   save();rProj();rGrp();openDetail(pid);
 }
 
+function tagDayPhase(pid, date){
+  var p = pBy(pid);
+  if(!p || !p.milestones || !p.milestones.length){
+    showToast('此任務尚無階段可標', 'amber');
+    return;
+  }
+  var msOpts = '<option value="">—（清除階段標記）</option>' + p.milestones.map(function(m){
+    return '<option value="'+esc(m.name)+'">'+esc(m.name)+(m.done?' ✓':'')+'</option>';
+  }).join('');
+  var html = `<div class="flex flex-col gap-3">
+    <div class="text-xs text-slate-500">將 <span class="text-slate-300 font-mono">${date}</span> 這一整天的工時紀錄，全部標記為同一個階段：</div>
+    <div><select id="td-ms" class="inp">${msOpts}</select></div>
+  </div>`;
+  openModal('標記整日階段', html, function(){
+    var v = document.getElementById('td-ms').value || null;
+    var n = 0;
+    DLOGS.forEach(function(l){
+      if(l.pid === pid && l.date === date){ l.ms = v; n++; }
+    });
+    save(); rProj();
+    openDetail(pid);
+    showToast(v ? ('✓ 已標記 '+n+' 筆為「'+v+'」') : ('✓ 已清除 '+n+' 筆的階段標記'), 'green');
+  }, '套用');
+}
 function addLogManual(pid){
   var today = toLocalDate();
+  var p = pBy(pid);
+  var msList = (p && p.milestones) ? p.milestones : [];
+  var curPh = currentPhaseName(p);
+  var msOpts = '<option value="">—（不標階段）</option>' + msList.map(function(m){
+    return '<option value="'+esc(m.name)+'"'+(m.name===curPh?' selected':'')+'>'+esc(m.name)+(m.done?' ✓':'')+'</option>';
+  }).join('');
+  var msField = msList.length ? `<div><label class="text-xs text-slate-500 block mb-1">階段</label><select id="ml-ms" class="inp">${msOpts}</select></div>` : '';
   var html=`<div class="flex flex-col gap-3">
     <div><label class="text-xs text-slate-500 block mb-1">日期</label><input id="ml-date" type="date" class="inp" value="${today}"></div>
     <div><label class="text-xs text-slate-500 block mb-1">時數 (h)</label><input id="ml-hrs" type="number" class="inp" step="0.25" min="0" value="1"></div>
+    ${msField}
     <div><label class="text-xs text-slate-500 block mb-1">備註</label><input id="ml-note" type="text" class="inp" placeholder="例如：漏登工時、外部會議..."></div>
   </div>`;
   
   openModal('手動新增工時', html, function(){
     var newHrs = parseFloat(document.getElementById('ml-hrs').value) || 0;
     if(newHrs <= 0) return; 
-    
+    var msEl = document.getElementById('ml-ms');
     DLOGS.push({
       id: nextNumId(), 
       date: document.getElementById('ml-date').value || today, 
       pid: pid, 
       hrs: newHrs, 
-      note: document.getElementById('ml-note').value.trim()
+      note: document.getElementById('ml-note').value.trim(),
+      ms: msEl ? (msEl.value || null) : null
     });
     
     syncProjectHrs(pid);
@@ -3755,9 +3808,16 @@ function addLogManual(pid){
 function editLog(logId,pid){
   var log=DLOGS.find(l=>l.id===logId);
   if(!log)return;
+  var p = pBy(pid);
+  var msList = (p && p.milestones) ? p.milestones : [];
+  var msOpts = '<option value="">—（不標階段）</option>' + msList.map(function(m){
+    return '<option value="'+esc(m.name)+'"'+(m.name===log.ms?' selected':'')+'>'+esc(m.name)+(m.done?' ✓':'')+'</option>';
+  }).join('');
+  var msField = msList.length ? `<div><label class="text-xs text-slate-500 block mb-1">階段</label><select id="el-ms" class="inp">${msOpts}</select></div>` : '';
   var html=`<div class="flex flex-col gap-3">
     <div><label class="text-xs text-slate-500 block mb-1">日期</label><input id="el-date" type="date" class="inp" value="${log.date}"></div>
     <div><label class="text-xs text-slate-500 block mb-1">時數 (h)</label><input id="el-hrs" type="number" class="inp" step="0.25" min="0" value="${log.hrs}"></div>
+    ${msField}
     <div><label class="text-xs text-slate-500 block mb-1">備註</label><input id="el-note" type="text" class="inp" value="${esc(log.note||'')}"></div>
   </div>`;
   openModal('編輯工時紀錄',html,function(){
@@ -3765,6 +3825,8 @@ function editLog(logId,pid){
     log.date=document.getElementById('el-date').value||log.date;
     log.hrs=newHrs;
     log.note=document.getElementById('el-note').value.trim();
+    var msEl=document.getElementById('el-ms');
+    if(msEl) log.ms = msEl.value || null;
     
     syncProjectHrs(pid);
     save();rProj();rGrp();rPay();
@@ -3796,8 +3858,10 @@ function compressLogs(pid) {
     // 以下為使用者點擊「確認執行」後才會跑的壓縮邏輯
     var byDate = {};
     logs.forEach(l => {
-      if(!byDate[l.date]) byDate[l.date] = { hrs: 0, notes: [] };
+      if(!byDate[l.date]) byDate[l.date] = { hrs: 0, notes: [], ms: l.ms||null, msMixed: false };
       byDate[l.date].hrs += l.hrs;
+      // 階段一致才保留；同日不同階段標記則視為混合，壓平後清空
+      if((l.ms||null) !== byDate[l.date].ms) byDate[l.date].msMixed = true;
       if(l.note && l.note !== '計時器自動記錄' && byDate[l.date].notes.indexOf(l.note) === -1) {
         byDate[l.date].notes.push(l.note);
       }
@@ -3812,7 +3876,8 @@ function compressLogs(pid) {
         date: d, 
         pid: pid, 
         hrs: Math.round(byDate[d].hrs * 100) / 100, 
-        note: finalNote 
+        note: finalNote,
+        ms: byDate[d].msMixed ? null : byDate[d].ms
       });
     });
 
@@ -3830,8 +3895,6 @@ function compressAllLogs() {
     showToast('目前無工時紀錄', 'amber');
     return;
   }
-
-  // 預估可省下的筆數：以 (pid + date) 為單位統計目前筆數
   var keyCount = {};
   DLOGS.forEach(l => {
     var k = l.pid + '|' + l.date;
@@ -3840,30 +3903,26 @@ function compressAllLogs() {
   var afterCount = Object.keys(keyCount).length;
   var beforeCount = DLOGS.length;
   var saved = beforeCount - afterCount;
-
   if(saved <= 0) {
     showToast('所有紀錄皆已壓平，無需整併', 'amber');
     return;
   }
-
   var msg = '確定要壓平<strong class="text-amber-300">所有任務</strong>同一天的零碎工時紀錄嗎？<br><br>'
           + '目前 <span class="text-slate-300 font-mono">' + beforeCount + '</span> 筆 → 壓平後 <span class="text-emerald-400 font-mono">' + afterCount + '</span> 筆，可省下 <span class="text-emerald-400 font-mono">' + saved + '</span> 筆。<br><br>'
+          + '同日階段標記一致者會保留，混合者清空。<br>'
           + '<span class="text-rose-400">⚠️ 注意：此動作無法復原，個別計時紀錄將被合併為單日總和。</span>';
-
   openModal('批量壓平所有工時', msg, function() {
-
-    // 依 pid 分組，組內再依日期合併
     var byPid = {};
     DLOGS.forEach(l => {
       if(!byPid[l.pid]) byPid[l.pid] = {};
       var d = byPid[l.pid];
-      if(!d[l.date]) d[l.date] = { hrs: 0, notes: [] };
+      if(!d[l.date]) d[l.date] = { hrs: 0, notes: [], ms: l.ms||null, msMixed: false };
       d[l.date].hrs += l.hrs;
+      if((l.ms||null) !== d[l.date].ms) d[l.date].msMixed = true;
       if(l.note && l.note !== '計時器自動記錄' && d[l.date].notes.indexOf(l.note) === -1) {
         d[l.date].notes.push(l.note);
       }
     });
-
     var newLogs = [];
     var affectedPids = Object.keys(byPid);
     affectedPids.forEach(pid => {
@@ -3875,13 +3934,12 @@ function compressAllLogs() {
           date: d,
           pid: isNaN(pid) ? pid : Number(pid),
           hrs: Math.round(byDate[d].hrs * 100) / 100,
-          note: finalNote
+          note: finalNote,
+          ms: byDate[d].msMixed ? null : byDate[d].ms
         });
       });
     });
-
     DLOGS = newLogs;
-
     affectedPids.forEach(pid => syncProjectHrs(isNaN(pid) ? pid : Number(pid)));
     save();
     rProj();
@@ -3889,7 +3947,6 @@ function compressAllLogs() {
     rPay();
     if(!document.getElementById('v-dash').classList.contains('hidden')) renderDash();
     showToast('✓ 已壓平所有工時，省下 ' + saved + ' 筆紀錄', 'green');
-
   }, '確定執行');
 }
 function rProj(){
@@ -4890,6 +4947,50 @@ function renderEstAcc(){
         var nm = t === '_none' ? '未分類' : catBy(t).name;
         return '<span class="badge bg-slate-800 border border-slate-700"><span class="text-slate-400">' + esc(nm) + '</span><span class="text-slate-600 mx-1">×' + g.n + '</span><span class="' + cls + '">' + (r>=1?'+':'') + Math.round((r-1)*100) + '%</span></span>';
       }).join('') + '</div>';
+    }
+
+    // ---- 依階段回測（跨任務彙整，僅納入有階段標記的工時）----
+    var byPhase = {};
+    var anyPhaseData = false;
+    done.forEach(function(p){
+      if(!p.milestones || !p.milestones.length) return;
+      // 該任務每個階段的預估
+      p.milestones.forEach(function(m){
+        if(!m.name) return;
+        if(!byPhase[m.name]) byPhase[m.name] = {est:0, act:0, n:0};
+        if((+m.estHrs||0) > 0){ byPhase[m.name].est += (+m.estHrs||0); byPhase[m.name].n++; }
+      });
+      // 該任務每個階段的實際（從工時標記彙整）
+      DLOGS.forEach(function(l){
+        if(l.pid===p.id && l.ms){
+          if(!byPhase[l.ms]) byPhase[l.ms] = {est:0, act:0, n:0};
+          byPhase[l.ms].act += (l.hrs||0);
+          anyPhaseData = true;
+        }
+      });
+    });
+    var phaseKeys = Object.keys(byPhase).filter(function(k){ return byPhase[k].est > 0 || byPhase[k].act > 0; });
+    if(anyPhaseData && phaseKeys.length){
+      html += '<div class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2 px-1">各階段估時回測 <span class="text-slate-600 normal-case">（跨已結案任務彙整，依工時的階段標記）</span></div>';
+      var pRows = phaseKeys.sort(function(a,b){ return byPhase[b].act - byPhase[a].act; }).map(function(k){
+        var g = byPhase[k];
+        var hasBoth = g.est > 0 && g.act > 0;
+        var r = hasBoth ? g.act/g.est : null;
+        var devTxt, devCls;
+        if(r===null){
+          devTxt = g.est > 0 ? '尚無實際' : '無預估';
+          devCls = 'text-slate-600';
+        } else {
+          devCls = r > 1.05 ? 'text-red-400' : (r < 0.95 ? 'text-blue-400' : 'text-emerald-400');
+          devTxt = (r>=1?'+':'') + Math.round((r-1)*100) + '%';
+        }
+        return '<tr><td class="text-slate-300">◇ ' + esc(k) + '</td>'
+          + '<td class="font-mono text-xs">' + (g.est>0?formatHrs(g.est):'—') + '</td>'
+          + '<td class="font-mono text-xs">' + (g.act>0?formatHrs(g.act):'—') + '</td>'
+          + '<td class="font-mono text-xs ' + devCls + '">' + devTxt + '</td></tr>';
+      }).join('');
+      html += '<div class="tbl-wrap mb-4"><table><thead><tr><th>階段</th><th>預估合計</th><th>實際合計</th><th>偏差</th></tr></thead><tbody>' + pRows + '</tbody></table></div>'
+        + '<div class="text-[10px] text-slate-600 px-1 mb-4">提示：實際工時僅統計「已標記階段」的紀錄；未標記的工時不計入此表，但仍計入上方任務層級偏差。</div>';
     }
 
     // ---- 已完成明細表（近 15 件） ----
