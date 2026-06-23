@@ -3545,6 +3545,7 @@ function openDetail(id){
             工時紀錄 <span class="font-normal text-slate-400 text-xs">(${logs.length} 筆，共 ${formatHrs(p.hrs||0)})</span>
           </h3>
           <div class="flex gap-2">
+            ${(p.milestones||[]).some(m=>m.date) ? `<button class="btn btn-sm bg-slate-800 border-slate-700 text-violet-400 hover:text-violet-300 hover:bg-slate-700" onclick="inferPhasesPreview(${id})" title="依各階段截止日，自動把未標階段的工時推算填入（套用前可預覽）">◇ 推算階段</button>` : ''}
             <button class="btn btn-sm bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200" onclick="compressLogs(${id})" title="將同一天的零碎計時合併為一筆">壓平</button>
             <button class="btn btn-sm bg-slate-800 border-slate-700 text-blue-400 hover:bg-slate-700" onclick="addLogManual(${id})">+ 新增</button>
           </div>
@@ -3769,6 +3770,75 @@ function tagDayPhase(pid, date){
     openDetail(pid);
     showToast(v ? ('✓ 已標記 '+n+' 筆為「'+v+'」') : ('✓ 已清除 '+n+' 筆的階段標記'), 'green');
   }, '套用');
+}
+// 依各階段截止日(m.date)推算某日期應屬哪個階段。
+// 規則：階段依 date 升冪排序，工時日期 <= 某階段 date 即屬該階段；
+// 早於第一個有 date 的階段 → 一律推成第一個階段；晚於最後一個 date → 屬最後一個階段。
+function inferPhaseForDate(p, date){
+  var ms = (p.milestones||[]).filter(function(m){ return m.name && m.date; })
+                             .sort(function(a,b){ return a.date.localeCompare(b.date); });
+  if(!ms.length) return null;
+  for(var i=0;i<ms.length;i++){
+    if(date <= ms[i].date) return ms[i].name;
+  }
+  return ms[ms.length-1].name; // 超過最後截止日，歸最後階段
+}
+function inferPhasesPreview(pid){
+  var p = pBy(pid);
+  if(!p){ return; }
+  var datedMs = (p.milestones||[]).filter(function(m){ return m.name && m.date; });
+  if(!datedMs.length){
+    showToast('此任務的階段尚未設定截止日，無法推算', 'amber');
+    return;
+  }
+  var logs = DLOGS.filter(function(l){ return l.pid===pid; })
+                  .sort(function(a,b){ return a.date.localeCompare(b.date); });
+  if(!logs.length){
+    showToast('此任務尚無工時可推算', 'amber');
+    return;
+  }
+  // 只處理「未標」的紀錄；已手動標的保留不動
+  var weekdays = ['日','一','二','三','四','五','六'];
+  var changes = []; // {id, date, hrs, from, to}
+  logs.forEach(function(l){
+    if(l.ms) return; // 已標 → 不動
+    var inferred = inferPhaseForDate(p, l.date);
+    if(inferred && inferred !== (l.ms||null)){
+      changes.push({ id:l.id, date:l.date, hrs:l.hrs, to:inferred });
+    }
+  });
+  var alreadyTagged = logs.filter(function(l){ return l.ms; }).length;
+  if(!changes.length){
+    showToast(alreadyTagged ? '未標階段的工時都推算不出結果（或已全部標好）' : '沒有可推算的未標工時', 'amber');
+    return;
+  }
+  // 依日期聚合預覽列（同日同推測階段併一行，畫面乾淨）
+  var rows = changes.map(function(c){
+    var wd = weekdays[new Date(c.date).getDay()];
+    return '<div class="flex items-center justify-between py-1.5 px-2 border-b border-slate-800 last:border-b-0">'
+      + '<span class="text-xs text-slate-400 font-mono">' + c.date + ' (' + wd + ')</span>'
+      + '<div class="flex items-center gap-2">'
+      + '<span class="text-blue-300 font-mono text-xs">' + formatHrs(c.hrs) + '</span>'
+      + '<span class="text-[10px] text-violet-300/70 bg-violet-950/20 border border-dashed border-violet-800/50 rounded px-1.5 py-0.5">◇ ' + esc(c.to) + '</span>'
+      + '</div></div>';
+  }).join('');
+  var html = '<div class="flex flex-col gap-3">'
+    + '<div class="text-xs text-slate-400 leading-relaxed">將依各階段截止日，把以下 <span class="text-violet-300 font-semibold">' + changes.length + '</span> 筆<span class="text-slate-300">未標階段</span>的工時推算填入。'
+    + (alreadyTagged ? '<span class="text-slate-500">（你已手動標的 ' + alreadyTagged + ' 筆不受影響。）</span>' : '') + '</div>'
+    + '<div class="text-[10px] text-amber-400/90 bg-amber-950/20 border border-amber-900/40 rounded px-2 py-1.5">虛線框 ◇ 為系統推測。套用後即與手動標記相同、不再區分，請先確認下方無誤。</div>'
+    + '<div class="bg-slate-900/40 border border-slate-800 rounded-lg max-h-64 overflow-y-auto no-scrollbar">' + rows + '</div>'
+    + '</div>';
+  openModal('預覽：推算階段', html, function(){
+    var map = {};
+    changes.forEach(function(c){ map[c.id] = c.to; });
+    var n = 0;
+    DLOGS.forEach(function(l){
+      if(map.hasOwnProperty(l.id)){ l.ms = map[l.id]; n++; }
+    });
+    save(); rProj();
+    openDetail(pid);
+    showToast('✓ 已推算填入 ' + n + ' 筆階段標記', 'green');
+  }, '確認套用');
 }
 function addLogManual(pid){
   var today = toLocalDate();
