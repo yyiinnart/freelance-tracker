@@ -1142,6 +1142,16 @@ tbody tr[onclick]:hover td{background:#131f2e;}
 
       <div class="bg-slate-900/40 rounded-xl p-5 mb-5">
         <div class="flex items-center justify-between mb-1.5">
+          <h3 class="text-sm font-semibold text-slate-500 flex items-center gap-2">🗜️ 批量壓平工時</h3>
+        </div>
+        <p class="text-[10px] text-slate-500 mb-4 leading-relaxed">
+          將<span class="text-slate-400">所有任務</span>同一天的零碎計時紀錄合併為單日總和，節省儲存空間。等同於對每個任務逐一執行「壓平」，但一鍵完成。
+        </p>
+        <button class="btn btn-sm bg-transparent border-slate-700 text-slate-500 hover:text-amber-400 hover:bg-amber-950/20 hover:border-amber-900/50 transition-colors" onclick="compressAllLogs()">壓平所有任務工時</button>
+      </div>
+
+      <div class="bg-slate-900/40 rounded-xl p-5 mb-5">
+        <div class="flex items-center justify-between mb-1.5">
           <h3 class="text-sm font-semibold text-slate-500 flex items-center gap-2">📦 年度資料封存</h3>
         </div>
         <p class="text-[10px] text-slate-500 mb-4 leading-relaxed">
@@ -3814,6 +3824,73 @@ function compressLogs(pid) {
     showToast('✓ 同日工時已合併壓平', 'green');
     
   }, '確定執行'); // 自訂確認按鈕的文字
+}
+function compressAllLogs() {
+  if(!DLOGS.length) {
+    showToast('目前無工時紀錄', 'amber');
+    return;
+  }
+
+  // 預估可省下的筆數：以 (pid + date) 為單位統計目前筆數
+  var keyCount = {};
+  DLOGS.forEach(l => {
+    var k = l.pid + '|' + l.date;
+    keyCount[k] = (keyCount[k] || 0) + 1;
+  });
+  var afterCount = Object.keys(keyCount).length;
+  var beforeCount = DLOGS.length;
+  var saved = beforeCount - afterCount;
+
+  if(saved <= 0) {
+    showToast('所有紀錄皆已壓平，無需整併', 'amber');
+    return;
+  }
+
+  var msg = '確定要壓平<strong class="text-amber-300">所有任務</strong>同一天的零碎工時紀錄嗎？<br><br>'
+          + '目前 <span class="text-slate-300 font-mono">' + beforeCount + '</span> 筆 → 壓平後 <span class="text-emerald-400 font-mono">' + afterCount + '</span> 筆，可省下 <span class="text-emerald-400 font-mono">' + saved + '</span> 筆。<br><br>'
+          + '<span class="text-rose-400">⚠️ 注意：此動作無法復原，個別計時紀錄將被合併為單日總和。</span>';
+
+  openModal('批量壓平所有工時', msg, function() {
+
+    // 依 pid 分組，組內再依日期合併
+    var byPid = {};
+    DLOGS.forEach(l => {
+      if(!byPid[l.pid]) byPid[l.pid] = {};
+      var d = byPid[l.pid];
+      if(!d[l.date]) d[l.date] = { hrs: 0, notes: [] };
+      d[l.date].hrs += l.hrs;
+      if(l.note && l.note !== '計時器自動記錄' && d[l.date].notes.indexOf(l.note) === -1) {
+        d[l.date].notes.push(l.note);
+      }
+    });
+
+    var newLogs = [];
+    var affectedPids = Object.keys(byPid);
+    affectedPids.forEach(pid => {
+      var byDate = byPid[pid];
+      Object.keys(byDate).forEach(d => {
+        var finalNote = byDate[d].notes.length ? byDate[d].notes.join(' / ') : '計時器自動記錄';
+        newLogs.push({
+          id: nextNumId(),
+          date: d,
+          pid: isNaN(pid) ? pid : Number(pid),
+          hrs: Math.round(byDate[d].hrs * 100) / 100,
+          note: finalNote
+        });
+      });
+    });
+
+    DLOGS = newLogs;
+
+    affectedPids.forEach(pid => syncProjectHrs(isNaN(pid) ? pid : Number(pid)));
+    save();
+    rProj();
+    rGrp();
+    rPay();
+    if(!document.getElementById('v-dash').classList.contains('hidden')) renderDash();
+    showToast('✓ 已壓平所有工時，省下 ' + saved + ' 筆紀錄', 'green');
+
+  }, '確定執行');
 }
 function rProj(){
   renderRemToday();
