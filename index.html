@@ -1100,7 +1100,7 @@ tbody tr[onclick]:hover td{background:#131f2e;}
 
       <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-5">
         <h3 class="text-sm font-semibold text-white mb-4">計時與預警</h3>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <div>
             <label class="text-xs font-medium text-slate-400 block mb-1.5">目標時薪 (NT$)</label>
             <p class="text-[10px] text-slate-600 mb-2">用於計算安全工時上限（合約總額 ÷ 目標時薪）。</p>
@@ -1118,6 +1118,14 @@ tbody tr[onclick]:hover td{background:#131f2e;}
             <label class="text-xs font-medium text-slate-400 block mb-1.5">每週目標工時 (h)</label>
             <p class="text-[10px] text-slate-600 mb-2">排休假時可下修此目標，避免系統觸發落後警報。</p>
             <input type="number" id="weekly-target" class="inp w-32 py-1.5 text-center font-mono" value="40" onchange="saveWeeklyTarget()">
+          </div>
+          <div>
+            <label class="text-xs font-medium text-slate-400 block mb-1.5">下班時間（點）</label>
+            <p class="text-[10px] text-slate-600 mb-2">過了此鐘點，排程試算改從「明天」起算、今天不再排，避免誤導隔天工作量。</p>
+            <div class="flex items-center gap-2">
+              <input type="number" id="cfg-off-hour" class="inp w-20 py-1.5 text-center font-mono" value="19" min="0" max="23" step="1" onchange="saveOffHour(this.value)">
+              <span class="text-xs text-slate-500">點後換日</span>
+            </div>
           </div>
         </div>
       </div>
@@ -6091,6 +6099,18 @@ function saveDayCap(){
   localStorage.setItem('ft_day_cap', v);
   renderCal();
 }
+// 下班時間（0–23 整點）：過了這個鐘點，排程試算就從「明天」起算，今天不再排，避免誤導隔天工作量。預設 19。
+function getOffHour(){
+  var v = localStorage.getItem('ft_off_hour');
+  return v === null ? 19 : (parseInt(v,10) || 0);
+}
+function saveOffHour(val){
+  var n = parseInt(val,10);
+  if(isNaN(n) || n < 0) n = 0;
+  if(n > 23) n = 23;
+  localStorage.setItem('ft_off_hour', n);
+  renderCal();
+}
 // 試算列表「需關注」門檻：餘裕 ≤ N 工作天（含來不及）預設展開，其餘摺疊。預設 2。
 function getAttnThresh(){
   var v = localStorage.getItem('ft_attn_thresh');
@@ -6153,6 +6173,12 @@ var SCHED_HORIZON_DAYS = 400; // 模擬上限，防無窮迴圈
 
 function computeSchedule(extra, capOverride){
   var todayStr = toLocalDate();
+  // 過了下班時間：排程從「明天」起算，今天不再排（避免誤導隔天工作量）。
+  // schedStartStr 是模擬實際的第一天；startConstraint 一律不早於它。
+  var _now = new Date();
+  var _start = new Date(); _start.setHours(0,0,0,0);
+  if(_now.getHours() >= getOffHour()){ _start.setDate(_start.getDate()+1); }
+  var schedStartStr = toLocalDate(_start);
   var units = [];      // 待排階段單位
   var noEst = [];      // 未填預估工時的任務（提示用）
   var overSum = [];    // 階段工時加總超過總預估的任務
@@ -6188,7 +6214,7 @@ function computeSchedule(extra, capOverride){
         pid: p.id, pname: p.name, phaseLabel: ph.label, phaseIdx: i,
         deadline: ph.deadline, hard: !!ph.hard,
         remaining: Math.round(remaining*100)/100, total: ph.est,
-        startConstraint: (p.sdate && p.sdate > todayStr) ? p.sdate : todayStr,
+        startConstraint: (p.sdate && p.sdate > schedStartStr) ? p.sdate : schedStartStr,
         firstDay: null, lastDay: null
       });
     });
@@ -6203,7 +6229,7 @@ function computeSchedule(extra, capOverride){
         phaseLabel: ph.label || (extra.phases.length > 1 ? '階段'+(i+1) : ''), phaseIdx: i,
         deadline: ph.deadline || '', hard: !!ph.hard,
         remaining: ph.est, total: ph.est,
-        startConstraint: (extra.sdate && extra.sdate > todayStr) ? extra.sdate : todayStr,
+        startConstraint: (extra.sdate && extra.sdate > schedStartStr) ? extra.sdate : schedStartStr,
         firstDay: null, lastDay: null
       });
     });
@@ -6212,7 +6238,7 @@ function computeSchedule(extra, capOverride){
   // ---- 逐日模擬 ----
   var cap = (typeof capOverride === 'number' && capOverride > 0) ? capOverride : getDayCap();
   var allocByDate = {}; // {dateStr: [{pid,pname,phaseLabel,hrs,hard,deadline}]}
-  var d = new Date(); d.setHours(0,0,0,0);
+  var d = new Date(_start); // 自下班時間判斷後的有效起始日（今天或明天）
   var dayCount = 0;
   function unitEligible(u, dateStr){
     if(u.remaining <= 0) return false;
@@ -6263,10 +6289,12 @@ function computeSchedule(extra, capOverride){
    回傳 null 代表：此階段沒有截止日、或在基準容量下本來就準時、或截止日已過。
    ============================================================ */
 function workdaysUntil(deadlineStr){
-  // 從今天(或開工日)到截止日(含)之間的工作日數，跳過週末與休假
-  var todayStr = toLocalDate();
-  if(!deadlineStr || deadlineStr < todayStr) return 0;
-  var d = new Date(); d.setHours(0,0,0,0);
+  // 從有效起始日(今天，或過了下班時間則明天)到截止日(含)之間的工作日數，跳過週末與休假
+  var _start = new Date(); _start.setHours(0,0,0,0);
+  if((new Date()).getHours() >= getOffHour()){ _start.setDate(_start.getDate()+1); }
+  var startStr = toLocalDate(_start);
+  if(!deadlineStr || deadlineStr < startStr) return 0;
+  var d = new Date(_start);
   var count = 0, guard = 0;
   while(guard++ < SCHED_HORIZON_DAYS){
     var ds = toLocalDate(d);
@@ -6965,6 +6993,7 @@ function init(){
   loadDLThresh();
   document.getElementById('global-rate').value=getGlobalRate();
   var wtEl = document.getElementById('weekly-target'); if(wtEl) wtEl.value = getWeeklyTarget();
+  var ohEl = document.getElementById('cfg-off-hour'); if(ohEl) ohEl.value = getOffHour();
   applyWorkMode();
   applyHintVisibility();
   applyUnifyCurUI();
