@@ -664,7 +664,9 @@ tbody tr[onclick]:hover td{background:#131f2e;}
         </h3>
         <div class="flex items-center gap-2 flex-wrap">
           <label class="text-xs text-slate-500">月份</label>
+          <button class="btn btn-sm text-xs bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700" onclick="payMonthStep(-1)" title="上一個月份">◀</button>
           <select id="pay-month" class="inp text-xs" style="width:auto;min-width:130px" onchange="PAY_MONTH_TOUCHED=true;rPay()"></select>
+          <button class="btn btn-sm text-xs bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700" onclick="payMonthStep(1)" title="下一個月份">▶</button>
           <button class="btn btn-sm text-xs bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700" onclick="payMonthReset()">全部</button>
         </div>
       </div>
@@ -691,7 +693,7 @@ tbody tr[onclick]:hover td{background:#131f2e;}
   <div id="v-cal" class="hidden">
     <div class="hint-bar" id="cal-hint-cal">以月曆方式呈現所有任務的起訖區間，快速確認排程衝突與空檔。點擊色條可展開任務詳情。截止日臨近的任務會以顏色警示標記。</div>
     <div class="hint-bar" id="cal-hint-sched" style="display:none;">依各任務的<strong>預估工時</strong>與<strong>截止日</strong>自動試算每日該做什麼：硬截止優先、截止日近的先排，自動跳過週末與休假日。試算僅供參考，不會寫入任何資料；在任務詳情填寫預估工時即可加入試算（委外／轉包任務不佔用工時，不參與）。</div>
-    <div class="hint-bar" id="cal-hint-hist" style="display:none;">以月曆回顧<strong>每天實際做了哪些專案、各花多少工時</strong>，資料來自工時紀錄（計時器自動記錄＋手動補登）。色塊依業務類型上色，方便看出時間流向；點擊任一專案列可直接開啟該案詳情。可依業務類型篩選，月份切換沿用上方箭頭。</div>
+    <div class="hint-bar" id="cal-hint-hist" style="display:none;">以月曆回顧<strong>每天實際做了哪些專案、各花多少工時</strong>，資料來自工時紀錄（計時器自動記錄＋手動補登）。色塊依業務類型上色，方便看出時間流向；點擊任一專案列可直接開啟該案詳情。可依業務類型篩選，月份可用上方箭頭或下拉選單切換。</div>
     <div class="flex items-center gap-1 mb-4 bg-slate-900 border border-slate-800 rounded-lg p-1 w-fit">
       <button id="cal-mode-sched" class="tab-sub active" onclick="setCalMode('sched')">🧮 排程試算</button>
       <button id="cal-mode-cal" class="tab-sub" onclick="setCalMode('cal')">📅 月曆檢視</button>
@@ -699,7 +701,10 @@ tbody tr[onclick]:hover td{background:#131f2e;}
     </div>
     <div class="flex items-center justify-between mb-4">
       <button class="btn btn-sm hover:bg-slate-800" onclick="calNav(-1)">◀ 上月</button>
-      <h2 id="cal-title" class="text-lg font-semibold text-slate-200"></h2>
+      <div class="flex items-center gap-2">
+        <h2 id="cal-title" class="text-lg font-semibold text-slate-200"></h2>
+        <select id="cal-month-jump" class="inp py-1 text-xs" style="width:auto;min-width:120px" onchange="calMonthJump(this.value)" title="快速跳至指定月份"></select>
+      </div>
       <button class="btn btn-sm hover:bg-slate-800" onclick="calNav(1)">下月 ▶</button>
     </div>
     <div id="cal-toolbar-cal" class="flex items-center justify-between mb-4 flex-wrap gap-2">
@@ -793,7 +798,7 @@ tbody tr[onclick]:hover td{background:#131f2e;}
     </div>
     <div id="cal-grid" style="overflow-x:auto;"></div>
 
-    <div class="text-[11px] text-slate-500 mt-3 flex items-center justify-center gap-1.5 opacity-80">
+    <div id="cal-tip" class="text-[11px] text-slate-500 mt-3 flex items-center justify-center gap-1.5 opacity-80">
   <span>💡</span>
   <span>操作提示：點擊日曆上的「日期數字」可標記或取消休假日（呈現反灰與刪除線）</span>
 </div>
@@ -967,7 +972,11 @@ tbody tr[onclick]:hover td{background:#131f2e;}
       <div class="flex flex-wrap items-end gap-3">
         <div class="flex flex-col gap-1.5">
           <label class="text-xs font-medium text-slate-400">月份篩選（影響下方所有圖表與紀錄）</label>
-          <input type="month" id="f-month" class="inp w-40" onchange="renderDash()">
+          <div class="flex items-center gap-1.5">
+            <button class="btn bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700" onclick="dashMonthStep(-1)" title="上一個月">◀</button>
+            <input type="month" id="f-month" class="inp w-40" onchange="renderDash()">
+            <button class="btn bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700" onclick="dashMonthStep(1)" title="下一個月">▶</button>
+          </div>
         </div>
         <div class="flex gap-2">
           <button class="btn bg-slate-800 border-slate-700 text-blue-400 hover:bg-slate-700" onclick="document.getElementById('f-month').value=toLocalDate().slice(0,7);renderDash()"> 回當月</button>
@@ -4696,6 +4705,26 @@ function payMonthReset(){
   if(sel){ PAY_MONTH_TOUCHED=true; sel.value=''; rPay(); }
 }
 
+// 月份前後切換：options 已依月份新→舊排序（含「全部月份」空值在最前）
+// dir=-1 往較早月份，dir=1 往較新月份
+function payMonthStep(dir){
+  var sel=document.getElementById('pay-month');
+  if(!sel||!sel.options.length) return;
+  var vals=[];
+  for(var i=0;i<sel.options.length;i++){ if(sel.options[i].value) vals.push(sel.options[i].value); }
+  if(!vals.length) return;
+  PAY_MONTH_TOUCHED=true;
+  var cur=sel.value;
+  if(!cur){ sel.value=vals[0]; rPay(); return; } // 從「全部」起步 → 最新月份
+  var idx=vals.indexOf(cur);
+  // vals 由新到舊；dir=1（較新）= idx-1，dir=-1（較早）= idx+1
+  var ni=idx-dir;
+  if(ni<0) ni=0;
+  if(ni>vals.length-1) ni=vals.length-1;
+  sel.value=vals[ni];
+  rPay();
+}
+
 function togglePayAR(){
   var list=document.getElementById('pay-ar-list');
   var btn=document.getElementById('pay-ar-toggle');
@@ -5115,6 +5144,18 @@ function renderEstAcc(){
       }).join('');
   }
   el.innerHTML = html;
+}
+
+// 儀表板月份前後切換（type=month），空值時以當月為基準起步
+function dashMonthStep(dir){
+  var el=document.getElementById('f-month');
+  if(!el) return;
+  var base=el.value||toLocalDate().slice(0,7);
+  var y=parseInt(base.slice(0,4),10), m=parseInt(base.slice(5,7),10);
+  m+=dir;
+  if(m>12){m=1;y++;} if(m<1){m=12;y--;}
+  el.value=y+'-'+(m<10?'0'+m:m);
+  renderDash();
 }
 
 function renderDash(){
@@ -5862,6 +5903,24 @@ function copyBusyAnnounce(){
 
 var calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
 function calNav(d){calMonth+=d;if(calMonth>11){calMonth=0;calYear++;}if(calMonth<0){calMonth=11;calYear--;}renderCal();}
+// 由下拉直接跳月（值格式 YYYY-M，M 為 0-based）
+function calMonthJump(v){
+  if(!v) return;
+  var p=v.split('-'); calYear=parseInt(p[0],10); calMonth=parseInt(p[1],10);
+  renderCal();
+}
+// 填充月份下拉：以目前選定月為中心，前後各 18 個月
+function syncCalMonthJump(){
+  var sel=document.getElementById('cal-month-jump'); if(!sel) return;
+  var html='';
+  for(var off=-18; off<=18; off++){
+    var y=calYear, m=calMonth+off;
+    while(m>11){m-=12;y++;} while(m<0){m+=12;y--;}
+    var val=y+'-'+m;
+    html+='<option value="'+val+'"'+((y===calYear&&m===calMonth)?' selected':'')+'>'+y+'年 '+(m+1)+'月</option>';
+  }
+  sel.innerHTML=html;
+}
 function renderCalGrid(){
   var el=document.getElementById('cal-grid');if(!el)return;
   document.getElementById('cal-title').textContent=calYear+'年 '+(calMonth+1)+'月';
@@ -6489,9 +6548,21 @@ function setCalMode(m){
     var tb=document.getElementById('cal-toolbar-'+k); if(tb) tb.style.display = on ? '' : 'none';
     var hb=document.getElementById('cal-hint-'+k); if(hb) hb.style.display = on ? '' : 'none';
   });
+  // 排程試算模式：日曆置頂，任務列表＋試算新案排在日曆之下；其餘模式維持原順序
+  var grid=document.getElementById('cal-grid');
+  var schedTb=document.getElementById('cal-toolbar-sched');
+  var tip=document.getElementById('cal-tip');
+  if(grid){
+    if(m==='sched' && schedTb){
+      grid.parentNode.insertBefore(grid, schedTb); // 日曆 → 排程工具列之前
+    } else if(tip){
+      tip.parentNode.insertBefore(grid, tip); // 還原：日曆 → 提示之前（所有工具列之後）
+    }
+  }
   renderCal();
 }
 function renderCal(){
+  syncCalMonthJump();
   if(calViewMode === 'sched') renderSched();
   else if(calViewMode === 'hist') renderHist();
   else renderCalGrid();
