@@ -334,6 +334,23 @@ tbody tr[onclick]:hover td{background:#131f2e;}
   color: #e2e8f0;
 }
 
+/* 年→月 選擇器 popover */
+.cal-mp-pop{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);z-index:60;
+  width:280px;background:#0f172a;border:1px solid #334155;border-radius:12px;
+  box-shadow:0 12px 32px rgba(0,0,0,.55);padding:8px;}
+.cal-mp-head{display:flex;align-items:center;justify-content:space-between;
+  padding:6px 8px 10px;border-bottom:1px solid #1e293b;margin-bottom:8px;}
+.cal-mp-year{font-size:16px;font-weight:600;color:#e2e8f0;}
+.cal-mp-arrow{background:transparent;border:none;color:#64748b;font-size:22px;line-height:1;
+  cursor:pointer;padding:2px 10px;border-radius:6px;transition:all .12s;}
+.cal-mp-arrow:hover{color:#cbd5e1;background:#1e293b;}
+.cal-mp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;}
+.cal-mp-cell{padding:11px 0;text-align:center;font-size:14px;color:#cbd5e1;border-radius:8px;
+  cursor:pointer;transition:all .12s;user-select:none;}
+.cal-mp-cell:hover{background:#1e293b;}
+.cal-mp-cell.cur{color:#60a5fa;font-weight:600;}
+.cal-mp-cell.sel{background:#3b82f6;color:#fff;font-weight:600;}
+.cal-mp-cell.sel:hover{background:#2563eb;}
 </style>
 </head>
 <body class="bg-slate-950 min-h-screen text-slate-100 pb-20">
@@ -703,7 +720,17 @@ tbody tr[onclick]:hover td{background:#131f2e;}
       <button class="btn btn-sm hover:bg-slate-800" onclick="calNav(-1)">◀ 上月</button>
       <div class="flex items-center gap-2">
         <h2 id="cal-title" class="text-lg font-semibold text-slate-200"></h2>
-        <select id="cal-month-jump" class="inp py-1 text-xs" style="width:auto;min-width:120px" onchange="calMonthJump(this.value)" title="快速跳至指定月份"></select>
+        <div class="relative">
+          <button id="cal-mp-btn" class="btn btn-sm hover:bg-slate-800" onclick="toggleMonthPicker()" title="選擇年月">📅 選擇</button>
+          <div id="cal-mp-pop" class="cal-mp-pop" style="display:none;">
+            <div class="cal-mp-head">
+              <button class="cal-mp-arrow" onclick="mpYear(-1)" title="上一年">‹</button>
+              <span id="cal-mp-year" class="cal-mp-year"></span>
+              <button class="cal-mp-arrow" onclick="mpYear(1)" title="下一年">›</button>
+            </div>
+            <div id="cal-mp-grid" class="cal-mp-grid"></div>
+          </div>
+        </div>
       </div>
       <button class="btn btn-sm hover:bg-slate-800" onclick="calNav(1)">下月 ▶</button>
     </div>
@@ -5903,24 +5930,46 @@ function copyBusyAnnounce(){
 
 var calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
 function calNav(d){calMonth+=d;if(calMonth>11){calMonth=0;calYear++;}if(calMonth<0){calMonth=11;calYear--;}renderCal();}
-// 由下拉直接跳月（值格式 YYYY-M，M 為 0-based）
-function calMonthJump(v){
-  if(!v) return;
-  var p=v.split('-'); calYear=parseInt(p[0],10); calMonth=parseInt(p[1],10);
+// 年→月 選擇器（先選年，再選月）
+var MP_YEAR = calYear;        // popover 目前顯示的年份
+var MP_OPEN = false;
+function toggleMonthPicker(){
+  var pop=document.getElementById('cal-mp-pop'); if(!pop) return;
+  MP_OPEN = (pop.style.display==='none');
+  if(MP_OPEN){ MP_YEAR=calYear; renderMonthPicker(); pop.style.display='block'; }
+  else pop.style.display='none';
+}
+function closeMonthPicker(){
+  var pop=document.getElementById('cal-mp-pop');
+  if(pop){ pop.style.display='none'; MP_OPEN=false; }
+}
+function mpYear(d){ MP_YEAR+=d; renderMonthPicker(); }
+function renderMonthPicker(){
+  var ye=document.getElementById('cal-mp-year'); if(ye) ye.textContent=MP_YEAR+' 年';
+  var g=document.getElementById('cal-mp-grid'); if(!g) return;
+  var names=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  var now=new Date(), ny=now.getFullYear(), nm=now.getMonth();
+  var html='';
+  for(var i=0;i<12;i++){
+    var cls='cal-mp-cell';
+    if(MP_YEAR===calYear && i===calMonth) cls+=' sel';      // 目前選定月
+    else if(MP_YEAR===ny && i===nm) cls+=' cur';            // 今天所在月
+    html+='<div class="'+cls+'" onclick="pickMonth('+i+')">'+names[i]+'</div>';
+  }
+  g.innerHTML=html;
+}
+function pickMonth(m){
+  calYear=MP_YEAR; calMonth=m;
+  closeMonthPicker();
   renderCal();
 }
-// 填充月份下拉：以目前選定月為中心，前後各 18 個月
-function syncCalMonthJump(){
-  var sel=document.getElementById('cal-month-jump'); if(!sel) return;
-  var html='';
-  for(var off=-18; off<=18; off++){
-    var y=calYear, m=calMonth+off;
-    while(m>11){m-=12;y++;} while(m<0){m+=12;y--;}
-    var val=y+'-'+m;
-    html+='<option value="'+val+'"'+((y===calYear&&m===calMonth)?' selected':'')+'>'+y+'年 '+(m+1)+'月</option>';
-  }
-  sel.innerHTML=html;
-}
+// 點 popover 以外處關閉
+document.addEventListener('click',function(e){
+  if(!MP_OPEN) return;
+  var pop=document.getElementById('cal-mp-pop');
+  var btn=document.getElementById('cal-mp-btn');
+  if(pop && !pop.contains(e.target) && btn && !btn.contains(e.target)) closeMonthPicker();
+});
 function renderCalGrid(){
   var el=document.getElementById('cal-grid');if(!el)return;
   document.getElementById('cal-title').textContent=calYear+'年 '+(calMonth+1)+'月';
@@ -6562,7 +6611,7 @@ function setCalMode(m){
   renderCal();
 }
 function renderCal(){
-  syncCalMonthJump();
+  if(MP_OPEN) renderMonthPicker();
   if(calViewMode === 'sched') renderSched();
   else if(calViewMode === 'hist') renderHist();
   else renderCalGrid();
