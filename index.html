@@ -5253,41 +5253,51 @@ function renderEstAcc(){
     var sumEst = done.reduce(function(s,p){ return s + p.estHrs; }, 0);
     var sumAct = done.reduce(function(s,p){ return s + (p.hrs||0); }, 0);
     var ratio = sumEst > 0 ? sumAct / sumEst : 1;
-    var ratioTxt, ratioCls, advice;
+    var advice;
     if(ratio > 1.05){
-      ratioTxt = '+' + Math.round((ratio-1)*100) + '%（偏樂觀）'; ratioCls = 'text-red-400';
       advice = '報價與排程時，建議將直覺估時 × <span class="font-mono text-amber-300">' + (Math.ceil(ratio*20)/20).toFixed(2) + '</span> 作為保守值';
     } else if(ratio < 0.95){
-      ratioTxt = Math.round((ratio-1)*100) + '%（偏保守）'; ratioCls = 'text-blue-400';
       advice = '你實際比預估快，估時可放心沿用，甚至有議價空間';
     } else {
-      ratioTxt = (ratio>=1?'+':'') + Math.round((ratio-1)*100) + '%（相當準確）'; ratioCls = 'text-emerald-400';
       advice = '估時與實際高度吻合，維持現在的估法';
     }
-    html += '<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">'
-      + '<div class="stat-card"><div class="text-[10px] text-slate-500 mb-1">已結案樣本</div><div class="text-lg font-semibold text-slate-200">' + done.length + ' 件</div></div>'
-      + '<div class="stat-card"><div class="text-[10px] text-slate-500 mb-1">預估合計</div><div class="text-lg font-semibold text-slate-200">' + formatHrs(sumEst) + '</div></div>'
-      + '<div class="stat-card"><div class="text-[10px] text-slate-500 mb-1">實際合計</div><div class="text-lg font-semibold text-slate-200">' + formatHrs(sumAct) + '</div></div>'
-      + '<div class="stat-card"><div class="text-[10px] text-slate-500 mb-1">整體偏差</div><div class="text-lg font-semibold ' + ratioCls + '">' + ratioTxt + '</div></div>'
-      + '</div>'
-      + '<div class="text-[11px] text-slate-400 bg-slate-950/50 border border-slate-800 rounded-lg px-3 py-2 mb-4">💡 ' + advice + '</div>';
+    html += '<div class="text-[11px] text-slate-400 bg-slate-950/50 border border-slate-800 rounded-lg px-3 py-2 mb-4">💡 ' + advice + '</div>';
 
-    // ---- 依案型分組 ----
+    // ---- 依案型分組（表格化，與下方階段回測同款格式）----
     var byType = {};
     done.forEach(function(p){
       var t = p.type || '_none';
-      if(!byType[t]) byType[t] = {est:0, act:0, n:0};
-      byType[t].est += p.estHrs; byType[t].act += (p.hrs||0); byType[t].n++;
+      if(!byType[t]) byType[t] = {est:0, act:0, estN:0, actN:0};
+      if((+p.estHrs||0) > 0){ byType[t].est += (+p.estHrs||0); byType[t].estN++; }
+      if((+p.hrs||0) > 0){ byType[t].act += (+p.hrs||0); byType[t].actN++; }
     });
     var typeKeys = Object.keys(byType);
     if(typeKeys.length > 1){
-      html += '<div class="flex flex-wrap gap-2 mb-4">' + typeKeys.map(function(t){
+      html += '<div class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2 px-1">依案型估時偏差 <span class="text-slate-600 normal-case">（已結案任務按類型平均）</span></div>';
+      var tRows = typeKeys.sort(function(a,b){ return byType[b].act - byType[a].act; }).map(function(t){
         var g = byType[t];
-        var r = g.est > 0 ? g.act/g.est : 1;
-        var cls = r > 1.05 ? 'text-red-400' : (r < 0.95 ? 'text-blue-400' : 'text-emerald-400');
+        var estAvg = g.estN > 0 ? g.est / g.estN : 0;
+        var actAvg = g.actN > 0 ? g.act / g.actN : 0;
+        var hasBoth = estAvg > 0 && actAvg > 0;
+        var r = hasBoth ? actAvg/estAvg : null;
+        var devTxt, devCls;
+        if(r===null){
+          devTxt = estAvg > 0 ? '尚無實際' : '無預估';
+          devCls = 'text-slate-600';
+        } else {
+          devCls = r > 1.05 ? 'text-red-400' : (r < 0.95 ? 'text-blue-400' : 'text-emerald-400');
+          devTxt = (r>=1?'+':'') + Math.round((r-1)*100) + '%';
+        }
         var nm = t === '_none' ? '未分類' : catBy(t).name;
-        return '<span class="badge bg-slate-800 border border-slate-700"><span class="text-slate-400">' + esc(nm) + '</span><span class="text-slate-600 mx-1">×' + g.n + '</span><span class="' + cls + '">' + (r>=1?'+':'') + Math.round((r-1)*100) + '%</span></span>';
-      }).join('') + '</div>';
+        var estCell = estAvg>0 ? formatHrs(estAvg) + '<span class="text-[9px] text-slate-600 ml-0.5">×'+g.estN+'</span>' : '—';
+        var actCell = actAvg>0 ? formatHrs(actAvg) + '<span class="text-[9px] text-slate-600 ml-0.5">×'+g.actN+'</span>' : '—';
+        return '<tr><td class="text-slate-300">' + esc(nm) + '</td>'
+          + '<td class="font-mono text-xs">' + estCell + '</td>'
+          + '<td class="font-mono text-xs">' + actCell + '</td>'
+          + '<td class="font-mono text-xs ' + devCls + '">' + devTxt + '</td></tr>';
+      }).join('');
+      html += '<div class="tbl-wrap mb-1"><table><thead><tr><th>案型</th><th>預估平均</th><th>實際平均</th><th>偏差</th></tr></thead><tbody>' + tRows + '</tbody></table></div>'
+        + '<div class="text-[10px] text-slate-600 px-1 mb-4">數值為各類型已結案任務的<span class="text-slate-500">平均</span>工時（×N 為案件數）；偏差＝實際平均÷預估平均，<span class="text-blue-400">負</span>＝實際比預估快、<span class="text-red-400">正</span>＝比預估慢。</div>';
     }
 
     // ---- 依階段回測（跨任務彙整，僅納入有階段標記的工時）----
@@ -5296,7 +5306,7 @@ function renderEstAcc(){
     var anyPhaseData = false;
     function phaseBucket(raw){
       var nk = normPhase(raw);
-      if(!byPhase[nk]) byPhase[nk] = { norm:nk, label:String(raw), est:0, act:0, n:0 };
+      if(!byPhase[nk]) byPhase[nk] = { norm:nk, label:String(raw), est:0, act:0, estN:0, actN:0 };
       return byPhase[nk];
     }
     done.forEach(function(p){
@@ -5304,14 +5314,22 @@ function renderEstAcc(){
       p.milestones.forEach(function(m){
         if(!m.name) return;
         var b = phaseBucket(m.name);
-        if((+m.estHrs||0) > 0){ b.est += (+m.estHrs||0); b.n++; }
+        if((+m.estHrs||0) > 0){ b.est += (+m.estHrs||0); b.estN++; }
       });
+      // 該任務每個階段的實際工時：先按階段彙整成「每案每階段一筆」，才能正確算案件數
+      var actByPhase = {};
       DLOGS.forEach(function(l){
         if(l.pid===p.id && l.ms){
-          var b = phaseBucket(l.ms);
-          b.act += (l.hrs||0);
+          var nk = normPhase(l.ms);
+          actByPhase[nk] = (actByPhase[nk]||0) + (l.hrs||0);
           anyPhaseData = true;
         }
+      });
+      Object.keys(actByPhase).forEach(function(nk){
+        // 用任一原始名建桶（label 以 milestone 端為主，這裡若桶已存在不覆蓋 label）
+        if(!byPhase[nk]) byPhase[nk] = { norm:nk, label:nk, est:0, act:0, estN:0, actN:0 };
+        byPhase[nk].act += actByPhase[nk];
+        byPhase[nk].actN++;
       });
     });
     var phaseKeys = Object.keys(byPhase).filter(function(k){ return byPhase[k].est > 0 || byPhase[k].act > 0; });
@@ -5324,11 +5342,13 @@ function renderEstAcc(){
       html += '<div class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2 px-1">各階段估時回測 <span class="text-slate-600 normal-case">（跨已結案任務彙整，依工時的階段標記）</span></div>';
       var pRows = phaseKeys.sort(function(a,b){ return byPhase[b].act - byPhase[a].act; }).map(function(k){
         var g = byPhase[k];
-        var hasBoth = g.est > 0 && g.act > 0;
-        var r = hasBoth ? g.act/g.est : null;
+        var estAvg = g.estN > 0 ? g.est / g.estN : 0;
+        var actAvg = g.actN > 0 ? g.act / g.actN : 0;
+        var hasBoth = estAvg > 0 && actAvg > 0;
+        var r = hasBoth ? actAvg/estAvg : null;
         var devTxt, devCls;
         if(r===null){
-          devTxt = g.est > 0 ? '尚無實際' : '無預估';
+          devTxt = estAvg > 0 ? '尚無實際' : '無預估';
           devCls = 'text-slate-600';
         } else {
           devCls = r > 1.05 ? 'text-red-400' : (r < 0.95 ? 'text-blue-400' : 'text-emerald-400');
@@ -5340,13 +5360,15 @@ function renderEstAcc(){
         var nameCell = warn
           ? '<button type="button" class="text-left text-slate-300 hover:text-violet-300 underline decoration-dotted decoration-slate-600 underline-offset-2" onclick="showPhaseRefs(\'' + esc(g.norm).replace(/'/g,"\\'") + '\')" title="這個階段名疑似與另一個名稱重複，點擊查看出處">◇ ' + esc(g.label) + ' <span class="text-[9px] text-amber-500/70">⚠</span></button>'
           : '<span class="text-slate-300">◇ ' + esc(g.label) + '</span>';
+        var estCell = estAvg>0 ? formatHrs(estAvg) + '<span class="text-[9px] text-slate-600 ml-0.5">×'+g.estN+'</span>' : '—';
+        var actCell = actAvg>0 ? formatHrs(actAvg) + '<span class="text-[9px] text-slate-600 ml-0.5">×'+g.actN+'</span>' : '—';
         return '<tr><td>' + nameCell + '</td>'
-          + '<td class="font-mono text-xs">' + (g.est>0?formatHrs(g.est):'—') + '</td>'
-          + '<td class="font-mono text-xs">' + (g.act>0?formatHrs(g.act):'—') + '</td>'
+          + '<td class="font-mono text-xs">' + estCell + '</td>'
+          + '<td class="font-mono text-xs">' + actCell + '</td>'
           + '<td class="font-mono text-xs ' + devCls + '">' + devTxt + '</td></tr>';
       }).join('');
-      html += '<div class="tbl-wrap mb-4"><table><thead><tr><th>階段</th><th>預估合計</th><th>實際合計</th><th>偏差</th></tr></thead><tbody>' + pRows + '</tbody></table></div>'
-        + '<div class="text-[10px] text-slate-600 px-1 mb-1">提示：「尚無實際」代表這個階段還沒登工時（正常）；實際工時僅統計已標記階段的紀錄，未標記者不計入此表，但仍計入上方任務層級偏差。</div>'
+      html += '<div class="tbl-wrap mb-4"><table><thead><tr><th>階段</th><th>預估平均</th><th>實際平均</th><th>偏差</th></tr></thead><tbody>' + pRows + '</tbody></table></div>'
+        + '<div class="text-[10px] text-slate-600 px-1 mb-1">數值為各已結案任務同一階段的<span class="text-slate-500">平均</span>工時（×N 為樣本案件數）；偏差＝實際平均÷預估平均。「尚無實際」代表這個階段還沒登工時（正常）；未標記階段的工時不計入此表，但仍計入上方任務層級偏差。</div>'
         + (anyWarn ? '<div class="text-[10px] text-amber-500/70 px-1 mb-4">標 ⚠ 的階段疑似與另一個名稱是同一階段（命名不一致被拆成兩列），點名稱可查出處，或用下方合併區處理。</div>' : '<div class="mb-4"></div>');
     }
     // ---- 已完成明細表（近 15 件） ----
