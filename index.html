@@ -1663,6 +1663,10 @@ function toggleDelegatedDone(){
 }
 
 function getGlobalRate() { return parseInt(localStorage.getItem('ft_trate')) || 500; }
+function getEffectiveRate(p){
+  if(p && p.gid){ var g=grpBy(p.gid); if(g && g.rate!=null && g.rate!=='' && !isNaN(g.rate)) return g.rate; }
+  return getGlobalRate();
+}
 function saveGlobalRate() {
   var v = parseInt(document.getElementById('global-rate').value) || 500;
   localStorage.setItem('ft_trate', v);
@@ -3097,10 +3101,17 @@ function editGrp(gid){
   var html=`<div class="flex flex-col gap-3">
     <div><label class="text-xs text-slate-500 block mb-1">群組名稱</label><input id="eg-name" class="inp" value="${esc(g.name)}"></div>
     <div><label class="text-xs text-slate-500 block mb-1">狀態</label><select id="eg-st" class="inp"><option value="active" ${g.st==='active'?'selected':''}>進行中</option><option value="done" ${g.st==='done'?'selected':''}>已完成</option><option value="paused" ${g.st==='paused'?'selected':''}>暫停</option></select></div>
+    <div>
+      <label class="text-xs text-slate-500 block mb-1">目標時薪覆蓋 (NT$)</label>
+      <p class="text-[10px] text-slate-600 mb-1.5">此群組內計件任務改用這個時薪做虧損預警，覆蓋全域設定（目前全域 ${getGlobalRate().toLocaleString()}）。留空＝沿用全域。適合非商業／個人創作向群組設低標。</p>
+      <input id="eg-rate" type="number" min="0" class="inp w-32 py-1.5 text-center font-mono" placeholder="沿用全域" value="${(g.rate!=null&&g.rate!=='')?g.rate:''}">
+    </div>
   </div>`;
   openModal('編輯群組',html,function(){
     g.name=document.getElementById('eg-name').value.trim()||g.name;
     g.st=document.getElementById('eg-st').value;
+    var rv=document.getElementById('eg-rate').value.trim();
+    if(rv===''){ delete g.rate; } else { var rn=parseInt(rv); if(isNaN(rn)||rn<0){delete g.rate;} else {g.rate=rn;} }
     save();rGrp();rProj();syncSel();
   },'儲存');
 }
@@ -4170,6 +4181,7 @@ function renderRows(list, isDone, scores, bucketKey, currentTopId) {
         var urg = (scores && scores[p.id]) || null;
         var r=projAR(p.id); var cur=p.budgetCur||'TWD';
         var gn=grpName(p.gid); var c=catBy(p.type);
+        var pRate = getEffectiveRate(p);
 
         var budgetTWD = toTWD(p.budget || 0, cur);
         var rateTWD = 0;
@@ -4184,11 +4196,11 @@ function renderRows(list, isDone, scores, bucketKey, currentTopId) {
             rateHtml = p.hrate ? `<span class=\"text-emerald-400 font-bold\">${Math.round(rateTWD).toLocaleString()} /h</span> <span class=\"text-[10px] text-slate-600\">(預期)</span>` : `<span class=\"text-slate-600\">—</span>`;
         } else {
             rateTWD = (p.hrs > 0 && budgetTWD > 0) ? Math.round(budgetTWD / p.hrs) : 0;
-            var rateColor = rateTWD >= tRate ? 'text-emerald-400' : (rateTWD > 0 ? 'text-amber-400' : 'text-slate-600');
+            var rateColor = rateTWD >= pRate ? 'text-emerald-400' : (rateTWD > 0 ? 'text-amber-400' : 'text-slate-600');
             rateHtml = rateTWD ? `<span class=\"${rateColor} font-bold\">${rateTWD.toLocaleString()} /h</span> <span class=\"text-[10px] text-slate-600\">(TWD)</span>` : `<span class=\"text-slate-600\">—</span>`;
         }
 
-        var maxHrs = budgetTWD > 0 ? (budgetTWD / tRate) : 0;
+        var maxHrs = budgetTWD > 0 ? (budgetTWD / pRate) : 0;
         var hrs = p.hrs || 0;
 
         // 工時預警進度條計算
@@ -4994,7 +5006,7 @@ function _applyTagFilter(){
               rateTWD = toTWD(p.hrate || 0, cur);
               rateHtml = p.hrate ? `<span class="text-[13px] text-emerald-500/80">${Math.round(rateTWD).toLocaleString()}/h</span>` : `<span class="text-[13px] text-slate-600">-</span>`;
           } else {
-              var targetRate = getGlobalRate();
+              var targetRate = getEffectiveRate(p);
               rateTWD = (p.hrs > 0 && budgetTWD > 0) ? Math.round(budgetTWD / p.hrs) : 0;
               var rateColor = rateTWD >= targetRate ? 'text-emerald-500/80' : (rateTWD > 0 ? 'text-amber-500/80' : 'text-slate-600');
               rateHtml = rateTWD ? `<span class="text-[13px] ${rateColor}">${rateTWD.toLocaleString()}/h</span>` : `<span class="text-[13px] text-slate-600">-</span>`;
@@ -6588,15 +6600,20 @@ function toggleRelaxRows(){
 }
 
 var calViewMode = localStorage.getItem('ft_cal_mode') || 'sched';
-function setCalMode(m){
-  calViewMode = m;
-  localStorage.setItem('ft_cal_mode', m);
+// 依目前 calViewMode 同步三顆模式按鈕的 active 狀態與對應工具列／提示的顯示，
+// 供 setCalMode 與切換進日曆分頁時（go() 會清掉所有 .tab-sub 的 active）重新套用
+function syncCalModeBtns(){
   ['cal','sched','hist'].forEach(function(k){
-    var on = (m===k);
+    var on = (calViewMode===k);
     var btn=document.getElementById('cal-mode-'+k); if(btn) btn.classList.toggle('active', on);
     var tb=document.getElementById('cal-toolbar-'+k); if(tb) tb.style.display = on ? '' : 'none';
     var hb=document.getElementById('cal-hint-'+k); if(hb) hb.style.display = on ? '' : 'none';
   });
+}
+function setCalMode(m){
+  calViewMode = m;
+  localStorage.setItem('ft_cal_mode', m);
+  syncCalModeBtns();
   // 排程試算模式：日曆置頂，任務列表＋試算新案排在日曆之下；其餘模式維持原順序
   var grid=document.getElementById('cal-grid');
   var schedTb=document.getElementById('cal-toolbar-sched');
@@ -7066,7 +7083,7 @@ function go(id,btn){
   document.querySelectorAll('.tab-main,.tab-sub').forEach(el=>el.classList.remove('active'));
   document.getElementById(VIEWS[id]).classList.remove('hidden');
   btn.classList.add('active');
-  if(id==='dash')renderDash(); if(id==='tag')rTagStats(); if(id==='grp')rGrp(); if(id==='cal')renderCal(); if(id==='vendor')rVendors(); if(id==='cat')rTagStats(); if(id==='pay')rPay();
+  if(id==='dash')renderDash(); if(id==='tag')rTagStats(); if(id==='grp')rGrp(); if(id==='cal'){syncCalModeBtns();renderCal();} if(id==='vendor')rVendors(); if(id==='cat')rTagStats(); if(id==='pay')rPay();
 }
 function toggleCalTracks() {
   var chk = document.getElementById('cal-toggle-tracks');
