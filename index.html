@@ -1087,7 +1087,7 @@ tbody tr[onclick]:hover td{background:#131f2e;}
               <label class="text-[11px] text-slate-500 flex items-center gap-1.5">展望
                 <input type="number" id="busy-weeks" class="inp w-16 py-1 text-center" min="1" max="26" value="13" onchange="renderBusy()">週
               </label>
-              <label class="text-[11px] text-slate-500 flex items-center gap-1.5 cursor-pointer" title="勾選後，沒填截止日的待命任務也會計入忙碌度（仍不影響「排到哪」的日期）">
+              <label class="text-[11px] text-slate-500 flex items-center gap-1.5 cursor-pointer" title="勾選後，沒填截止日的「進行中」任務也會計入忙碌度（仍不影響「排到哪」的日期）。待命/暫停任務一律不計入。">
                 <input type="checkbox" id="busy-incl-nodl" class="accent-blue-500 w-3.5 h-3.5" checked onchange="renderBusy()">含無截止日
               </label>
               <span id="busy-wtarget" class="text-[11px] text-slate-600"></span>
@@ -6391,8 +6391,9 @@ function busyFinishDate(remainHrs){
 // 蒐集未完成任務、依業務類型分組，算剩餘工時與截止範圍
 function busyCollect(includeNoDeadline){
   var groups={}; // type -> {cat, projs:[], remain, count, earliestDl, latestDl, hasUrgent}
-  (PJ||[]).filter(function(p){return p.st!=='done';}).forEach(function(p){
-    // 無截止日的任務：依開關決定是否計入
+  // 只計「進行中(active)」任務。待命/暫停(paused) 視為暫不處理，與排程試算一致地排除。
+  (PJ||[]).filter(function(p){return p.st==='active';}).forEach(function(p){
+    // 無截止日是獨立維度（與待命無關）：沒有 edate 的進行中任務，依開關決定是否計入
     if(!p.edate && !includeNoDeadline) return;
     var c=catBy(p.type);
     var key=p.type||'__none__';
@@ -6429,8 +6430,8 @@ function renderBusy(){
   var cap=busyCapacity(weeks);
   var groups=busyCollect(inclNoDl);
 
-  // 統計無截止日任務數（供提示用）
-  var noDlCount=(PJ||[]).filter(function(p){return p.st!=='done' && !p.edate;}).length;
+  // 統計「進行中且無截止日」任務數（供提示用）；待命(paused) 不算在內
+  var noDlCount=(PJ||[]).filter(function(p){return p.st==='active' && !p.edate;}).length;
 
   // ── 整體匯總（跨所有未完成任務，不分類型）──
   var totalRemain=0, totalCount=0, earliestDl=null, latestDl=null, hasUrgent=false;
