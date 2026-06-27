@@ -2394,14 +2394,117 @@ function mergePhaseNames(variantNorms, target){
   return { tasks: Object.keys(changedTasks).length, logs: changedLogs, dedup: dedupCount };
 }
 
-// 動態填入階段名建議 datalist（供 milestone / 排程接新案輸入框共用）
+// 階段名「下拉隱藏」清單：只影響自動完成建議是否出現，完全不改 milestone / 工時的原值。
+// 以正規化名稱為鍵存 localStorage（隨雲端同步）。
+function getHiddenPhaseSuggest(){ try{ return JSON.parse(localStorage.getItem('ft_phase_hidden')||'[]'); }catch(e){ return []; } }
+function setHiddenPhaseSuggest(arr){ localStorage.setItem('ft_phase_hidden', JSON.stringify(arr||[])); save(); }
+function isPhaseHidden(norm){ return getHiddenPhaseSuggest().indexOf(norm) >= 0; }
+function togglePhaseHidden(norm){
+  var h = getHiddenPhaseSuggest(); var i = h.indexOf(norm);
+  if(i<0) h.push(norm); else h.splice(i,1);
+  setHiddenPhaseSuggest(h); refreshPhaseDatalist();
+}
+
+// 改名：把某個正規階段名統一改成新名（底層即合併，工時的 ms 欄位改寫、數字保留，從不刪紀錄）
+function renamePhase(norm, newName){
+  if(!newName || !newName.trim()) return null;
+  return mergePhaseNames([norm], newName.trim());
+}
+
+// 動態填入階段名建議 datalist（供 milestone / 排程接新案輸入框共用）；跳過「下拉隱藏」的名稱。
 function refreshPhaseDatalist(){
   var dl = document.getElementById('phase-suggest');
   if(!dl) return;
-  dl.innerHTML = collectPhaseNames().map(function(o){
+  var hidden = getHiddenPhaseSuggest();
+  dl.innerHTML = collectPhaseNames().filter(function(o){ return hidden.indexOf(o.norm) < 0; }).map(function(o){
     return '<option value="'+esc(o.label)+'">';
   }).join('');
 }
+// ===== 🏷️ 階段名總管 =====
+// 列出所有用過的階段名與引用數，提供：改名、併入既有、下拉隱藏/取消隱藏。
+// 所有操作只改寫 milestone.name 與 DLOG.ms 字串，或只動「下拉隱藏」清單；從不刪除工時紀錄。
+var _pmFilter = '';
+function openPhaseManager(){
+  var html = '<div class="flex flex-col gap-2">'
+    + '<p class="text-[11px] text-slate-500">整理用過的階段名。改名／併入只會改寫標籤（工時數字、日期、案子全部保留，<span class="text-slate-400">不會刪掉任何工時紀錄</span>）；隱藏只是讓它不再出現在輸入下拉，原值不動、可隨時恢復。</p>'
+    + '<input id="pm-filter" class="inp text-sm py-1.5" placeholder="搜尋階段名…" oninput="_pmFilter=this.value;renderPhaseManagerBody();">'
+    + '<div id="pm-body" class="flex flex-col gap-1.5 max-h-[50vh] overflow-y-auto -mx-1 px-1"></div>'
+    + '</div>';
+  openModal('🏷️ 階段名總管', html, null, '關閉', true);
+  _pmFilter = '';
+  renderPhaseManagerBody();
+}
+
+function renderPhaseManagerBody(){
+  var box = document.getElementById('pm-body'); if(!box) return;
+  var names = collectPhaseNames();
+  var hidden = getHiddenPhaseSuggest();
+  var f = (_pmFilter||'').trim();
+  if(f){ var fn = normPhase(f); names = names.filter(function(o){ return o.norm.indexOf(fn) >= 0 || o.label.indexOf(f) >= 0; }); }
+  if(!names.length){ box.innerHTML = '<div class="text-center text-slate-600 text-sm py-6">'+(f?'查無符合的階段名':'尚無任何階段名')+'</div>'; return; }
+  box.innerHTML = names.map(function(o){
+    var isHid = hidden.indexOf(o.norm) >= 0;
+    var normEsc = esc(o.norm).replace(/'/g,"\\'");
+    var refTxt = o.msCount + ' 任務 · ' + o.logCount + ' 筆工時';
+    return '<div class="flex items-center gap-2 bg-slate-950/40 border '+(isHid?'border-slate-800/60':'border-slate-800')+' rounded-lg px-3 py-2">'
+      + '<div class="flex-1 min-w-0">'
+        + '<div class="text-sm '+(isHid?'text-slate-500 line-through':'text-slate-300')+' truncate">◇ '+esc(o.label)+(isHid?' <span class="text-[9px] text-slate-600 no-underline">已隱藏</span>':'')+'</div>'
+        + '<div class="text-[10px] text-slate-600">'+refTxt+'</div>'
+      + '</div>'
+      + '<button type="button" class="text-[11px] text-slate-500 hover:text-violet-300 px-1.5" title="改名（連同工時一起改標籤）" onclick="pmRename(\''+normEsc+'\')">改名</button>'
+      + '<button type="button" class="text-[11px] text-slate-500 hover:text-violet-300 px-1.5" title="併入另一個現有階段名" onclick="pmMergeInto(\''+normEsc+'\')">併入</button>'
+      + '<button type="button" class="text-[11px] '+(isHid?'text-emerald-500/80 hover:text-emerald-400':'text-slate-500 hover:text-amber-400')+' px-1.5" title="'+(isHid?'恢復顯示於輸入下拉':'從輸入下拉隱藏（不刪工時）')+'" onclick="togglePhaseHidden(\''+normEsc+'\');renderPhaseManagerBody();">'+(isHid?'取消隱藏':'隱藏')+'</button>'
+      + '</div>';
+  }).join('');
+}
+
+// 改名：彈出輸入框，確認後改寫所有引用
+function pmRename(norm){
+  var cur = collectPhaseNames().find(function(o){ return o.norm === norm; });
+  var curLabel = cur ? cur.label : norm;
+  var refs = phaseRefs(norm);
+  var html = '<div class="flex flex-col gap-3">'
+    + '<div class="text-xs text-slate-500">將「<span class="text-slate-300">'+esc(curLabel)+'</span>」改名，會一併更新它的 <span class="text-slate-300">'+refs.tasks.length+'</span> 個任務與 <span class="text-slate-300">'+refs.logCount+'</span> 筆工時的階段標籤（工時數字不變）。</div>'
+    + '<input id="pm-newname" class="inp" value="'+esc(curLabel).replace(/"/g,'&quot;')+'" placeholder="新的階段名">'
+    + '</div>';
+  openModal('改名階段', html, function(){
+    var nn = (document.getElementById('pm-newname')||{}).value || '';
+    nn = nn.trim();
+    if(!nn){ showToast('名稱不可為空', 'amber'); return; }
+    if(normPhase(nn) === norm){ showToast('名稱沒有變更', 'amber'); return; }
+    var res = renamePhase(norm, nn);
+    // 若舊名在隱藏清單，改名後一併移除該鍵（避免殘留無效鍵）
+    var h = getHiddenPhaseSuggest(); var i = h.indexOf(norm); if(i>=0){ h.splice(i,1); setHiddenPhaseSuggest(h); }
+    save(); rProj(); rGrp(); refreshPhaseDatalist();
+    if(!document.getElementById('v-dash').classList.contains('hidden')) renderEstAcc();
+    showToast('✓ 已改名：更新 '+(res?res.tasks:0)+' 任務、'+(res?res.logs:0)+' 筆工時'+(res&&res.dedup?'，去重 '+res.dedup+' 個重複階段':''), 'green');
+    setTimeout(openPhaseManager, 0); // 重開總管看最新結果（延後，避開 modalConfirm 的 closeModal）
+  }, '確認改名');
+}
+
+// 併入：選一個現有階段名作為目標
+function pmMergeInto(norm){
+  var all = collectPhaseNames().filter(function(o){ return o.norm !== norm; });
+  var cur = collectPhaseNames().find(function(o){ return o.norm === norm; });
+  var curLabel = cur ? cur.label : norm;
+  if(!all.length){ showToast('沒有其他階段名可併入', 'amber'); return; }
+  var opts = all.map(function(o){ return '<option value="'+esc(o.label).replace(/"/g,'&quot;')+'">'+esc(o.label)+'（'+o.msCount+'案·'+o.logCount+'筆）</option>'; }).join('');
+  var html = '<div class="flex flex-col gap-3">'
+    + '<div class="text-xs text-slate-500">把「<span class="text-slate-300">'+esc(curLabel)+'</span>」併入下列現有階段名。它的所有任務與工時會改掛到目標名下（不會刪工時）。</div>'
+    + '<select id="pm-target" class="inp">'+opts+'</select>'
+    + '</div>';
+  openModal('併入現有階段', html, function(){
+    var tgt = (document.getElementById('pm-target')||{}).value || '';
+    if(!tgt){ showToast('請選擇目標', 'amber'); return; }
+    var res = mergePhaseNames([norm], tgt);
+    var h = getHiddenPhaseSuggest(); var i = h.indexOf(norm); if(i>=0){ h.splice(i,1); setHiddenPhaseSuggest(h); }
+    save(); rProj(); rGrp(); refreshPhaseDatalist();
+    if(!document.getElementById('v-dash').classList.contains('hidden')) renderEstAcc();
+    showToast('✓ 已併入「'+tgt+'」：更新 '+res.tasks+' 任務、'+res.logs+' 筆工時'+(res.dedup?'，去重 '+res.dedup+' 個':''), 'green');
+    setTimeout(openPhaseManager, 0);
+  }, '確認併入');
+}
+
 function startTimer(id){activeTimers[id]=Date.now();localStorage.setItem('ft_timers',JSON.stringify(activeTimers));rProj();}
 function stopTimer(id){
   if(!activeTimers[id])return;
@@ -3754,6 +3857,8 @@ function openDetail(id){
       <div class="mb-6">
         <div class="flex items-center justify-between mb-1 px-1">
           <h3 class="font-bold text-white text-sm">階段截止日</h3>
+          <div class="flex items-center gap-1">
+          <button type="button" onclick="openPhaseManager()" class="text-[11px] text-slate-500 hover:text-violet-300 px-1.5 py-0.5 rounded hover:bg-slate-800/60 transition-colors" title="整理所有用過的階段名（改名／合併／隱藏，不刪工時）">🏷️ 管理</button>
           ${(function(){
             var msSum=(p.milestones||[]).reduce(function(s,m){return s+(+m.estHrs||0);},0);
             if(msSum<=0) return '';
@@ -3765,6 +3870,7 @@ function openDetail(id){
               +'<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 4H6l6 8-6 8h12"/></svg>'
               +'</button>';
           })()}
+          </div>
         </div>
         <p class="text-[10px] text-slate-600 mb-3 px-1">例如：草稿交付、線稿確認、完稿截止等。</p>
         <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl overflow-hidden mb-3">
