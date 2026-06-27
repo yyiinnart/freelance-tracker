@@ -714,7 +714,7 @@ tbody tr[onclick]:hover td{background:#131f2e;}
     <div class="hint-bar" id="cal-hint-hist" style="display:none;">以月曆回顧<strong>每天實際做了哪些專案、各花多少工時</strong>，資料來自工時紀錄（計時器自動記錄＋手動補登）。色塊依業務類型上色，方便看出時間流向；點擊任一專案列可直接開啟該案詳情。可依業務類型篩選，月份可用上方箭頭或下拉選單切換。</div>
     <div class="flex items-center gap-1 mb-4 bg-slate-900 border border-slate-800 rounded-lg p-1 w-fit">
       <button id="cal-mode-sched" class="tab-sub active" onclick="setCalMode('sched')">🧮 排程試算</button>
-      <button id="cal-mode-cal" class="tab-sub" onclick="setCalMode('cal')">📅 月曆檢視</button>
+      <button id="cal-mode-cal" class="tab-sub" onclick="setCalMode('cal')">📅 截止日月曆</button>
       <button id="cal-mode-hist" class="tab-sub" onclick="setCalMode('hist')">🔍 工時回顧</button>
     </div>
     <div class="flex items-center justify-between mb-4">
@@ -1017,92 +1017,109 @@ tbody tr[onclick]:hover td{background:#131f2e;}
       </div>
     </div>
 
-    <!-- 數據卡與金流 -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
-        <h3 class="text-sm font-semibold text-slate-300 mb-4 border-b border-slate-800 pb-2">產值與效率</h3>
-        <div id="dash-stats" class="grid grid-cols-2 gap-4"></div>
-      </div>
-      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
-        <h3 class="text-sm font-semibold text-slate-300 mb-4 border-b border-slate-800 pb-2">現金流與獲利</h3>
-        <div id="dash-cf" class="grid grid-cols-2 gap-4"></div>
-      </div>
-    </div>
-
-    <!-- 月度長條圖與圓餅圖 (左右並排) -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-      <div class="bg-slate-900 rounded-xl border border-slate-800 p-5">
-        <h3 id="month-chart-title" class="text-sm font-semibold text-slate-300 mb-4">月度每日工時</h3>
-        <div style="height:220px;position:relative"><canvas id="c-month"></canvas></div>
-      </div>
-      <div class="bg-slate-900 rounded-xl border border-slate-800 p-5">
-        <h3 class="text-sm font-semibold text-slate-300 mb-4">專案時間分佈</h3>
-        <div class="flex flex-col md:flex-row items-center gap-6">
-          <div style="position:relative;width:100%;max-width:240px;height:220px;margin:0 auto"><canvas id="c-pie"></canvas></div>
-          <div id="pie-leg" class="text-xs text-slate-400 flex-1 w-full max-h-48 overflow-y-auto no-scrollbar flex flex-col gap-2"></div>
+    <div id="dash-panels">
+      <!-- 產值與效率 -->
+      <div data-panel="stats" class="dash-panel mb-6">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+          <h3 class="text-sm font-semibold text-slate-300 mb-4 border-b border-slate-800 pb-2 flex items-center justify-between">產值與效率<button type="button" class="text-[11px] font-normal text-slate-500 hover:text-blue-400 transition-colors" title="前往收付款分頁" onclick="goTab('pay')">收付款 →</button></h3>
+          <div id="dash-stats" class="grid grid-cols-2 md:grid-cols-3 gap-4"></div>
         </div>
       </div>
-    </div>    
 
-    <!-- 估時準確度 -->
-    <div class="bg-slate-900 rounded-xl border border-slate-800 p-5 mb-6">
-      <div class="flex items-center justify-between mb-1">
-        <h3 class="text-sm font-semibold text-slate-300">🎯 估時準確度</h3>
-        <span class="text-[10px] text-slate-600">統計所有已填預估工時的任務，不受月份篩選影響</span>
+      <!-- 現金流與獲利 -->
+      <div data-panel="cf" class="dash-panel mb-6">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+          <h3 class="text-sm font-semibold text-slate-300 mb-4 border-b border-slate-800 pb-2 flex items-center justify-between">現金流與獲利<button type="button" class="text-[11px] font-normal text-slate-500 hover:text-blue-400 transition-colors" title="前往收付款分頁" onclick="goTab('pay')">收付款 →</button></h3>
+          <div id="dash-cf" class="grid grid-cols-2 md:grid-cols-3 gap-4"></div>
+        </div>
       </div>
-      <p class="text-[11px] text-slate-500 mb-4">比較「預估工時」與「實際工時」，讓你知道自己的估時習慣偏樂觀還是保守，回饋到報價與排程。</p>
-      <div id="est-acc-body"></div>
+
+      <!-- 月度每日工時 -->
+      <div data-panel="month" class="dash-panel mb-6">
+        <div class="bg-slate-900 rounded-xl border border-slate-800 p-5">
+          <h3 class="text-sm font-semibold text-slate-300 mb-4 flex items-center justify-between"><span id="month-chart-title">月度每日工時</span><button type="button" class="text-[11px] font-normal text-slate-500 hover:text-blue-400 transition-colors" title="前往排程日曆的工時回顧" onclick="goTab('cal','hist')">工時回顧 →</button></h3>
+          <div style="height:220px;position:relative"><canvas id="c-month"></canvas></div>
+        </div>
+      </div>
+
+      <!-- 專案時間分佈 -->
+      <div data-panel="pie" class="dash-panel mb-6">
+        <div class="bg-slate-900 rounded-xl border border-slate-800 p-5">
+          <h3 class="text-sm font-semibold text-slate-300 mb-4 flex items-center justify-between">專案時間分佈<button type="button" class="text-[11px] font-normal text-slate-500 hover:text-blue-400 transition-colors" title="前往排程日曆的工時回顧" onclick="goTab('cal','hist')">工時回顧 →</button></h3>
+          <div class="flex flex-col md:flex-row items-center gap-6">
+            <div style="position:relative;width:100%;max-width:240px;height:220px;margin:0 auto"><canvas id="c-pie"></canvas></div>
+            <div id="pie-leg" class="text-xs text-slate-400 flex-1 w-full max-h-48 overflow-y-auto no-scrollbar flex flex-col gap-2"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 估時準確度 -->
+      <div data-panel="estacc" class="dash-panel mb-6">
+        <div class="bg-slate-900 rounded-xl border border-slate-800 p-5">
+          <div class="flex items-center justify-between mb-1">
+            <h3 class="text-sm font-semibold text-slate-300">🎯 估時準確度</h3>
+            <span class="text-[10px] text-slate-600">統計所有已填預估工時的任務，不受月份篩選影響</span>
+          </div>
+          <p class="text-[11px] text-slate-500 mb-4">比較「預估工時」與「實際工時」，讓你知道自己的估時習慣偏樂觀還是保守，回饋到報價與排程。</p>
+          <div id="est-acc-body"></div>
+        </div>
+      </div>
+
+      <!-- 每日工時紀錄 -->
+      <div data-panel="timeline" class="dash-panel mb-6">
+        <div class="rounded-xl p-5" style="background:rgba(15,23,42,0.4)">
+          <div class="flex items-center justify-between mb-4 pb-2">
+            <h3 class="text-sm font-semibold text-slate-500">每日工時紀錄</h3>
+            <span id="dl-range-label" class="text-[11px] text-slate-500"></span>
+          </div>
+          <div id="dl-stats" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4"></div>
+          <div id="dl-timeline" class="flex flex-col gap-2 max-h-[400px] overflow-y-auto"></div>
+          <div id="dl-empty" class="text-center py-8 text-sm text-slate-600 hidden">尚無工時紀錄</div>
+        </div>
+      </div>
+
+      <!-- 📣 忙碌公告（可於「自訂面板」開關，預設關閉） -->
+      <div data-panel="busy" class="dash-panel mb-6">
+        <div class="bg-slate-900 rounded-xl border border-slate-800 p-5" id="busy-panel-wrap">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-semibold text-slate-300 flex items-center gap-2">📣 忙碌公告<button type="button" class="text-[11px] font-normal text-slate-500 hover:text-blue-400 transition-colors" title="前往排程日曆的排程試算" onclick="goTab('cal','sched')">排程試算 →</button></h3>
+            <div class="flex items-center gap-3">
+              <label class="text-[11px] text-slate-500 flex items-center gap-1.5">展望
+                <input type="number" id="busy-weeks" class="inp w-16 py-1 text-center" min="1" max="26" value="13" onchange="renderBusy()">週
+              </label>
+              <label class="text-[11px] text-slate-500 flex items-center gap-1.5 cursor-pointer" title="勾選後，沒填截止日的待命任務也會計入忙碌度（仍不影響「排到哪」的日期）">
+                <input type="checkbox" id="busy-incl-nodl" class="accent-blue-500 w-3.5 h-3.5" checked onchange="renderBusy()">含無截止日
+              </label>
+              <span id="busy-wtarget" class="text-[11px] text-slate-600"></span>
+              <button class="btn btn-sm bg-transparent border-slate-700 text-slate-500 hover:text-blue-400 hover:bg-slate-800 transition-colors" id="busy-copy-btn" onclick="copyBusyAnnounce()">📋 複製公告</button>
+            </div>
+          </div>
+          <p class="text-[11px] text-slate-600 mb-4">依未完成任務的剩餘工時與截止日推算整體忙碌度，產生可貼出的對外公告。僅為現況快照。</p>
+
+          <div class="relative overflow-hidden rounded-lg border border-slate-800 mb-4">
+            <div id="busy-overall-bar" class="absolute top-0 left-0 w-full h-1"></div>
+            <div class="p-4">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-semibold text-slate-400">整體忙碌度</span>
+                <span id="busy-overall-window" class="text-[11px] text-slate-500"></span>
+              </div>
+              <div id="busy-overall" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+              <div id="busy-overall-sub" class="text-[11px] text-slate-500 mt-3 text-center"></div>
+            </div>
+          </div>
+
+          <div id="busy-by-cat" class="hidden"></div>
+
+          <div>
+            <div class="text-xs font-semibold text-slate-400 mb-2">對外公告文字</div>
+            <textarea id="busy-announce" class="inp w-full font-mono text-sm leading-relaxed" rows="9" spellcheck="false"></textarea>
+            <p class="text-[11px] text-slate-600 mt-2">可直接編輯後再複製。正式檔期仍以個別確認為準。</p>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div id="export-box" class="hidden bg-slate-900 border border-slate-800 rounded-xl p-5 text-sm font-mono text-slate-400 leading-relaxed whitespace-pre-wrap overflow-auto" style="max-height:400px"></div>
-
-    <div class="rounded-xl p-5 mt-6" style="background:rgba(15,23,42,0.4)">
-      <div class="flex items-center justify-between mb-4 pb-2">
-        <h3 class="text-sm font-semibold text-slate-500">每日工時紀錄</h3>
-        <span id="dl-range-label" class="text-[11px] text-slate-500"></span>
-      </div>
-      <div id="dl-stats" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4"></div>
-      <div id="dl-timeline" class="flex flex-col gap-2 max-h-[400px] overflow-y-auto"></div>
-      <div id="dl-empty" class="text-center py-8 text-sm text-slate-600 hidden">尚無工時紀錄</div>
-    </div>
-
-    <!-- 📣 忙碌公告（可於「自訂面板」開關，預設關閉） -->
-    <div class="bg-slate-900 rounded-xl border border-slate-800 p-5 mt-6" id="busy-panel-wrap">
-      <div class="flex items-center justify-between mb-2">
-        <h3 class="text-sm font-semibold text-slate-300 flex items-center gap-2">📣 忙碌公告</h3>
-        <div class="flex items-center gap-3">
-          <label class="text-[11px] text-slate-500 flex items-center gap-1.5">展望
-            <input type="number" id="busy-weeks" class="inp w-16 py-1 text-center" min="1" max="26" value="13" onchange="renderBusy()">週
-          </label>
-          <label class="text-[11px] text-slate-500 flex items-center gap-1.5 cursor-pointer" title="勾選後，沒填截止日的待命任務也會計入忙碌度（仍不影響「排到哪」的日期）">
-            <input type="checkbox" id="busy-incl-nodl" class="accent-blue-500 w-3.5 h-3.5" checked onchange="renderBusy()">含無截止日
-          </label>
-          <span id="busy-wtarget" class="text-[11px] text-slate-600"></span>
-          <button class="btn btn-sm bg-transparent border-slate-700 text-slate-500 hover:text-blue-400 hover:bg-slate-800 transition-colors" id="busy-copy-btn" onclick="copyBusyAnnounce()">📋 複製公告</button>
-        </div>
-      </div>
-      <p class="text-[11px] text-slate-600 mb-4">依未完成任務的剩餘工時與截止日推算整體忙碌度，產生可貼出的對外公告。僅為現況快照。</p>
-
-      <div class="relative overflow-hidden rounded-lg border border-slate-800 mb-4">
-        <div id="busy-overall-bar" class="absolute top-0 left-0 w-full h-1"></div>
-        <div class="p-4">
-          <div class="flex items-center justify-between mb-3">
-            <span class="text-xs font-semibold text-slate-400">整體忙碌度</span>
-            <span id="busy-overall-window" class="text-[11px] text-slate-500"></span>
-          </div>
-          <div id="busy-overall" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
-          <div id="busy-overall-sub" class="text-[11px] text-slate-500 mt-3 text-center"></div>
-        </div>
-      </div>
-
-      <div id="busy-by-cat" class="hidden"></div>
-
-      <div>
-        <div class="text-xs font-semibold text-slate-400 mb-2">對外公告文字</div>
-        <textarea id="busy-announce" class="inp w-full font-mono text-sm leading-relaxed" rows="9" spellcheck="false"></textarea>
-        <p class="text-[11px] text-slate-600 mt-2">可直接編輯後再複製。正式檔期仍以個別確認為準。</p>
-      </div>
-    </div>
   </div>
 
   <div id="v-cfg" class="hidden">
@@ -5817,75 +5834,119 @@ function renderDash(){
   applyDashPanels(); // 套用自訂面板設定
 }
 
-// ==========================================
-// 👁️ 自訂分析面板邏輯
-// ==========================================
+// 可排序面板的標準順序（與 HTML 預設一致）
+var DASH_PANEL_ORDER = ['stats','cf','month','pie','estacc','timeline','busy'];
+var DASH_PANEL_LABELS = { stats:'📊 產值與效率', cf:'💰 現金流與獲利', month:'📈 月度每日工時', pie:'🍩 專案時間分佈', estacc:'🎯 估時準確度', timeline:'📝 每日工時紀錄', busy:'📣 忙碌公告' };
+
 function getDashConfig() {
-  return safeJSONParse(localStorage.getItem('ft_dash_cfg') || '{}', {
-    pacing: true, stats: true, cf: true, month: true, pie: true, timeline: true, busy: false, busyInclNoDl: true, busyWeeks: 13
+  var cfg = safeJSONParse(localStorage.getItem('ft_dash_cfg') || '{}', {
+    pacing: true, stats: true, cf: true, month: true, pie: true, estacc: true, timeline: true, busy: false, busyInclNoDl: true, busyWeeks: 13
+  });
+  // 舊版相容：曾短暫合併為 fin，拆回 stats/cf
+  if(cfg.fin !== undefined){
+    if(cfg.stats === undefined) cfg.stats = cfg.fin;
+    if(cfg.cf === undefined) cfg.cf = cfg.fin;
+  }
+  // 補齊缺漏的顯示旗標（避免舊設定缺鍵時面板消失）
+  ['pacing','stats','cf','month','pie','estacc','timeline'].forEach(function(k){ if(cfg[k]===undefined) cfg[k]=true; });
+  if(cfg.busy===undefined) cfg.busy=false;
+  // 面板順序：補上任何新面板、移除不存在的鍵，確保完整
+  var ord = Array.isArray(cfg.order) ? cfg.order.filter(function(k){ return DASH_PANEL_ORDER.indexOf(k)>=0; }) : [];
+  DASH_PANEL_ORDER.forEach(function(k){ if(ord.indexOf(k)<0) ord.push(k); });
+  cfg.order = ord;
+  return cfg;
+}
+
+// 依設定的順序重排 #dash-panels 內的面板區塊
+function applyDashOrder(){
+  var box = document.getElementById('dash-panels'); if(!box) return;
+  var cfg = getDashConfig();
+  cfg.order.forEach(function(k){
+    var el = box.querySelector('[data-panel="'+k+'"]');
+    if(el) box.appendChild(el); // 依序搬到尾端 → 最終即為 order 的順序
   });
 }
 
 function applyDashPanels() {
   var cfg = getDashConfig();
-  // 利用現有的內部 ID，反向尋找外層的深色面板並控制顯示
-  var pMap = {
-    pacing: document.getElementById('c-week'),
-    stats: document.getElementById('dash-stats'),
-    cf: document.getElementById('dash-cf'),
-    month: document.getElementById('c-month'),
-    pie: document.getElementById('c-pie'),
-    estacc: document.getElementById('est-acc-body'),
-    timeline: document.getElementById('dl-timeline')
-  };
-  
-  Object.keys(pMap).forEach(function(k) {
-    var el = pMap[k];
-    if (el) {
-      var panel = el.closest('.bg-slate-900');
-      if (panel) panel.style.display = cfg[k] === false ? 'none' : '';
+  // 每個可排序面板都是 [data-panel] 包裝層，直接控制其顯示
+  DASH_PANEL_ORDER.forEach(function(k){
+    var wrap = document.querySelector('[data-panel="'+k+'"]');
+    if(wrap){
+      var show = (k==='busy') ? (cfg.busy===true) : (cfg[k]!==false);
+      wrap.style.display = show ? '' : 'none';
     }
   });
-
-  // 忙碌公告：預設關閉，僅在明確勾選 (=== true) 時顯示
-  var bw = document.getElementById('busy-panel-wrap');
-  if (bw) {
-    var showBusy = cfg.busy === true;
-    bw.style.display = showBusy ? '' : 'none';
-    if (showBusy) renderBusy();
-  }
+  // 忙碌公告顯示時才渲染
+  if(cfg.busy===true) renderBusy();
+  // 即時配速（置頂、不在可排序區）
+  var weekEl = document.getElementById('c-week');
+  if(weekEl){ var wp = weekEl.closest('.bg-slate-900'); if(wp) wp.style.display = cfg.pacing===false ? 'none' : ''; }
+  // 套用排序
+  applyDashOrder();
 }
 
 function openDashSettings() {
   var cfg = getDashConfig();
-  var html = '<div class="flex flex-col gap-3">' +
-    '<p class="text-xs text-slate-500 mb-2">勾選想在「分析匯出」頁面顯示的面板，設定將儲存於此瀏覽器：</p>' +
-    '<label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white"><input type="checkbox" id="dc-pacing" class="accent-blue-500 w-4 h-4" '+(cfg.pacing!==false?'checked':'')+'> ⚡ 即時配速與本週工時</label>' +
-    '<label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white"><input type="checkbox" id="dc-stats" class="accent-blue-500 w-4 h-4" '+(cfg.stats!==false?'checked':'')+'> 📊 產值與效率</label>' +
-    '<label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white"><input type="checkbox" id="dc-cf" class="accent-blue-500 w-4 h-4" '+(cfg.cf!==false?'checked':'')+'> 💰 現金流與獲利</label>' +
-    '<label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white"><input type="checkbox" id="dc-month" class="accent-blue-500 w-4 h-4" '+(cfg.month!==false?'checked':'')+'> 📈 月度每日工時 (長條圖)</label>' +
-    '<label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white"><input type="checkbox" id="dc-pie" class="accent-blue-500 w-4 h-4" '+(cfg.pie!==false?'checked':'')+'> 🍩 專案時間分佈 (圓餅圖)</label>' +
-    '<label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white"><input type="checkbox" id="dc-estacc" class="accent-blue-500 w-4 h-4" '+(cfg.estacc!==false?'checked':'')+'> 🎯 估時準確度</label>' +
-    '<label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white"><input type="checkbox" id="dc-timeline" class="accent-blue-500 w-4 h-4" '+(cfg.timeline!==false?'checked':'')+'> 📝 每日工時紀錄列表</label>' +
-    '<label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white"><input type="checkbox" id="dc-busy" class="accent-blue-500 w-4 h-4" '+(cfg.busy===true?'checked':'')+'> 📣 忙碌公告（對外排單狀態）</label>' +
-  '</div>';
-  
-  openModal('👁️ 隱藏/顯示面板', html, function() {
-    var newCfg = {
-      pacing: document.getElementById('dc-pacing').checked,
-      stats: document.getElementById('dc-stats').checked,
-      cf: document.getElementById('dc-cf').checked,
-      month: document.getElementById('dc-month').checked,
-      pie: document.getElementById('dc-pie').checked,
-      estacc: document.getElementById('dc-estacc').checked,
-      timeline: document.getElementById('dc-timeline').checked,
-      busy: document.getElementById('dc-busy').checked
-    };
+  // 即時配速為置頂固定面板（不參與排序），單獨一個開關
+  var pacingRow = '<label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white bg-slate-950/40 border border-slate-800 rounded-lg px-3 py-2">'
+    + '<input type="checkbox" id="dc-pacing" class="accent-blue-500 w-4 h-4" '+(cfg.pacing!==false?'checked':'')+'> ⚡ 即時配速與本週工時 <span class="text-[10px] text-slate-600 ml-auto">置頂固定</span></label>';
+
+  // 可排序面板清單：依目前順序，每列含拖曳把手＋顯示勾選
+  var rows = cfg.order.map(function(k){
+    var checked = (k==='busy') ? (cfg.busy===true) : (cfg[k]!==false);
+    return '<div class="dash-sort-row flex items-center gap-2 bg-slate-950/40 border border-slate-800 rounded-lg px-2.5 py-2 cursor-default" draggable="true" data-key="'+k+'">'
+      + '<span class="dash-drag-handle text-slate-600 hover:text-slate-300 cursor-grab select-none px-1" title="拖曳調整順序">⠿</span>'
+      + '<label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white flex-1">'
+        + '<input type="checkbox" class="dash-vis accent-blue-500 w-4 h-4" '+(checked?'checked':'')+'> '+DASH_PANEL_LABELS[k]
+      + '</label></div>';
+  }).join('');
+
+  var html = '<div class="flex flex-col gap-3">'
+    + '<p class="text-xs text-slate-500">勾選要顯示的面板；<span class="text-slate-400">拖曳 ⠿ 把手</span>可調整由上到下的排列順序。設定會儲存並同步。</p>'
+    + pacingRow
+    + '<div class="h-px bg-slate-800 my-1"></div>'
+    + '<div id="dash-sort-list" class="flex flex-col gap-2">' + rows + '</div>'
+    + '</div>';
+
+  openModal('👁️ 自訂面板（顯示與排序）', html, function() {
+    var list = document.getElementById('dash-sort-list');
+    var newCfg = { pacing: document.getElementById('dc-pacing').checked };
+    var order = [];
+    if(list){
+      list.querySelectorAll('.dash-sort-row').forEach(function(row){
+        var k = row.getAttribute('data-key');
+        order.push(k);
+        var chk = row.querySelector('.dash-vis');
+        newCfg[k] = !!(chk && chk.checked);
+      });
+    }
+    newCfg.order = order;
+    // 保留非面板設定（忙碌參數等）
+    newCfg.busyInclNoDl = cfg.busyInclNoDl;
+    newCfg.busyWeeks = cfg.busyWeeks;
     localStorage.setItem('ft_dash_cfg', JSON.stringify(newCfg));
     applyDashPanels();
-    
-    save(); // <-- 新增：觸發自動同步
+    save();
   }, '儲存設定');
+
+  // 綁定拖曳排序（modal 注入後）
+  setTimeout(function(){
+    var list = document.getElementById('dash-sort-list');
+    if(!list) return;
+    var dragEl = null;
+    list.querySelectorAll('.dash-sort-row').forEach(function(row){
+      row.addEventListener('dragstart', function(e){ dragEl = row; row.style.opacity='0.4'; try{e.dataTransfer.effectAllowed='move';}catch(_){} });
+      row.addEventListener('dragend', function(){ if(dragEl) dragEl.style.opacity=''; dragEl=null; list.querySelectorAll('.dash-sort-row').forEach(function(r){r.style.borderColor='';}); });
+      row.addEventListener('dragover', function(e){ e.preventDefault();
+        if(!dragEl || dragEl===row) return;
+        var rect = row.getBoundingClientRect();
+        var after = (e.clientY - rect.top) > rect.height/2;
+        if(after) row.parentNode.insertBefore(dragEl, row.nextSibling);
+        else row.parentNode.insertBefore(dragEl, row);
+      });
+    });
+  }, 0);
 }
 function renderDailyTimeline(){
   var mon=document.getElementById('f-month').value;
@@ -7507,6 +7568,27 @@ function go(id,btn){
   document.getElementById(VIEWS[id]).classList.remove('hidden');
   btn.classList.add('active');
   if(id==='dash')renderDash(); if(id==='tag')rTagStats(); if(id==='grp')rGrp(); if(id==='cal'){syncCalModeBtns();renderCal();} if(id==='vendor')rVendors(); if(id==='cat')rTagStats(); if(id==='pay')rPay();
+}
+// 程式化跳分頁（給面板上的快捷鈕用）：自動找到對應的導覽按鈕來套用 active 狀態。
+// 若指定 calMode（'sched'|'cal'|'hist'），切到排程日曆後再切換子模式。
+function goTab(id, calMode){
+  var btn = null;
+  var sel = "go('"+id+"',this)";
+  document.querySelectorAll('.tab-main,.tab-sub').forEach(function(b){
+    var oc = b.getAttribute('onclick')||'';
+    if(oc.indexOf(sel) !== -1) btn = b;
+  });
+  if(btn){ go(id, btn); }
+  else {
+    // 找不到對應按鈕時的後備：直接切換視圖
+    Object.values(VIEWS).forEach(v=>document.getElementById(v).classList.add('hidden'));
+    document.querySelectorAll('.tab-main,.tab-sub').forEach(el=>el.classList.remove('active'));
+    document.getElementById(VIEWS[id]).classList.remove('hidden');
+    if(id==='dash')renderDash(); if(id==='cal'){syncCalModeBtns();renderCal();} if(id==='pay')rPay();
+  }
+  if(id==='cal' && calMode){ setCalMode(calMode); }
+  // 跳轉後捲到頂，避免停在原本捲動位置
+  try{ window.scrollTo({top:0, behavior:'smooth'}); }catch(e){ window.scrollTo(0,0); }
 }
 function toggleCalTracks() {
   var chk = document.getElementById('cal-toggle-tracks');
