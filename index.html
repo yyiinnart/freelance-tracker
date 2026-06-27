@@ -4046,15 +4046,15 @@ function addMS(pid){
   ms.hard=!!(hardEl&&hardEl.checked); // 以單階段為準，未勾選即軟截止
   p.milestones.push(ms);
   p.milestones.sort(function(a,b){return(a.date||'9').localeCompare(b.date||'9');});
-  save();openDetail(pid);
+  save();renderCal();openDetail(pid);
 }
 function delMS(pid,idx){
   var p=pBy(pid);if(!p||!p.milestones)return;
-  p.milestones.splice(idx,1);save();openDetail(pid);
+  p.milestones.splice(idx,1);save();renderCal();openDetail(pid);
 }
 function toggleMS(pid,idx){
   var p=pBy(pid);if(!p||!p.milestones)return;
-  p.milestones[idx].done=!p.milestones[idx].done;save();openDetail(pid);
+  p.milestones[idx].done=!p.milestones[idx].done;save();renderCal();openDetail(pid);
 }
 function editMS(pid,idx,el){
   var p=pBy(pid);if(!p||!p.milestones)return;
@@ -4063,14 +4063,14 @@ function editMS(pid,idx,el){
   if(f==='estHrs')p.milestones[idx].estHrs=(+el.value)||0;
   if(f==='hard')p.milestones[idx].hard=el.checked;
   if(f==='date'){p.milestones[idx].date=el.value;p.milestones.sort(function(a,b){return(a.date||'9').localeCompare(b.date||'9');});}
-  save();openDetail(pid);
+  save();renderCal();openDetail(pid);
 }
 function sumEstFromMS(pid){
   var p=pBy(pid);if(!p)return;
   var msSum=(p.milestones||[]).reduce(function(s,m){return s+(+m.estHrs||0);},0);
   if(msSum<=0)return; // 沒有任何階段工時可加總，不動作
   p.estHrs=Math.round(msSum*100)/100;
-  save();openDetail(pid);
+  save();renderCal();openDetail(pid);
 }
 
 function updateVendorFromDetail(pid, val){
