@@ -3676,6 +3676,7 @@ function quickReopen(id) {
 
 function openDetail(id){
   var p=pBy(id); if(!p) return;
+  CUR_DETAIL=id;
   var cur=p.budgetCur||'TWD';
   var r=projAR(p.id);
   var logs=DLOGS.filter(l=>l.pid===id).sort((a,b)=>b.date.localeCompare(a.date));
@@ -3990,6 +3991,7 @@ ${dayLogs.map(l => `
   }, 0);
 }
 function closeDetail(){
+  CUR_DETAIL=null;
   document.getElementById('detail-panel').classList.remove('open');
   document.getElementById('detail-overlay').classList.remove('open');
 }
@@ -4024,13 +4026,13 @@ function addPayFromDetail(pid, payType){
     var amt=+document.getElementById('dp-amt').value;
     if(!amt)return;
     P.unshift({id:nextNumId(),date:document.getElementById('dp-date').value||today,amt:amt,cur:document.getElementById('dp-cur').value||cur,pid:pid,note:document.getElementById('dp-note').value.trim(),payType:payType});
-    save();rPay();rProj();rGrp();openDetail(pid);
+    save();rerenderActive();
   },'儲存');
 }
 
 function delPayFromDetail(payId, pid){
   P=P.filter(x=>x.id!==payId);
-  save();rPay();rProj();rGrp();openDetail(pid);
+  save();rerenderActive();
 }
 
 function addMS(pid){
@@ -4046,15 +4048,15 @@ function addMS(pid){
   ms.hard=!!(hardEl&&hardEl.checked); // 以單階段為準，未勾選即軟截止
   p.milestones.push(ms);
   p.milestones.sort(function(a,b){return(a.date||'9').localeCompare(b.date||'9');});
-  save();renderCal();openDetail(pid);
+  save();rerenderActive();
 }
 function delMS(pid,idx){
   var p=pBy(pid);if(!p||!p.milestones)return;
-  p.milestones.splice(idx,1);save();renderCal();openDetail(pid);
+  p.milestones.splice(idx,1);save();rerenderActive();
 }
 function toggleMS(pid,idx){
   var p=pBy(pid);if(!p||!p.milestones)return;
-  p.milestones[idx].done=!p.milestones[idx].done;save();renderCal();openDetail(pid);
+  p.milestones[idx].done=!p.milestones[idx].done;save();rerenderActive();
 }
 function editMS(pid,idx,el){
   var p=pBy(pid);if(!p||!p.milestones)return;
@@ -4063,14 +4065,14 @@ function editMS(pid,idx,el){
   if(f==='estHrs')p.milestones[idx].estHrs=(+el.value)||0;
   if(f==='hard')p.milestones[idx].hard=el.checked;
   if(f==='date'){p.milestones[idx].date=el.value;p.milestones.sort(function(a,b){return(a.date||'9').localeCompare(b.date||'9');});}
-  save();renderCal();openDetail(pid);
+  save();rerenderActive();
 }
 function sumEstFromMS(pid){
   var p=pBy(pid);if(!p)return;
   var msSum=(p.milestones||[]).reduce(function(s,m){return s+(+m.estHrs||0);},0);
   if(msSum<=0)return; // 沒有任何階段工時可加總，不動作
   p.estHrs=Math.round(msSum*100)/100;
-  save();renderCal();openDetail(pid);
+  save();rerenderActive();
 }
 
 function updateVendorFromDetail(pid, val){
@@ -4086,7 +4088,7 @@ function updateVendorFromDetail(pid, val){
   } else {
     p.vendorId='';p.vendorName='';
   }
-  save();rProj();rGrp();openDetail(pid);
+  save();rerenderActive();
 }
 
 function onEpVendorChange(sel){
@@ -4104,13 +4106,13 @@ function onEpVendorChange(sel){
 function toggleVendorPaid(pid){
   var p=pBy(pid);if(!p)return;
   p.vendorPaid=!p.vendorPaid;
-  save();rProj();rGrp();openDetail(pid);
+  save();rerenderActive();
 }
 
 function toggleUpstreamReceived(pid){
   var p=pBy(pid);if(!p)return;
   p.upstreamReceived=!p.upstreamReceived;
-  save();rProj();rGrp();openDetail(pid);
+  save();rerenderActive();
 }
 
 function cycleDelivery(pid){
@@ -4118,7 +4120,7 @@ function cycleDelivery(pid){
   var steps=['wip','reviewing','done'];
   var idx=steps.indexOf(p.deliverySt||'wip');
   p.deliverySt=steps[(idx+1)%steps.length];
-  save();rProj();rGrp();openDetail(pid);
+  save();rerenderActive();
 }
 
 function tagDayPhase(pid, date){
@@ -4244,8 +4246,7 @@ function addLogManual(pid){
     });
     
     syncProjectHrs(pid);
-    save(); rProj(); rGrp(); rPay();
-    openDetail(pid);
+    save(); rerenderActive();
   }, '儲存');
 }
 
@@ -4273,8 +4274,7 @@ function editLog(logId,pid){
     if(msEl) log.ms = msEl.value || null;
     
     syncProjectHrs(pid);
-    save();rProj();rGrp();rPay();
-    openDetail(pid);
+    save();rerenderActive();
   },'儲存');
 }
 
@@ -4283,8 +4283,7 @@ function delLog(logId,pid){
   if(!log)return;
   DLOGS=DLOGS.filter(l=>l.id!==logId);
   syncProjectHrs(pid);
-  save();rProj();rGrp();rPay();
-  openDetail(pid);
+  save();rerenderActive();
 }
 function compressLogs(pid) {
   var logs = DLOGS.filter(l => l.pid === pid);
@@ -7224,6 +7223,25 @@ function renderCal(){
   else renderCalGrid();
 }
 
+// ── 統一重繪：只刷新「目前可見的主分頁」＋永遠連動的輕量項（提醒條、開著的詳情）。
+// 資料 mutator 改呼叫此函式，即可免去逐個列舉 render*，避免「改了資料忘記刷新某分頁」的 bug。
+// 注意：syncSel()、清表單、拖拽變數重置、refreshPhaseDatalist() 等特殊副作用，仍由各自函式自行處理，本函式只負責「畫面重繪」。
+function rerenderActive(){
+  // 哪個主分頁可見就只重繪它（其餘分頁等切過去時 go() 會自然重繪）
+  if(!document.getElementById('v-proj').classList.contains('hidden')) rProj();
+  if(!document.getElementById('v-pay').classList.contains('hidden')) rPay();
+  if(!document.getElementById('v-cal').classList.contains('hidden')) renderCal();
+  if(!document.getElementById('v-dash').classList.contains('hidden')) renderDash();
+  if(!document.getElementById('v-grp').classList.contains('hidden')) rGrp();
+  if(!document.getElementById('v-vendor').classList.contains('hidden')) rVendors();
+  if(!document.getElementById('v-tag').classList.contains('hidden')) rTagStats();
+  if(!document.getElementById('v-cat').classList.contains('hidden')) rCats();
+  // 永遠連動的輕量項
+  renderRemToday();
+  // 詳情面板若開著，連帶重繪以反映最新資料
+  if(CUR_DETAIL != null && document.getElementById('detail-panel').classList.contains('open')) openDetail(CUR_DETAIL);
+}
+
 var SCHED_WHATIF = null; // 接新案試算狀態（僅存在記憶體，重新整理即清空）
 function wiStageRowHTML(){
   return '<div class="wi-stage-row flex flex-wrap items-end gap-2 bg-slate-950/40 border border-slate-800/60 rounded-lg px-2.5 py-2">'
@@ -7669,6 +7687,7 @@ function renderSched(){
 }
 
 var VIEWS={proj:'v-proj',pay:'v-pay',cal:'v-cal',grp:'v-grp',vendor:'v-vendor',tag:'v-tag',cat:'v-cat',dash:'v-dash',cfg:'v-cfg',sync:'v-sync',help:'v-help'};
+var CUR_DETAIL=null; // 目前開啟的任務詳情 pid；供 rerenderActive 連動重繪用
 function go(id,btn){
   Object.values(VIEWS).forEach(v=>document.getElementById(v).classList.add('hidden'));
   document.querySelectorAll('.tab-main,.tab-sub').forEach(el=>el.classList.remove('active'));
