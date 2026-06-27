@@ -5349,9 +5349,6 @@ function renderEstAcc(){
         + '<div class="text-[10px] text-slate-600 px-1 mb-1">提示：「尚無實際」代表這個階段還沒登工時（正常）；實際工時僅統計已標記階段的紀錄，未標記者不計入此表，但仍計入上方任務層級偏差。</div>'
         + (anyWarn ? '<div class="text-[10px] text-amber-500/70 px-1 mb-4">標 ⚠ 的階段疑似與另一個名稱是同一階段（命名不一致被拆成兩列），點名稱可查出處，或用下方合併區處理。</div>' : '<div class="mb-4"></div>');
     }
-    // ---- 疑似重複階段名（命名不一致偵測 + 批次合併）----
-    html += '<div id="dup-phase-panel"></div>';
-
     // ---- 已完成明細表（近 15 件） ----
     var rows = done.slice().sort(function(a,b){ return (b.edate||'').localeCompare(a.edate||''); }).slice(0,15).map(function(p){
       var dev = (p.hrs - p.estHrs) / p.estHrs;
@@ -5383,6 +5380,8 @@ function renderEstAcc(){
           + '</div>';
       }).join('');
   }
+  // ---- 疑似重複階段名面板（命名不一致偵測 + 批次合併）：放在報表層級，不受有無已結案影響 ----
+  html += '<div id="dup-phase-panel"></div>';
   el.innerHTML = html;
   renderDupPhasePanel();
 }
@@ -5406,7 +5405,13 @@ function renderDupPhasePanel(){
     return;
   }
   var groups = detectSimilarPhases();
-  if(!groups.length){ box.innerHTML = ''; return; }
+  if(!groups.length){
+    box.innerHTML = '<div class="flex items-center gap-2 mb-4 px-1 mt-2">'
+      + '<span class="text-[10px] text-emerald-500/70">✓ 目前沒有偵測到疑似重複的階段名</span>'
+      + '<button type="button" class="text-[10px] text-slate-500 hover:text-slate-300 underline decoration-dotted" onclick="rescanDupPhases()" title="依目前資料重新偵測">重新掃描</button>'
+      + '</div>';
+    return;
+  }
 
   // 清掉已不存在於本次掃描的舊選擇
   var liveSigs = {}; groups.forEach(function(g){ liveSigs[dupGroupSig(g)] = 1; });
