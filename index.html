@@ -1014,6 +1014,7 @@ tbody tr[onclick]:hover td{background:#131f2e;}
       <div class="flex gap-2 items-center">
         <button class="btn btn-sm bg-transparent border-slate-700 text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-colors" onclick="openDashSettings()">自訂面板</button>
         <button class="btn btn-sm bg-transparent border-slate-700 text-slate-500 hover:text-blue-400 hover:bg-slate-800 transition-colors" id="copy-btn" onclick="doExport()">📋 AI近況分析</button>
+        <button class="btn btn-sm bg-transparent border-slate-700 text-slate-500 hover:text-blue-400 hover:bg-slate-800 transition-colors" id="ai-note-btn" onclick="editAINote()" title="編輯複製到 AI 分析開頭的客製化備註">✏️ 分析備註</button>
       </div>
     </div>
 
@@ -1908,7 +1909,8 @@ function cloudSave(){
     show_tracks: localStorage.getItem('ft_show_tracks'),
     show_hints: localStorage.getItem('ft_show_hints'),
     dash_cfg: localStorage.getItem('ft_dash_cfg'),
-    unify_cur: localStorage.getItem('ft_unify_cur')
+    unify_cur: localStorage.getItem('ft_unify_cur'),
+    ai_note: localStorage.getItem('ft_ai_note')
   };
   
   // 2. 加入 VACS (休假) 與 CFG (設定) 到上傳名單
@@ -1946,7 +1948,7 @@ function cloudLoad(){
         
         // 2. 讀取並覆寫本地端設定檔
         if(cd.CFG) {
-          ['wmode','trate','dl_crit','wtarget','track_limit','show_tracks','show_hints','dash_cfg','unify_cur'].forEach(k=>{
+          ['wmode','trate','dl_crit','wtarget','track_limit','show_tracks','show_hints','dash_cfg','unify_cur','ai_note'].forEach(k=>{
             if(cd.CFG[k]) localStorage.setItem('ft_'+k, cd.CFG[k]);
           });
         }
@@ -2044,7 +2046,8 @@ function cloudSaveBeacon(){
     show_tracks: localStorage.getItem('ft_show_tracks'),
     show_hints: localStorage.getItem('ft_show_hints'),
     dash_cfg: localStorage.getItem('ft_dash_cfg'),
-    unify_cur: localStorage.getItem('ft_unify_cur')
+    unify_cur: localStorage.getItem('ft_unify_cur'),
+    ai_note: localStorage.getItem('ft_ai_note')
   };
   var payload = {version:8, at:new Date().toISOString(),
     P:P, PJ:PJ, CATS:CATS, TAGS:TAGS, GRPS:GRPS,
@@ -6258,32 +6261,101 @@ function buildExport(){
 
   // 4. 組裝詳細報告 (專供 AI 分析用)
   var report = `# 近 3 個月接案與健康度分析資料 (${cutoffStr} ~ ${now})\n\n`;
+  report += `> 分析須知：\n`;
+  report += `> 1. 工時可能因主動排休、淡旺季或案量自然起伏而波動，低工時不必然代表接不到案。\n`;
+  report += `> 2. 「實收帳款」與「本期工時」時間錯位，多筆款項對應更早期專案，不可直接相除推算時薪。\n`;
+  report += `> 3. 零工時的進行中專案可能為子資產、待命或外包，請勿一律視為失控停滯。\n`;
+  report += `> 4. 本工具僅記錄接案相關工時，不含技術學習、投資研究等其他活動。\n`;
+  var userNote = (localStorage.getItem('ft_ai_note') || '').trim();
+  if(userNote){
+    report += `>\n> 使用者補充備註：\n`;
+    userNote.split('\n').forEach(function(line){ report += `> ${line}\n`; });
+  }
+  report += `\n`;
   report += `## 1. 期間整體產出與金流\n`;
   report += `- 總計費工時: ${formatHrs(periodHrs)}\n`;
   if(periodOtherHrs > 0) report += `- 總不計酬工時 (內耗或投資): ${formatHrs(periodOtherHrs)}\n`;
   report += `- 期間實收帳款: ${formatMultiCurMap(periodIncomes, true) || '0'}\n`;
+  report += `  (註：實收為期間內到帳金額，多對應更早期專案，請勿與本期工時直接相除算時薪)\n`;
   report += `- 期間發包支出: ${formatMultiCurMap(periodExpenses, true) || '0'}\n\n`;
 
   report += `## 2. 期間每週工時分佈 (過勞/閒置指標)\n`;
+  report += `(連續呈現每一週；零工時週也保留，並標注休假天數，以分辨「真閒置」或「排休」)\n`;
+  // 先把工時依「週一」彙整
   var weekAgg = {};
   recentLogs.forEach(l => {
       var dt = new Date(l.date + 'T00:00:00');
       var day = dt.getDay();
       var diff = (day === 0 ? -6 : 1 - day);
       var mon = new Date(dt); mon.setDate(dt.getDate() + diff);
-      var wkKey = mon.getFullYear() + '-' + ('0'+(mon.getMonth()+1)).slice(-2) + '-' + ('0'+mon.getDate()).slice(-2);
+      var wkKey = toLocalDate(mon);
       if(!weekAgg[wkKey]) weekAgg[wkKey] = 0;
       weekAgg[wkKey] += l.hrs;
   });
-  var sortedWeeks = Object.keys(weekAgg).sort();
-  if(sortedWeeks.length) {
-      sortedWeeks.forEach(wk => { report += `- 該週 (${wk} 起): ${formatHrs(weekAgg[wk])}\n`; });
-  } else {
-      report += `- 近期無工時紀錄\n`;
+  // 用 cutoff ~ 今天的範圍，產出「連續」的每週清單(含零工時週)
+  function mondayOf(dStr){
+    var dt = new Date(dStr + 'T00:00:00');
+    var day = dt.getDay();
+    var diff = (day === 0 ? -6 : 1 - day);
+    dt.setDate(dt.getDate() + diff);
+    return dt;
+  }
+  var wkCursor = mondayOf(cutoffStr);
+  var wkEnd = mondayOf(now);
+  var anyWeek = false;
+  var totWorkDays = 0, totOffDays = 0;
+  while(wkCursor <= wkEnd){
+    var wk = toLocalDate(wkCursor);
+    var offDays = 0, workDays = 0;
+    for(var i=0;i<7;i++){
+      var dd = new Date(wkCursor); dd.setDate(wkCursor.getDate()+i);
+      var ds = toLocalDate(dd);
+      if(ds < cutoffStr || ds > now){ // 只算落在分析窗內的日子
+        continue;
+      }
+      if(isDayOff(ds, dd.getDay())) offDays++; else workDays++;
+    }
+    totWorkDays += workDays; totOffDays += offDays;
+    var hrs = weekAgg[wk] || 0;
+    var flag = '';
+    if(hrs === 0 && workDays > 0) flag = '　← 整週無工時(上班日卻零產出)';
+    else if(hrs === 0 && workDays === 0) flag = '　← 整週排休';
+    report += `- 該週 (${wk} 起): ${formatHrs(hrs)}　[上班 ${workDays} 天 / 休假 ${offDays} 天]${flag}\n`;
+    anyWeek = true;
+    wkCursor.setDate(wkCursor.getDate()+7);
+  }
+  if(!anyWeek) report += `- 近期無工時紀錄\n`;
+  report += `\n`;
+
+  // 休假與作息總覽
+  report += `## 3. 休假與作息總覽 (恢復/過勞判斷)\n`;
+  var vacInPeriod = (VACS||[]).filter(v => v >= cutoffStr && v <= now).sort();
+  var workWkndInPeriod = (WORKDAYS||[]).filter(v => v >= cutoffStr && v <= now).sort();
+  report += `- 期間累計上班日: ${totWorkDays} 天 / 休假日: ${totOffDays} 天\n`;
+  report += `- 主動標記休假(平日請假): ${vacInPeriod.length} 天\n`;
+  report += `- 加班週末(取消休假改排工): ${workWkndInPeriod.length} 天\n`;
+  // 最長連續休假
+  var maxStreak = 0, curStreak = 0, prev = null;
+  vacInPeriod.forEach(v => {
+    if(prev){
+      var diff = (new Date(v+'T00:00:00') - new Date(prev+'T00:00:00')) / 86400000;
+      curStreak = (diff === 1) ? curStreak + 1 : 1;
+    } else { curStreak = 1; }
+    if(curStreak > maxStreak) maxStreak = curStreak;
+    prev = v;
+  });
+  if(maxStreak) report += `- 最長連續休假: ${maxStreak} 天\n`;
+  if(workWkndInPeriod.length >= 4) report += `- ⚠️ 加班週末偏多 (${workWkndInPeriod.length} 天)，留意過勞\n`;
+  // 計費 vs 不計費工時佔比
+  var totalLoggedHrs = periodHrs + periodOtherHrs;
+  if(totalLoggedHrs > 0){
+    var nbPct = Math.round(periodOtherHrs / totalLoggedHrs * 100);
+    report += `- 工時結構: 計費 ${formatHrs(periodHrs)} / 不計酬 ${formatHrs(periodOtherHrs)} (不計酬佔 ${nbPct}%)\n`;
+    report += `  (註：此處不計酬僅含已登錄於本工具的內部工時，不代表全部技術學習投入)\n`;
   }
   report += `\n`;
 
-  report += `## 3. 期間活躍專案明細 (共 ${periodProjects.length} 案)\n`;
+  report += `## 4. 期間活躍專案明細 (共 ${periodProjects.length} 案)\n`;
   periodProjects.forEach(p => {
     var pLogs = recentLogs.filter(l => l.pid === p.id);
     var pHrsInPeriod = pLogs.reduce((s,l) => s + l.hrs, 0);
@@ -6301,6 +6373,24 @@ function buildExport(){
     var tagInfo = tNames ? ` | 標籤: ${tNames}` : '';
 
     report += `### ${stTxt} ${p.name}${execTxt} [類型: ${cName}${tagInfo}]\n`;
+    // 近三月進度判斷：是否有工時、最後一次記錄日、是否停滯
+    var lastLogDate = pLogs.length ? pLogs.map(l=>l.date).sort().slice(-1)[0] : null;
+    if(p.st === 'active'){
+      if(pHrsInPeriod === 0){
+        report += `- 🔴 進度: 近3月零工時 (停滯，仍掛進行中)\n`;
+      } else {
+        var daysSince = lastLogDate ? Math.round((new Date(now+'T00:00:00') - new Date(lastLogDate+'T00:00:00'))/86400000) : null;
+        if(daysSince !== null && daysSince >= 21){
+          report += `- 🟡 進度: 最後記錄 ${lastLogDate} (停擺約 ${daysSince} 天)\n`;
+        } else {
+          report += `- 🟢 進度: 持續推進中 (最後記錄 ${lastLogDate})\n`;
+        }
+      }
+    } else if(p.st === 'paused'){
+      report += `- ⏸️ 狀態: 待命中 (主動暫停，非異常停滯)\n`;
+    } else if(lastLogDate){
+      report += `- 進度: 最後記錄 ${lastLogDate}\n`;
+    }
     report += `- 近3月投入工時: ${formatHrs(pHrsInPeriod)} (專案歷史總累計: ${formatHrs(p.hrs||0)})\n`;
     if(!p.nonBillable) {
       report += `- 專案總應收: ${r.earned || r.expected || p.budget || 0} ${cur}\n`;
@@ -6335,7 +6425,26 @@ function doExport(){
   }
 }
 
-/* ===================== 忙碌公告面板 ===================== */
+/* ===== AI 分析客製化備註 ===== */
+// 讓使用者寫入個人化脈絡（如休整期、特殊接案策略），會自動附加到 AI 近況分析開頭一起複製
+function editAINote(){
+  var cur = localStorage.getItem('ft_ai_note') || '';
+  var body = '<div>'+
+    '<p class="text-xs text-slate-500 mb-2">這段備註會自動接在「AI近況分析」的<span class="text-slate-300 font-semibold">分析須知</span>後面一起複製出去，用來補充只有你自己知道的脈絡，讓 AI 不會誤判。每行一條，留空則不附加。</p>'+
+    '<p class="text-[11px] text-slate-600 mb-2">範例：近期低工時是配合進修／家庭因素的刻意安排。／某系列專案為同一客戶的子項目，分開掛載屬正常。／部分款項為舊案尾款，與本期產出無關。</p>'+
+    '<textarea id="ai-note-input" class="inp w-full" rows="5" placeholder="一行一條補充說明…">'+cur.replace(/</g,'&lt;')+'</textarea>'+
+    '</div>';
+  openModal('✏️ AI 分析客製化備註', body, function(){
+    var v = document.getElementById('ai-note-input').value;
+    if(v && v.trim()){ localStorage.setItem('ft_ai_note', v.trim()); }
+    else { localStorage.removeItem('ft_ai_note'); }
+    save();
+    showToast('✅ 備註已儲存，下次複製分析時會一併帶入', 'green');
+  }, '儲存');
+  setTimeout(function(){var el=document.getElementById('ai-note-input');if(el){el.focus();}},50);
+}
+
+
 // 燈號門檻：忙碌比 = 接龍消化所需週數 / 展望週數（≥1 表示工作量已塞滿展望期）
 function busyLight(ratio){
   if(ratio>=1)    return {emoji:'🔴', label:'已滿載',   color:'#fb7185', cls:'rose'};
