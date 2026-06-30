@@ -717,6 +717,24 @@ tbody tr[onclick]:hover td{background:#131f2e;}
       <button id="cal-mode-cal" class="tab-sub" onclick="setCalMode('cal')">📅 截止日月曆</button>
       <button id="cal-mode-hist" class="tab-sub" onclick="setCalMode('hist')">🔍 工時回顧</button>
     </div>
+    <div id="cal-newcase-top" class="mb-4" style="display:none;">
+      <button id="sched-newcase-btn" class="btn btn-solid w-full sm:w-auto" onclick="toggleSchedNewcase()" title="客戶來問檔期時，填入條件即時試排">＋ 試算新案檔期</button>
+      <div id="sched-newcase-body" class="bg-slate-900/60 border border-slate-800 rounded-xl p-3.5 mt-2" style="display:none;">
+        <div class="text-[11px] font-semibold text-slate-400 mb-1">🆕 接新案試算 <span class="font-normal text-slate-600">— 填入條件即時試排</span></div>
+        <div class="text-[10px] text-slate-600 mb-2.5">可拆多階段（廠商給的各階段期望日），每階段可分別標記硬截止；試算 OK 後可一鍵代入建立任務</div>
+        <div class="flex flex-wrap items-end gap-2 mb-2">
+          <div class="flex flex-col gap-1"><label class="text-[10px] text-slate-600">名稱（選填）</label><input type="text" id="wi-name" class="inp py-1.5 text-xs w-36" placeholder="新案試算"></div>
+          <div class="flex flex-col gap-1"><label class="text-[10px] text-slate-600">最早開工（選填）</label><input type="date" id="wi-sd" class="inp py-1.5 text-xs w-36"></div>
+        </div>
+        <div id="wi-stages" class="flex flex-col gap-1.5 mb-2"></div>
+        <div class="flex items-center gap-2">
+          <button class="btn btn-sm" onclick="wiAddStage()">+ 加一階段</button>
+          <button class="btn btn-sm btn-solid" onclick="runWhatIf()">試算</button>
+          <button class="btn btn-sm" id="wi-clear" style="display:none;" onclick="clearWhatIf()">清除試算</button>
+        </div>
+        <div id="wi-result" class="mt-2.5" style="display:none;"></div>
+      </div>
+    </div>
     <div class="flex items-center justify-between mb-4">
       <button class="btn btn-sm hover:bg-slate-800" onclick="calNav(-1)">◀ 上月</button>
       <div class="flex items-center gap-2">
@@ -760,7 +778,7 @@ tbody tr[onclick]:hover td{background:#131f2e;}
       </div>
     </div>
     <div id="cal-toolbar-sched" class="mb-4" style="display:none;">
-      <!-- 頂列：圖例 + 兩個輕量入口（＋試算新案、⚙產能設定）-->
+      <!-- 頂列：圖例 + ⚙產能設定（＋試算新案已移至頁籤最上方，常駐顯眼位置）-->
       <div class="flex items-center justify-between flex-wrap gap-2 mb-3">
         <div class="flex items-center gap-3 text-[10px] text-slate-600">
           <span class="text-rose-400">●</span><span>硬截止</span>
@@ -770,7 +788,6 @@ tbody tr[onclick]:hover td{background:#131f2e;}
           <span>反灰＝週末／休假（不排工）</span>
         </div>
         <div class="flex items-center gap-2">
-          <button id="sched-newcase-btn" class="btn btn-sm" onclick="toggleSchedNewcase()" title="客戶來問檔期時，填入條件即時試排">＋ 試算新案檔期</button>
           <button id="sched-gear-btn" class="btn btn-sm px-2" onclick="toggleSchedGear()" title="每日產能與趕工加班設定">⚙</button>
         </div>
       </div>
@@ -789,23 +806,6 @@ tbody tr[onclick]:hover td{background:#131f2e;}
           試算列表預設展開：餘裕 ≤ <input type="number" id="sched-attn-thresh" class="bg-slate-800 border border-slate-700 rounded px-1 py-0.5 w-12 text-center outline-none hover:border-slate-500 text-slate-300" min="0" max="30" step="1" onchange="saveAttnThresh(this.value)"> 工作天的任務
           <span class="text-slate-600 text-[10px]">（含來不及；其餘從容任務自動摺疊）</span>
         </label>
-      </div>
-
-      <!-- ＋ 接新案試算：預設收合，點按鈕滑出 -->
-      <div id="sched-newcase-body" class="bg-slate-900/60 border border-slate-800 rounded-xl p-3.5 mb-4" style="display:none;">
-        <div class="text-[11px] font-semibold text-slate-400 mb-1">🆕 接新案試算 <span class="font-normal text-slate-600">— 填入條件即時試排</span></div>
-        <div class="text-[10px] text-slate-600 mb-2.5">可拆多階段（廠商給的各階段期望日），每階段可分別標記硬截止；試算 OK 後可一鍵代入建立任務</div>
-        <div class="flex flex-wrap items-end gap-2 mb-2">
-          <div class="flex flex-col gap-1"><label class="text-[10px] text-slate-600">名稱（選填）</label><input type="text" id="wi-name" class="inp py-1.5 text-xs w-36" placeholder="新案試算"></div>
-          <div class="flex flex-col gap-1"><label class="text-[10px] text-slate-600">最早開工（選填）</label><input type="date" id="wi-sd" class="inp py-1.5 text-xs w-36"></div>
-        </div>
-        <div id="wi-stages" class="flex flex-col gap-1.5 mb-2"></div>
-        <div class="flex items-center gap-2">
-          <button class="btn btn-sm" onclick="wiAddStage()">+ 加一階段</button>
-          <button class="btn btn-sm btn-solid" onclick="runWhatIf()">試算</button>
-          <button class="btn btn-sm" id="wi-clear" style="display:none;" onclick="clearWhatIf()">清除試算</button>
-        </div>
-        <div id="wi-result" class="mt-2.5" style="display:none;"></div>
       </div>
 
       <!-- 📋 試算列表：常用，預設可見 -->
@@ -7307,6 +7307,7 @@ function syncCalModeBtns(){
     var tb=document.getElementById('cal-toolbar-'+k); if(tb) tb.style.display = on ? '' : 'none';
     var hb=document.getElementById('cal-hint-'+k); if(hb) hb.style.display = on ? '' : 'none';
   });
+  var nc=document.getElementById('cal-newcase-top'); if(nc) nc.style.display = (calViewMode==='sched') ? '' : 'none';
 }
 function setCalMode(m){
   calViewMode = m;
