@@ -6748,14 +6748,34 @@ function renderCalGrid(){
   var gridStart=cells[0].str, gridEnd=cells[41].str;
   var tasks=PJ.filter(function(p){
     if(p.st==='paused')return false;
-    if(!p.sdate&&!p.edate)return false;
-    var s=p.sdate||p.edate, e=p.edate||p.sdate;
-    if(!(s<=gridEnd&&e>=gridStart))return false;
+    
+    // 收集該專案所有存在的日期（包含起訖與所有階段）
+    var dates = [];
+    if(p.sdate) dates.push(p.sdate);
+    if(p.edate) dates.push(p.edate);
+    if(p.milestones && p.milestones.length) {
+        p.milestones.forEach(function(m) {
+            if(m.date) dates.push(m.date);
+        });
+    }
+    
+    // 若專案母體與子階段完全沒有任何日期，才將其排除
+    if(dates.length === 0) return false;
+    
+    // 將收集到的日期排序，定義出該專案真正的時間跨度 (最早 s 到最晚 e)
+    dates.sort();
+    var s = dates[0];
+    var e = dates[dates.length - 1];
+    
+    // 檢查專案的時間跨度是否落在當前月曆的範圍內
+    if(!(s<=gridEnd && e>=gridStart)) return false;
+    
     var calFilter=(document.getElementById('cal-exec-filter')||{}).value||'all';
     if(calFilter==='self') return !p.execMode||p.execMode==='self';
     if(calFilter==='delegated') return p.execMode==='outsource'||p.execMode==='resell';
     return true;
   });
+  
   var trackColors=['#3b82f6','#8b5cf6','#06b6d4','#f59e0b','#ec4899','#10b981','#f97316','#6366f1'];
       var taskColorMap={};
       // 利用專案 ID 進行餘數運算，讓每個案子獲得一個隨機但「永久固定」的專屬色
