@@ -7580,7 +7580,11 @@ function schedUnitRate(pid, extra){
   var p = pBy(pid);
   if(!p || p.nonBillable) return 0;
   if(p.bill === 'hourly') return (p.hrate||0) > 0 ? toTWD(p.hrate, p.budgetCur||'TWD') : 0;
-  if((p.budget||0) > 0 && (p.estHrs||0) > 0) return toTWD(p.budget, p.budgetCur||'TWD') / p.estHrs;
+  if((p.budget||0) > 0){
+    // 分母優先用總預估工時；沒填預估（多為已結案任務）退而用實際總工時
+    var base = (p.estHrs||0) > 0 ? p.estHrs : (p.hrs||0);
+    if(base > 0) return toTWD(p.budget, p.budgetCur||'TWD') / base;
+  }
   return 0;
 }
 function computeSchedStats(R, extra){
@@ -7950,7 +7954,10 @@ function renderSched(){
     var hasUnits = R.units.length > 0;
     // 進行中的外包/轉包（不佔工時、不參與排程，毛利另計）
     var osTasks = PJ.filter(function(p){ return p.st==='active' && p.execMode && p.execMode!=='self' && !p.nonBillable; });
-    if(!hasUnits && !osTasks.length){
+    // 本月有工時紀錄：即使案子全結完、無排程，也保留面板顯示「已投入」的產值
+    var _ymChk = toLocalDate().slice(0,7);
+    var hasInvNow = DLOGS.some(function(l){ return (l.date||'').slice(0,7) === _ymChk; });
+    if(!hasUnits && !osTasks.length && !hasInvNow){
       stEl.innerHTML = '';
     } else {
       var S = computeSchedStats(R, SCHED_WHATIF);
@@ -7965,11 +7972,41 @@ function renderSched(){
       var ymNow = toLocalDate().slice(0,7);
       var ymNext = toLocalDate(new Date(_t.getFullYear(), _t.getMonth()+1, 1)).slice(0,7);
       function mLab(ym){ return parseInt(ym.slice(5,7),10) + '月'; }
+
+      // ---- 本月已投入產值：依工時紀錄歸屬當月，與剩餘排定同一套等效時薪 ----
+      // 計件/計價制設瀑布式上限：本月可計價工時 = min(本月工時, 總預估 − 前期累計工時)，
+      // 超出預估的趕工時數產值以 0 計，避免灌爆合約額（與排程引擎扣抵邏輯一致）。
+      var invByPid = {};
+      DLOGS.forEach(function(l){
+        var ym = (l.date||'').slice(0,7);
+        if(!ym || ym > ymNow) return;
+        var o = invByPid[l.pid];
+        if(!o){ o = invByPid[l.pid] = {pid:l.pid, cur:0, prev:0}; }
+        if(ym === ymNow) o.cur += l.hrs; else o.prev += l.hrs;
+      });
+      var doneRevNow = 0, doneHrsNow = 0;
+      Object.keys(invByPid).forEach(function(k){
+        var o = invByPid[k];
+        if(o.cur <= 0) return;
+        var p = pBy(o.pid); if(!p) return;
+        if(p.execMode && p.execMode !== 'self') return; // 外包/轉包：毛利另計，工時不列
+        doneHrsNow += o.cur;
+        if(p.nonBillable) return; // 無償：計時數不計產值
+        var rate = schedUnitRate(o.pid, null);
+        if(rate <= 0) return;
+        var credit = o.cur;
+        if(p.bill !== 'hourly'){
+          var estBase = (p.estHrs||0) > 0 ? p.estHrs : (p.hrs||0);
+          credit = Math.max(0, Math.min(o.cur, estBase - o.prev));
+        }
+        doneRevNow += credit * rate;
+      });
+
       var cards = [];
-      // 1) 本月剩餘預估產值
+      // 1) 本月合計 = 已投入 + 剩餘排定（月中結案的產值移到「已投入」，合計不縮水）
       var rNow = revOf(S, ymNow), rNow0 = S0 ? revOf(S0, ymNow) : 0;
-      cards.push({l:'本月（'+mLab(ymNow)+'）剩餘預估', v:fmtNT(rNow)+dMoney(rNow-rNow0),
-        sub:'排定 '+formatHrs((S.byMonth[ymNow]||{}).hrs||0)+' · 已完成工時的產值不計入'});
+      cards.push({l:'本月（'+mLab(ymNow)+'）預估合計', v:fmtNT(doneRevNow + rNow)+dMoney(rNow-rNow0),
+        sub:'已投入 '+fmtNT(doneRevNow)+'（'+formatHrs(doneHrsNow)+'）＋ 剩餘排定 '+fmtNT(rNow)+'（'+formatHrs((S.byMonth[ymNow]||{}).hrs||0)+'）'});
       // 2) 下月預估產值
       var rNx = revOf(S, ymNext), rNx0 = S0 ? revOf(S0, ymNext) : 0;
       cards.push({l:'下月（'+mLab(ymNext)+'）預估', v:fmtNT(rNx)+dMoney(rNx-rNx0),
@@ -8009,7 +8046,7 @@ function renderSched(){
 
       var html2 = '<div class="flex items-center justify-between flex-wrap gap-2 mt-4 mb-2">'
         + '<div class="text-[11px] font-semibold text-slate-400">📊 排程統計</div>'
-        + '<div class="text-[10px] text-slate-600">口徑：剩餘排定工時 × 等效時薪（計件＝合約額 ÷ 總預估工時），一律換算 TWD'
+        + '<div class="text-[10px] text-slate-600">口徑：已投入＝本月工時紀錄 × 等效時薪；剩餘＝排定工時 × 等效時薪（計件＝合約額 ÷ 總預估工時），一律換算 TWD'
         + (SCHED_WHATIF ? '；<span class="text-slate-400">含新案試算'+(SCHED_WHATIF.fee>0?'（報酬 '+fmtNT(SCHED_WHATIF.fee)+'）':'（未填報酬，僅計工時排擠）')+'，綠/紅小字＝與現況的差額</span>' : '')
         + '</div></div>';
       html2 += '<div class="sched-stats">' + cards.map(function(c){
