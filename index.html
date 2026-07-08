@@ -318,6 +318,12 @@ tbody tr[onclick]:hover td{background:#131f2e;}
 .sched-task-cell{vertical-align:top;max-width:190px;}
 .sched-task-name{display:inline-block;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;}
 .sched-grp-first td{border-top:1px solid #1e293b;}
+/* 排程統計面板 */
+.sched-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:8px;}
+.sched-stat{background:rgba(2,6,23,.5);border:1px solid #1e293b;border-radius:10px;padding:9px 12px;min-width:0;}
+.sched-stat .ss-l{font-size:10px;color:#64748b;margin-bottom:3px;white-space:nowrap;}
+.sched-stat .ss-v{font-size:15px;font-weight:600;color:#e2e8f0;line-height:1.25;font-variant-numeric:tabular-nums;}
+.sched-stat .ss-sub{font-size:10px;color:#475569;margin-top:2px;line-height:1.4;}
 /* 排程摘要表：用分隔線把「同任務多階段」收束、任務之間拉開 */
 #sched-summary .tbl-wrap tbody td{border-bottom:1px solid #141d2c;}
 #sched-summary .tbl-wrap tbody tr.sched-grp-first:not(.sched-wi-row) td{border-top:2px solid #334155;}
@@ -731,6 +737,7 @@ tbody tr[onclick]:hover td{background:#131f2e;}
         <div class="flex flex-wrap items-end gap-2 mb-2">
           <div class="flex flex-col gap-1"><label class="text-[10px] text-slate-600">名稱（選填）</label><input type="text" id="wi-name" class="inp py-1.5 text-xs w-36" placeholder="新案試算"></div>
           <div class="flex flex-col gap-1"><label class="text-[10px] text-slate-600">最早開工（選填）</label><input type="date" id="wi-sd" class="inp py-1.5 text-xs w-36"></div>
+          <div class="flex flex-col gap-1"><label class="text-[10px] text-slate-600">預估報酬（選填，TWD）</label><input type="number" id="wi-fee" min="0" step="100" class="inp py-1.5 text-xs w-32" placeholder="供收入統計差額" title="填了才能在底部統計面板看到「接這案對月收的影響」；代入建立任務時會自動帶入合約總額"></div>
         </div>
         <div id="wi-stages" class="flex flex-col gap-1.5 mb-2"></div>
         <div class="flex items-center gap-2">
@@ -816,6 +823,9 @@ tbody tr[onclick]:hover td{background:#131f2e;}
 
       <!-- 📋 試算列表：常用，預設可見 -->
       <div id="sched-summary"></div>
+
+      <!-- 📊 排程統計面板：試算當前排程的整體數據 -->
+      <div id="sched-stats"></div>
     </div>
     <div id="cal-toolbar-hist" class="flex items-center justify-between mb-4 flex-wrap gap-2" style="display:none;">
       <div class="flex items-center gap-2">
@@ -7459,8 +7469,8 @@ function wiRenumber(){
   });
 }
 function wiReset(){
-  var n=document.getElementById('wi-name'), s=document.getElementById('wi-sd');
-  if(n)n.value=''; if(s)s.value='';
+  var n=document.getElementById('wi-name'), s=document.getElementById('wi-sd'), f=document.getElementById('wi-fee');
+  if(n)n.value=''; if(s)s.value=''; if(f)f.value='';
   var box=document.getElementById('wi-stages');
   if(box){ box.innerHTML=''; wiAddStage(); }
 }
@@ -7490,6 +7500,7 @@ function runWhatIf(){
   SCHED_WHATIF = {
     phases: phases,
     sdate: document.getElementById('wi-sd').value,
+    fee: Math.max(0, parseFloat((document.getElementById('wi-fee')||{}).value) || 0),
     name: '🆕 ' + (document.getElementById('wi-name').value.trim() || '新案試算')
   };
   renderCal();
@@ -7524,7 +7535,7 @@ function createTaskFromWhatIf(){
     id: nextNumId(),
     name: name,
     gid: '', bill: 'piece', type: (CATS[0]||{}).id || '',
-    budget: 0, budgetCur: 'TWD',
+    budget: Math.round(W.fee || 0), budgetCur: 'TWD',
     st: 'active',
     sdate: W.sdate || '',
     edate: last.deadline || '',
@@ -7548,6 +7559,73 @@ function createTaskFromWhatIf(){
   openDetail(p.id);
 }
 if(document.getElementById('wi-stages')) wiAddStage(); // 初始一列
+
+/* ============================================================
+   排程統計面板（純函數：由 computeSchedule 結果推導，不寫入資料）
+   收入口徑＝「工時產值」而非現金流：
+   ・計時制：排定工時 × 約定時薪
+   ・計件/計價制：排定工時 × 等效時薪（合約總額 ÷ 總預估工時）
+   ・無償任務與未計價任務：產值 0（另以註腳提示收入被低估）
+   ・全部換算 TWD（依 FX 匯率）
+   ============================================================ */
+// 每小時產值（TWD）。pid=-1 為 what-if 虛擬案：有填預估報酬才計
+function schedUnitRate(pid, extra){
+  if(pid === -1){
+    if(extra && extra.fee > 0 && extra.phases && extra.phases.length){
+      var tot = extra.phases.reduce(function(s,ph){ return s + ph.est; }, 0);
+      return tot > 0 ? extra.fee / tot : 0;
+    }
+    return 0;
+  }
+  var p = pBy(pid);
+  if(!p || p.nonBillable) return 0;
+  if(p.bill === 'hourly') return (p.hrate||0) > 0 ? toTWD(p.hrate, p.budgetCur||'TWD') : 0;
+  if((p.budget||0) > 0 && (p.estHrs||0) > 0) return toTWD(p.budget, p.budgetCur||'TWD') / p.estHrs;
+  return 0;
+}
+function computeSchedStats(R, extra){
+  var rateCache = {};
+  function rateOf(pid){ if(!(pid in rateCache)) rateCache[pid] = schedUnitRate(pid, extra); return rateCache[pid]; }
+  // 未來 30 天窗口：與排程引擎相同起算日（過下班時間 → 從明天起算）
+  var _s = new Date(); _s.setHours(0,0,0,0);
+  if(new Date().getHours() >= getOffHour()) _s.setDate(_s.getDate()+1);
+  var winStartStr = toLocalDate(_s);
+  var winEnd = new Date(_s); winEnd.setDate(winEnd.getDate()+30);
+  var winEndStr = toLocalDate(winEnd);
+  var cap = effCap(), capWin = 0;
+  var dIt = new Date(_s);
+  while(toLocalDate(dIt) < winEndStr){
+    if(!isDayOff(toLocalDate(dIt), dIt.getDay())) capWin += cap;
+    dIt.setDate(dIt.getDate()+1);
+  }
+  // 逐日分配 → 按月彙整產值與工時
+  var byMonth = {}, totHrs = 0, totRev = 0, usedWin = 0, lastDay = null, nbHrs = 0;
+  Object.keys(R.allocByDate).forEach(function(ds){
+    R.allocByDate[ds].forEach(function(a){
+      var ym = ds.slice(0,7);
+      if(!byMonth[ym]) byMonth[ym] = {hrs:0, rev:0};
+      var rev = a.hrs * rateOf(a.pid);
+      byMonth[ym].hrs += a.hrs; byMonth[ym].rev += rev;
+      totHrs += a.hrs; totRev += rev;
+      if(ds >= winStartStr && ds < winEndStr) usedWin += a.hrs;
+      if(!lastDay || ds > lastDay) lastDay = ds;
+      if(a.pid !== -1){ var p = pBy(a.pid); if(p && p.nonBillable) nbHrs += a.hrs; }
+    });
+  });
+  // 排不進（400 天模擬上限內未消化）
+  var unplaced = 0;
+  R.units.forEach(function(u){ if(u.remaining > 0.01) unplaced += u.remaining; });
+  // 未計價任務：計件/計價未填合約額、計時未填時薪（非無償）→ 收入被低估
+  var unpriced = [], seen = {};
+  R.units.forEach(function(u){
+    if(u.pid === -1 || seen[u.pid]) return; seen[u.pid] = 1;
+    var p = pBy(u.pid); if(!p || p.nonBillable) return;
+    if(p.bill === 'hourly'){ if(!((p.hrate||0) > 0)) unpriced.push(p); }
+    else if(!((p.budget||0) > 0)) unpriced.push(p);
+  });
+  return {byMonth:byMonth, totHrs:totHrs, totRev:totRev, usedWin:usedWin, capWin:capWin,
+          lastDay:lastDay, unplaced:unplaced, nbHrs:nbHrs, unpriced:unpriced};
+}
 
 function renderSched(){
   var el = document.getElementById('cal-grid'); if(!el) return;
@@ -7865,6 +7943,103 @@ function renderSched(){
   }
   g+='</tbody></table>';
   el.innerHTML=g;
+
+  // ---- 📊 排程統計面板（視圖最底部）----
+  var stEl = document.getElementById('sched-stats');
+  if(stEl){
+    var hasUnits = R.units.length > 0;
+    // 進行中的外包/轉包（不佔工時、不參與排程，毛利另計）
+    var osTasks = PJ.filter(function(p){ return p.st==='active' && p.execMode && p.execMode!=='self' && !p.nonBillable; });
+    if(!hasUnits && !osTasks.length){
+      stEl.innerHTML = '';
+    } else {
+      var S = computeSchedStats(R, SCHED_WHATIF);
+      var S0 = SCHED_WHATIF ? computeSchedStats(B, null) : null; // 基準版（不含新案）供差額比較
+      function fmtNT(v){ return 'NT$ ' + Math.round(v).toLocaleString(); }
+      function revOf(x, ym){ return (x && x.byMonth[ym]) ? x.byMonth[ym].rev : 0; }
+      function dMoney(d){ // what-if 差額標籤（金額）
+        if(!S0 || Math.abs(d) < 1) return '';
+        return ' <span class="text-[10px] font-normal '+(d>0?'text-emerald-400':'text-rose-400')+'">'+(d>0?'＋':'－')+Math.round(Math.abs(d)).toLocaleString()+'</span>';
+      }
+      var _t = new Date();
+      var ymNow = toLocalDate().slice(0,7);
+      var ymNext = toLocalDate(new Date(_t.getFullYear(), _t.getMonth()+1, 1)).slice(0,7);
+      function mLab(ym){ return parseInt(ym.slice(5,7),10) + '月'; }
+      var cards = [];
+      // 1) 本月剩餘預估產值
+      var rNow = revOf(S, ymNow), rNow0 = S0 ? revOf(S0, ymNow) : 0;
+      cards.push({l:'本月（'+mLab(ymNow)+'）剩餘預估', v:fmtNT(rNow)+dMoney(rNow-rNow0),
+        sub:'排定 '+formatHrs((S.byMonth[ymNow]||{}).hrs||0)+' · 已完成工時的產值不計入'});
+      // 2) 下月預估產值
+      var rNx = revOf(S, ymNext), rNx0 = S0 ? revOf(S0, ymNext) : 0;
+      cards.push({l:'下月（'+mLab(ymNext)+'）預估', v:fmtNT(rNx)+dMoney(rNx-rNx0),
+        sub:'排定 '+formatHrs((S.byMonth[ymNext]||{}).hrs||0)});
+      // 3) 加權平均時薪 vs 目標
+      var avgRate = S.totHrs > 0 ? S.totRev / S.totHrs : 0;
+      var tgt = getGlobalRate();
+      var below = S.totHrs > 0 && avgRate < tgt;
+      cards.push({l:'排程平均時薪', v:'<span class="'+(below?'text-amber-400':'')+'">'+(S.totHrs>0?('NT$ '+Math.round(avgRate).toLocaleString()+'<span class="text-[11px] text-slate-500 font-normal"> /h</span>'):'—')+'</span>',
+        sub:'目標 NT$ '+tgt.toLocaleString()+(below?' · <span class="text-amber-400/80">低於目標</span>':'')});
+      // 4) 排到哪天 + 總剩餘工時
+      var lastTxt = S.lastDay ? (parseInt(S.lastDay.slice(5,7),10)+'/'+parseInt(S.lastDay.slice(8,10),10)) : '—';
+      cards.push({l:'排到', v:lastTxt+(S.lastDay?'<span class="text-[11px] text-slate-500 font-normal">（'+S.lastDay.slice(0,4)+'）</span>':''),
+        sub:'總排定 '+formatHrs(S.totHrs)+(S.unplaced>0.01?' · <span class="text-red-400">另有 '+formatHrs(S.unplaced)+' 排不進</span>':'')});
+      // 5) 未來 30 天產能利用率
+      var util = S.capWin > 0 ? S.usedWin / S.capWin * 100 : 0;
+      var util0 = (S0 && S0.capWin > 0) ? S0.usedWin / S0.capWin * 100 : null;
+      var uCls = util >= 100 ? 'text-rose-400' : (util >= 85 ? 'text-amber-400' : '');
+      var uDelta = (S0 && Math.abs(util-util0) >= 0.5) ? ' <span class="text-[10px] font-normal '+((util-util0)>0?'text-emerald-400':'text-rose-400')+'">'+((util-util0)>0?'＋':'－')+Math.round(Math.abs(util-util0))+'%</span>' : '';
+      cards.push({l:'30 天產能利用率', v:'<span class="'+uCls+'">'+Math.round(util)+'%</span>'+uDelta,
+        sub:'空檔 '+formatHrs(Math.max(0, S.capWin - S.usedWin))+'（可吃新案容量）'});
+      // 6) 警示彙總：來不及（硬截止晚交／排不進）＋缺工時（有截止）＋資料矛盾
+      var lateCnt = 0;
+      R.units.forEach(function(u){
+        if(u.pid === -1) return;
+        var cantfit = (!u.firstDay || u.remaining > 0.01) && u.deadline;
+        var hardLate = u.hard && u.deadline && u.lastDay && u.lastDay > u.deadline;
+        if(cantfit || hardLate) lateCnt++;
+      });
+      var warnTotal = lateCnt + noEstDl.length + R.overSum.length;
+      var wParts = [];
+      if(lateCnt) wParts.push('來不及 '+lateCnt);
+      if(noEstDl.length) wParts.push('缺工時 '+noEstDl.length);
+      if(R.overSum.length) wParts.push('資料矛盾 '+R.overSum.length);
+      cards.push({l:'警示', v: warnTotal ? '<span class="text-rose-400">⚠ '+warnTotal+'</span>' : '<span class="text-emerald-400">✓ 0</span>',
+        sub: warnTotal ? wParts.join(' · ') : '無來不及／缺工時'});
+
+      var html2 = '<div class="flex items-center justify-between flex-wrap gap-2 mt-4 mb-2">'
+        + '<div class="text-[11px] font-semibold text-slate-400">📊 排程統計</div>'
+        + '<div class="text-[10px] text-slate-600">口徑：剩餘排定工時 × 等效時薪（計件＝合約額 ÷ 總預估工時），一律換算 TWD'
+        + (SCHED_WHATIF ? '；<span class="text-slate-400">含新案試算'+(SCHED_WHATIF.fee>0?'（報酬 '+fmtNT(SCHED_WHATIF.fee)+'）':'（未填報酬，僅計工時排擠）')+'，綠/紅小字＝與現況的差額</span>' : '')
+        + '</div></div>';
+      html2 += '<div class="sched-stats">' + cards.map(function(c){
+        return '<div class="sched-stat"><div class="ss-l">'+c.l+'</div><div class="ss-v">'+c.v+'</div>'+(c.sub?'<div class="ss-sub">'+c.sub+'</div>':'')+'</div>';
+      }).join('') + '</div>';
+
+      // 外包/轉包毛利：不佔工時，獨立一行另計
+      if(osTasks.length){
+        var osRecv = 0, osCost = 0;
+        osTasks.forEach(function(p){
+          var eff = (p.earned||0) > 0 ? p.earned : (p.budget||0);
+          osRecv += toTWD(eff, p.budgetCur||'TWD');
+          osCost += toTWD(p.vendorCost||0, p.vendorCostCur||'TWD');
+        });
+        var osGP = osRecv - osCost;
+        html2 += '<div class="text-[11px] text-slate-500 px-1 mt-2">外包/轉包（進行中 '+osTasks.length+' 件，不佔工時另計）：應收 '+fmtNT(osRecv)+' − 發包 '+fmtNT(osCost)+' = 毛利 <span class="'+(osGP>=0?'text-emerald-400':'text-red-400')+' font-medium">'+fmtNT(osGP)+'</span></div>';
+      }
+      // 註腳：未計價任務（收入低估）與無償工時占比
+      if(S.unpriced.length){
+        html2 += '<div class="text-[11px] text-slate-500 px-1 mt-1.5">⚠ '+S.unpriced.length+' 件未計價（收入統計被低估）：'
+          + S.unpriced.map(function(p){ return '<span class="cursor-pointer underline decoration-dotted hover:text-slate-300" onclick="openDetail('+p.id+')">'+esc(p.name)+'</span>'; }).join('、')
+          + '<span class="text-slate-600">　→ 至詳情補合約總額／時薪即可納入</span></div>';
+      }
+      if(S.nbHrs > 0.01 && S.totHrs > 0){
+        html2 += '<div class="text-[11px] text-slate-600 px-1 mt-1">其中無償任務工時 '+formatHrs(S.nbHrs)+'（占 '+Math.round(S.nbHrs/S.totHrs*100)+'%），產值以 0 計，會拉低平均時薪</div>';
+      }
+      stEl.innerHTML = html2;
+    }
+  }
+
   applySchedNewcaseState();
   applySchedGearState();
 }
