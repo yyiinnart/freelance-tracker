@@ -1811,6 +1811,29 @@ function formatHrs(v){
   if(h>0) return sign+h+'h';
   return sign+m+'m';
 }
+function hrsToHM(v){
+  v = Math.max(0, v||0);
+  var h = Math.floor(v), m = Math.round((v-h)*60);
+  if(m===60){h++;m=0;}
+  return {h:h, m:m};
+}
+// 產生 h / m 雙欄位輸入（與 formatHrs 顯示格式一致）
+function hmField(prefix, hrs){
+  var t = hrsToHM(hrs);
+  return '<div class="flex gap-2 items-center">'
+    + '<input id="'+prefix+'-h" type="number" class="inp" step="1" min="0" value="'+t.h+'" style="flex:1;min-width:0">'
+    + '<span class="text-xs text-slate-500 flex-shrink-0">h</span>'
+    + '<input id="'+prefix+'-m" type="number" class="inp" step="5" min="0" max="59" value="'+t.m+'" style="flex:1;min-width:0">'
+    + '<span class="text-xs text-slate-500 flex-shrink-0">m</span>'
+    + '</div>';
+}
+// 讀回 h / m 欄位 → 小數時數（內部儲存格式不變）
+function readHM(prefix){
+  var h = parseFloat(document.getElementById(prefix+'-h').value)||0;
+  var m = parseFloat(document.getElementById(prefix+'-m').value)||0;
+  if(h<0) h=0; if(m<0) m=0;
+  return Math.round((h + m/60)*10000)/10000;
+}
 function fmtMoney(amt,cur){
   var uc=getUnifyCur();
   if(uc && cur && cur!==uc){
@@ -4293,13 +4316,13 @@ function addLogManual(pid){
   var msField = msList.length ? `<div><label class="text-xs text-slate-500 block mb-1">階段</label><select id="ml-ms" class="inp">${msOpts}</select></div>` : '';
   var html=`<div class="flex flex-col gap-3">
     <div><label class="text-xs text-slate-500 block mb-1">日期</label><input id="ml-date" type="date" class="inp" value="${today}"></div>
-    <div><label class="text-xs text-slate-500 block mb-1">時數 (h)</label><input id="ml-hrs" type="number" class="inp" step="0.25" min="0" value="1"></div>
+    <div><label class="text-xs text-slate-500 block mb-1">時數</label>${hmField('ml', 1)}</div>
     ${msField}
     <div><label class="text-xs text-slate-500 block mb-1">備註</label><input id="ml-note" type="text" class="inp" placeholder="例如：漏登工時、外部會議..."></div>
   </div>`;
   
   openModal('手動新增工時', html, function(){
-    var newHrs = parseFloat(document.getElementById('ml-hrs').value) || 0;
+    var newHrs = readHM('ml');
     if(newHrs <= 0) return; 
     var msEl = document.getElementById('ml-ms');
     DLOGS.push({
@@ -4327,12 +4350,12 @@ function editLog(logId,pid){
   var msField = msList.length ? `<div><label class="text-xs text-slate-500 block mb-1">階段</label><select id="el-ms" class="inp">${msOpts}</select></div>` : '';
   var html=`<div class="flex flex-col gap-3">
     <div><label class="text-xs text-slate-500 block mb-1">日期</label><input id="el-date" type="date" class="inp" value="${log.date}"></div>
-    <div><label class="text-xs text-slate-500 block mb-1">時數 (h)</label><input id="el-hrs" type="number" class="inp" step="0.25" min="0" value="${log.hrs}"></div>
+    <div><label class="text-xs text-slate-500 block mb-1">時數</label>${hmField('el', log.hrs)}</div>
     ${msField}
     <div><label class="text-xs text-slate-500 block mb-1">備註</label><input id="el-note" type="text" class="inp" value="${esc(log.note||'')}"></div>
   </div>`;
   openModal('編輯工時紀錄',html,function(){
-    var newHrs=parseFloat(document.getElementById('el-hrs').value)||0;
+    var newHrs=readHM('el');
     log.date=document.getElementById('el-date').value||log.date;
     log.hrs=newHrs;
     log.note=document.getElementById('el-note').value.trim();
@@ -6261,11 +6284,11 @@ function editLogFromDash(logId){
   if(!log)return;
   var html=`<div class=\"flex flex-col gap-3\">
     <div><label class=\"text-xs text-slate-500 block mb-1\">日期</label><input id=\"el-date\" type=\"date\" class=\"inp\" value=\"${log.date}\"></div>
-    <div><label class=\"text-xs text-slate-500 block mb-1\">時數 (h)</label><input id=\"el-hrs\" type=\"number\" class=\"inp\" step=\"0.25\" min=\"0\" value=\"${log.hrs}\"></div>
+    <div><label class=\"text-xs text-slate-500 block mb-1\">時數</label>${hmField('el', log.hrs)}</div>
     <div><label class=\"text-xs text-slate-500 block mb-1\">備註</label><input id=\"el-note\" type=\"text\" class=\"inp\" value=\"${esc(log.note||'')}\"></div>
   </div>`;
   openModal('編輯工時紀錄',html,function(){
-    var newHrs=parseFloat(document.getElementById('el-hrs').value)||0;
+    var newHrs=readHM('el');
     log.date=document.getElementById('el-date').value||log.date;
     log.hrs=newHrs;
     log.note=document.getElementById('el-note').value.trim();
