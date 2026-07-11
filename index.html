@@ -5484,13 +5484,41 @@ function toggleHidePhase(nk){ var h=getHiddenPhases(); var i=h.indexOf(nk); if(i
 function showAllTypes(){ setHiddenTypes([]); renderEstAcc(); }
 function showAllPhases(){ setHiddenPhases([]); renderEstAcc(); }
 
+// ===== 估時回測 debug：每格數字的來源卡片追蹤 =====
+var _estAccSrc = []; // 每次 renderEstAcc 重建；元素 {label, items:[{pid,name,v,note?}]}
+function _srcCell(arr, srcList, label){
+  var inner = _statCell(arr);
+  if(!srcList || !srcList.length) return '<td class="font-mono text-xs">' + inner + '</td>';
+  var idx = _estAccSrc.push({ label: label, items: srcList }) - 1;
+  return '<td class="font-mono text-xs cursor-pointer hover:bg-slate-800/40 transition-colors" title="點擊查看這個數字由哪些卡片組成" onclick="showEstAccSrc(' + idx + ')">' + inner + '</td>';
+}
+function showEstAccSrc(idx){
+  var s = _estAccSrc[idx]; if(!s) return;
+  var total = s.items.reduce(function(a, it){ return a + it.v; }, 0);
+  var rows = s.items.slice().sort(function(a, b){ return b.v - a.v; }).map(function(it){
+    return '<div class="flex items-center justify-between gap-3 py-1.5 border-b border-slate-800/60">'
+      + '<button type="button" class="text-left text-sm text-slate-300 hover:text-blue-300 underline decoration-dotted decoration-slate-600 underline-offset-2 truncate" onclick="closeModal();openDetail(' + it.pid + ')" title="開啟卡片詳情">' + esc(it.name) + '</button>'
+      + '<span class="font-mono text-xs text-blue-300 flex-shrink-0">' + formatHrs(it.v)
+      + (it.note ? ' <span class="text-slate-600 font-sans">' + esc(it.note) + '</span>' : '')
+      + '</span></div>';
+  }).join('');
+  var html = '<div class="flex flex-col text-left">'
+    + '<div class="text-[10px] text-slate-500 mb-2">共 ' + s.items.length + ' 筆 · 合計 ' + formatHrs(total) + ' · 平均 ' + formatHrs(total / s.items.length) + '</div>'
+    + rows
+    + '<div class="text-[10px] text-slate-600 mt-2">點卡片名可開啟詳情面板</div>'
+    + '</div>';
+  openModal(s.label, html, null, '關閉', true);
+}
+
 function renderEstAcc(){
   var el = document.getElementById('est-acc-body'); if(!el) return;
+  _estAccSrc = [];
   var withEst = PJ.filter(function(p){ return (+p.estHrs||0) > 0; });
   var done = withEst.filter(function(p){ return p.st === 'done'; });
+  var doneAll = PJ.filter(function(p){ return p.st === 'done'; }); // 階段回測用：不要求填總預估
   var active = withEst.filter(function(p){ return p.st === 'active' && (p.hrs||0) > 0; });
 
-  if(!withEst.length){
+  if(!withEst.length && !doneAll.length){
     el.innerHTML = '<div class="text-center py-8 text-sm text-slate-600">尚無填寫預估工時的任務<br><span class="text-xs text-slate-700">在任務詳情填寫「預估工時」，結案後即可累積估時數據</span></div>';
     return;
   }
@@ -5515,9 +5543,9 @@ function renderEstAcc(){
     var byType = {};
     done.forEach(function(p){
       var t = p.type || '_none';
-      if(!byType[t]) byType[t] = {estArr:[], actArr:[]};
-      if((+p.estHrs||0) > 0){ byType[t].estArr.push(+p.estHrs||0); }
-      if((+p.hrs||0) > 0){ byType[t].actArr.push(+p.hrs||0); }
+      if(!byType[t]) byType[t] = {estArr:[], actArr:[], estSrc:[], actSrc:[]};
+      if((+p.estHrs||0) > 0){ byType[t].estArr.push(+p.estHrs||0); byType[t].estSrc.push({pid:p.id, name:p.name, v:+p.estHrs||0}); }
+      if((+p.hrs||0) > 0){ byType[t].actArr.push(+p.hrs||0); byType[t].actSrc.push({pid:p.id, name:p.name, v:+p.hrs||0}); }
     });
     var hideTypes = getHiddenTypes();
     var allTypeKeys = Object.keys(byType);
@@ -5546,31 +5574,39 @@ function renderEstAcc(){
         return '<tr>'
           + '<td class="text-slate-300">'+esc(nm)
             + ' <button type="button" class="text-slate-700 hover:text-red-400 text-[10px] ml-1 align-middle" title="隱藏此案型" onclick="toggleHideType(\''+esc(String(t)).replace(/'/g,"\\'")+'\')">✕</button></td>'
-          + '<td class="font-mono text-xs">' + _statCell(g.estArr) + '</td>'
-          + '<td class="font-mono text-xs">' + _statCell(g.actArr) + '</td>'
+          + _srcCell(g.estArr, g.estSrc, nm + '｜預估工時來源')
+          + _srcCell(g.actArr, g.actSrc, nm + '｜實際工時來源')
           + '<td class="font-mono text-xs ' + devCls + '">' + devTxt + '</td></tr>';
       }).join('');
       html += '<div class="tbl-wrap mb-1"><table><thead><tr><th>案型</th><th>預估</th><th>實際</th><th>偏差</th></tr></thead><tbody>' + tRows + '</tbody></table></div>'
         + '<div class="text-[10px] text-slate-600 px-1 mb-4">粗體為<span class="text-slate-500">平均</span>，次行為中位數與範圍（min–max），×N 為案件數。中位數抗極端值，平均與中位數差很多代表有離群案件，這格平均別盡信。偏差＝實際平均÷預估平均。</div>';
     }
 
-    // ---- 依階段回測（跨任務彙整，僅納入有階段標記的工時）----
+  } else {
+    html += '<div class="text-[11px] text-slate-500 bg-slate-950/50 border border-slate-800 rounded-lg px-3 py-2 mb-4">尚無已結案的估時樣本——結案幾件後，這裡會告訴你估時習慣偏樂觀還是保守。</div>';
+  }
+
+  // ---- 階段回測（獨立於總預估門檻，用 doneAll）----
+    // ---- 依階段回測（跨所有已結案任務彙整，依工時的階段標記；不要求填總預估）----
     // 以 normPhase 為彙整鍵，避免空白/全半形/拼字差異把同一階段拆成兩列；顯示用首見原字串。
     var byPhase = {};
     var anyPhaseData = false;
     function phaseBucket(raw){
       var nk = normPhase(raw);
-      if(!byPhase[nk]) byPhase[nk] = { norm:nk, label:String(raw), estArr:[], actArr:[] };
+      if(!byPhase[nk]) byPhase[nk] = { norm:nk, label:String(raw), estArr:[], actArr:[], estSrc:[], actSrc:[] };
       return byPhase[nk];
     }
-    done.forEach(function(p){
-      if(!p.milestones || !p.milestones.length) return;
-      p.milestones.forEach(function(m){
+    doneAll.forEach(function(p){
+      (p.milestones||[]).forEach(function(m){
         if(!m.name) return;
         var b = phaseBucket(m.name);
-        if((+m.estHrs||0) > 0){ b.estArr.push(+m.estHrs||0); }
+        if((+m.estHrs||0) > 0){
+          b.estArr.push(+m.estHrs||0);
+          b.estSrc.push({pid:p.id, name:p.name, v:+m.estHrs||0, note: normPhase(m.name)!==normPhase(b.label)||m.name!==b.label ? m.name : ''});
+        }
       });
       // 該任務每個階段的實際工時：先按階段彙整成「每案每階段一筆」，才能正確算案件數
+      // （不再要求該案有里程碑清單——只要工時帶階段標記就計入）
       var actByPhase = {};
       DLOGS.forEach(function(l){
         if(l.pid===p.id && l.ms){
@@ -5580,8 +5616,9 @@ function renderEstAcc(){
         }
       });
       Object.keys(actByPhase).forEach(function(nk){
-        if(!byPhase[nk]) byPhase[nk] = { norm:nk, label:nk, estArr:[], actArr:[] };
+        if(!byPhase[nk]) byPhase[nk] = { norm:nk, label:nk, estArr:[], actArr:[], estSrc:[], actSrc:[] };
         byPhase[nk].actArr.push(actByPhase[nk]);
+        byPhase[nk].actSrc.push({pid:p.id, name:p.name, v:actByPhase[nk]});
       });
     });
     var hidePhases = getHiddenPhases();
@@ -5617,20 +5654,17 @@ function renderEstAcc(){
           : '<span class="text-slate-300">◇ ' + esc(g.label) + '</span>';
         var hideBtn = ' <button type="button" class="text-slate-700 hover:text-red-400 text-[10px] ml-1 align-middle" title="隱藏此階段" onclick="toggleHidePhase(\''+esc(g.norm).replace(/'/g,"\\'")+'\')">✕</button>';
         return '<tr><td>' + nameInner + hideBtn + '</td>'
-          + '<td class="font-mono text-xs">' + _statCell(g.estArr) + '</td>'
-          + '<td class="font-mono text-xs">' + _statCell(g.actArr) + '</td>'
+          + _srcCell(g.estArr, g.estSrc, '◇ ' + g.label + '｜階段預估來源')
+          + _srcCell(g.actArr, g.actSrc, '◇ ' + g.label + '｜階段實際工時來源')
           + '<td class="font-mono text-xs ' + devCls + '">' + devTxt + '</td></tr>';
       }).join('');
       html += '<div class="tbl-wrap mb-4"><table><thead><tr><th>階段</th><th>預估</th><th>實際</th><th>偏差</th></tr></thead><tbody>' + pRows + '</tbody></table></div>'
-        + '<div class="text-[10px] text-slate-600 px-1 mb-1">粗體為<span class="text-slate-500">平均</span>，次行為中位數與範圍（×N 為案件數）。平均與中位數差很多＝有極端案件，這格平均別盡信。「尚無實際」代表此階段還沒登工時（正常）；未標記階段的工時不計入此表。</div>'
+        + '<div class="text-[10px] text-slate-600 px-1 mb-1">粗體為<span class="text-slate-500">平均</span>，次行為中位數與範圍（×N 為案件數）。<span class="text-slate-500">點預估／實際數字可查看由哪些卡片組成</span>。平均與中位數差很多＝有極端案件，這格平均別盡信。「尚無實際」代表此階段還沒登工時（正常）；未標記階段的工時不計入此表。</div>'
         + (anyWarn ? '<div class="text-[10px] text-amber-500/70 px-1 mb-4">標 ⚠ 的階段疑似與另一個名稱是同一階段（命名不一致被拆成兩列），點名稱可查出處，或用下方合併區處理。</div>' : '<div class="mb-4"></div>');
     } else if(hiddenPhaseCount > 0){
       html += '<div class="flex items-center gap-2 mb-4 px-1"><span class="text-[10px] text-slate-600">階段回測：'+hiddenPhaseCount+' 項已隱藏</span>'
         + '<button type="button" class="text-[10px] text-slate-500 hover:text-slate-300 underline decoration-dotted" onclick="showAllPhases()">全部顯示</button></div>';
     }
-  } else {
-    html += '<div class="text-[11px] text-slate-500 bg-slate-950/50 border border-slate-800 rounded-lg px-3 py-2 mb-4">尚無已結案的估時樣本——結案幾件後，這裡會告訴你估時習慣偏樂觀還是保守。</div>';
-  }
 
   // ---- 進行中：進度燃燒 ----
   if(active.length){
