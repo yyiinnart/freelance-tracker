@@ -1727,7 +1727,7 @@ function saveGlobalRate() {
 function getWorkMode() { return localStorage.getItem('ft_wmode') || 'solo'; }
 // 專案時間分佈的聚合模式：task 任務｜grp 專案群組｜cat 業務類型（solo 模式下群組退回任務）
 function getPieMode(){var m=localStorage.getItem('ft_pieMode')||'task';if(m==='grp'&&getWorkMode()!=='manager')m='task';return m;}
-function setPieMode(m){localStorage.setItem('ft_pieMode',m);renderDash();}
+function setPieMode(m){localStorage.setItem('ft_pieMode',m);renderPie();}
 function saveWorkMode() {
   var v = document.querySelector('input[name="work-mode"]:checked');
   if(v) localStorage.setItem('ft_wmode', v.value);
@@ -6066,6 +6066,15 @@ function renderDash(){
     CH.month=new Chart(document.getElementById('c-month'),{type:'bar',data:{labels:sortedMonths,datasets:[{data:mData,backgroundColor:'#3b82f6',borderRadius:3,barPercentage:0.5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>formatHrs(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{color:'#64748b',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#64748b',callback:v=>v+'h'},beginAtZero:true}}}});
   }
 
+  renderPie();
+  renderDailyTimeline();
+  applyDashPanels(); // 套用自訂面板設定
+}
+
+// 專案時間分佈：獨立渲染（切換模式時只重畫此圖，不重建整個分析頁，避免捲動位置跳動）
+function renderPie(){
+  var mon=document.getElementById('f-month').value;
+  var fLogs=mon?DLOGS.filter(l=>l.date.indexOf(mon)===0):DLOGS;
   var pieData={};
   fLogs.forEach(function(l){
     if(!pieData[l.pid])pieData[l.pid]=0;
@@ -6113,9 +6122,6 @@ function renderDash(){
     CH.pie=new Chart(document.getElementById('c-pie'),{type:'doughnut',data:{labels:pk,datasets:[{data:pd,backgroundColor:pc,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.label+': '+formatHrs(ctx.raw)+' ('+piePct(ctx.raw)+'%)'}}},cutout:'65%'}});
   }
   document.getElementById('pie-leg').innerHTML=pk.length?pk.map((k,i)=>'<div class="flex items-center justify-between"><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full flex-shrink-0" style="background:'+pc[i%pc.length]+'"></span><span class="truncate w-40" title="'+esc(k)+'">'+esc(k)+'</span></div><span class="font-mono text-slate-300">'+formatHrs(pd[i])+' <span class="text-slate-600 text-[10px]">'+piePct(pd[i])+'%</span></span></div>').join(''):'<div class="text-center text-slate-600 py-2">無工時資料</div>';
-
-  renderDailyTimeline();
-  applyDashPanels(); // 套用自訂面板設定
 }
 
 // 可排序面板的標準順序（與 HTML 預設一致）
