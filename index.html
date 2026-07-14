@@ -1728,6 +1728,33 @@ function getWorkMode() { return localStorage.getItem('ft_wmode') || 'solo'; }
 // 專案時間分佈的聚合模式：task 任務｜grp 專案群組｜cat 業務類型（solo 模式下群組退回任務）
 function getPieMode(){var m=localStorage.getItem('ft_pieMode')||'task';if(m==='grp'&&getWorkMode()!=='manager')m='task';return m;}
 function setPieMode(m){localStorage.setItem('ft_pieMode',m);renderPie();}
+
+// 產值組成明細：估算中的任務＋漏填報價的任務（由 renderDash 收集）
+var DASH_VAL_DETAIL={mon:'',est:[],missing:[]};
+function showValDetail(){
+  var d=DASH_VAL_DETAIL;
+  var scopeLabel=d.mon?d.mon:'歷史全部';
+  var row=function(it,right){
+    return '<button type="button" class="w-full text-left flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg hover:bg-slate-800/60 border-b border-slate-800/60 last:border-0" onclick="closeModal();openDetail('+it.id+')">'
+      +'<span class="text-sm text-slate-300 truncate">'+esc(it.name)+'</span>'
+      +'<span class="text-xs font-mono text-slate-400 flex-shrink-0">'+right+'</span></button>';
+  };
+  var html='<div class="text-[11px] text-slate-500 mb-3">統計範圍：'+esc(scopeLabel)+'。點擊任務可直接開啟卡片補填。</div>';
+  if(d.missing.length){
+    html+='<div class="text-xs font-semibold text-amber-400 mb-1.5">⚠ 有工時但未填報價（產值計 0，會拉低平均時薪）</div>';
+    html+='<div class="mb-4 rounded-lg border border-amber-500/20 bg-amber-500/5 overflow-hidden">'
+      +d.missing.map(function(it){return row(it,formatHrs(it.hrs)+' · '+it.reason);}).join('')+'</div>';
+  }
+  if(d.est.length){
+    html+='<div class="text-xs font-semibold text-slate-400 mb-1.5">進行中任務的估算分攤（依報價 × 本期工時比例）</div>';
+    html+='<div class="rounded-lg border border-slate-800 overflow-hidden">'
+      +d.est.map(function(it){return row(it,'≈ '+fmtMoney(it.amt,it.cur)+(d.mon?' <span class="text-slate-600">('+it.pct+'%)</span>':''));}).join('')+'</div>';
+  }
+  if(!d.missing.length&&!d.est.length){
+    html+='<div class="text-center text-sm text-slate-500 py-6">本期產值皆為已確認金額，沒有估算或漏填項目 ✓</div>';
+  }
+  openModal('產值組成明細',html,null,'關閉',true);
+}
 function saveWorkMode() {
   var v = document.querySelector('input[name="work-mode"]:checked');
   if(v) localStorage.setItem('ft_wmode', v.value);
@@ -5935,6 +5962,27 @@ function renderDash(){
     });
   }
   Object.keys(eMap).forEach(function(k){eMap[k]=Math.round(eMap[k]);estMap[k]=Math.round(estMap[k]);});
+  // 收集明細：哪些任務貢獻了估算、哪些有工時卻漏填報價（產值掛零、稀釋時薪）
+  DASH_VAL_DETAIL={mon:mon,est:[],missing:[]};
+  (function(){
+    var monH=null,totH={};
+    if(mon){monH={};fLogs.forEach(function(l){monH[l.pid]=(monH[l.pid]||0)+l.hrs;});}
+    DLOGS.forEach(function(l){totH[l.pid]=(totH[l.pid]||0)+l.hrs;});
+    PJ.forEach(function(p){
+      if(p.nonBillable)return;
+      var scopeH=mon?(monH[p.id]||0):(totH[p.id]||p.hrs||0);
+      if(scopeH<=0)return;
+      var estT=taskEstTotal(p), conf=(p.bill==='hourly')?estT:(p.earned||0);
+      if(estT<=0){
+        DASH_VAL_DETAIL.missing.push({id:p.id,name:p.name,hrs:scopeH,reason:p.bill==='hourly'?'未填時薪':'未填報價'});
+      } else if(estT>conf){
+        var ratio=mon?(scopeH/(totH[p.id]||scopeH)):1;
+        DASH_VAL_DETAIL.est.push({id:p.id,name:p.name,hrs:scopeH,cur:p.budgetCur||'TWD',amt:Math.round((estT-conf)*ratio),pct:Math.round(ratio*100)});
+      }
+    });
+    DASH_VAL_DETAIL.est.sort(function(a,b){return b.amt-a.amt;});
+    DASH_VAL_DETAIL.missing.sort(function(a,b){return b.hrs-a.hrs;});
+  })();
   fp.forEach(p=>{if((p.payType||'income')==='income') rMap[p.cur]+=p.amt;});
   var arMap=totalARMap();
 
@@ -5945,8 +5993,9 @@ function renderDash(){
 
   // === 📊 產值與效率 ===
   var estTWD=Object.keys(estMap).reduce(function(s,k){return s+toTWD(estMap[k],k);},0);
-  var estNote=estTWD>0?'<div class="text-[10px] text-slate-500 font-normal mt-1" title="進行中的論件任務依報價，按（本期工時 ÷ 任務總工時）比例分攤估算，結案確認後自動轉為已確認產值">其中估算 NT$ '+Math.round(estTWD).toLocaleString()+'</div>':'';
-  document.getElementById('dash-stats').innerHTML=sc((mon?mon+' ':'歷史')+'總產值'+(estTWD>0?'（含估算）':''),formatMultiCurMap(eMap)+estNote)+sc('計費工時',formatHrs(tH))+sc('平均時薪 (NT$)'+(estTWD>0?'（估）':''), (function(){
+  var estNote=estTWD>0?'<button type="button" class="block text-[10px] text-slate-500 hover:text-blue-400 font-normal mt-1 underline decoration-dotted underline-offset-2 transition-colors" onclick="showValDetail()" title="點擊查看是哪些任務構成估算">其中估算 NT$ '+Math.round(estTWD).toLocaleString()+' →</button>':'';
+  var missNote=DASH_VAL_DETAIL.missing.length>0?'<button type="button" class="block text-[10px] text-amber-500/80 hover:text-amber-400 font-normal mt-0.5 underline decoration-dotted underline-offset-2 transition-colors" onclick="showValDetail()" title="這些任務有工時但沒有報價／時薪，產值計為 0，會拉低平均時薪">⚠ '+DASH_VAL_DETAIL.missing.length+' 個任務有工時但未填報價 →</button>':'';
+  document.getElementById('dash-stats').innerHTML=sc((mon?mon+' ':'歷史')+'總產值'+(estTWD>0?'（含估算）':''),formatMultiCurMap(eMap)+estNote+missNote)+sc('計費工時',formatHrs(tH))+sc('平均時薪 (NT$)'+(estTWD>0?'（估）':''), (function(){
     var billHrs=tH; // 已是篩選後計費工時
     var earnedTWD2=totalEarnedTWD;
     if(billHrs<=0)return '<span class="text-slate-500">-</span>';
