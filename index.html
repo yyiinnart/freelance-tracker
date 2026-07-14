@@ -5903,13 +5903,38 @@ function renderDash(){
   var hrsLabel=formatHrs(tH)+(otherH>0?' <span class="text-slate-500 text-sm font-normal">+ 其他 '+formatHrs(otherH)+'</span>':'');
   
   var eMap={TWD:0,USD:0,CNY:0,JPY:0}, rMap={TWD:0,USD:0,CNY:0,JPY:0};
-  // 應收：若有月份篩選，只計算在該月有工時的任務之應收比例；全部時取全部
+  var estMap={TWD:0,USD:0,CNY:0,JPY:0}; // eMap 中屬「估算（未確認）」的部分
+  // 任務估算總值：時薪制＝工時×時薪；論件＝已確認 earned 與報價 budget 取大（進行中以報價估算）
+  var taskEstTotal=function(p){
+    if(p.nonBillable) return 0;
+    if(p.bill==='hourly') return Math.round((p.hrs||0)*(p.hrate||0)*100)/100;
+    return Math.max(p.earned||0, p.budget||0);
+  };
+  // 產值採「應計分攤」：任務價值依工時比例分攤到各月。
+  // 修正兩種失真：(1) 進行中論件任務原本 earned=0，工時進分母、產值掛零，時薪被嚴重低估；
+  // (2) 跨月任務原本在每個有工時的月份都整筆重複計入，高估月產值。
   if(mon){
-    var pidSet=new Set(fLogs.map(function(l){return l.pid;}));
-    PJ.forEach(function(p){if(!p.nonBillable&&pidSet.has(p.id))eMap[p.budgetCur||'TWD']+=(p.earned||0);});
+    var monHrsByPid={}; fLogs.forEach(function(l){monHrsByPid[l.pid]=(monHrsByPid[l.pid]||0)+l.hrs;});
+    var totHrsByPid={}; DLOGS.forEach(function(l){totHrsByPid[l.pid]=(totHrsByPid[l.pid]||0)+l.hrs;});
+    PJ.forEach(function(p){
+      if(p.nonBillable||!monHrsByPid[p.id])return;
+      var tot=totHrsByPid[p.id]||0; if(tot<=0)return;
+      var ratio=monHrsByPid[p.id]/tot;
+      var estT=taskEstTotal(p), conf=(p.bill==='hourly')?estT:(p.earned||0);
+      var cur=p.budgetCur||'TWD';
+      eMap[cur]+=estT*ratio;
+      estMap[cur]+=Math.max(0,estT-conf)*ratio;
+    });
   } else {
-    PJ.forEach(p=>{if(!p.nonBillable)eMap[p.budgetCur||'TWD']+=(p.earned||0);});
+    PJ.forEach(function(p){
+      if(p.nonBillable)return;
+      var estT=taskEstTotal(p), conf=(p.bill==='hourly')?estT:(p.earned||0);
+      var cur=p.budgetCur||'TWD';
+      eMap[cur]+=estT;
+      estMap[cur]+=Math.max(0,estT-conf);
+    });
   }
+  Object.keys(eMap).forEach(function(k){eMap[k]=Math.round(eMap[k]);estMap[k]=Math.round(estMap[k]);});
   fp.forEach(p=>{if((p.payType||'income')==='income') rMap[p.cur]+=p.amt;});
   var arMap=totalARMap();
 
@@ -5919,14 +5944,16 @@ function renderDash(){
   var vendorCostHtml=totalVendorCostTWD>0?sc('外包/轉包成本','NT$ '+Math.round(totalVendorCostTWD).toLocaleString())+sc('預估毛利 (應收-成本)','<span class="'+(grossProfitTWD>=0?'text-emerald-400':'text-red-400')+'">NT$ '+Math.round(grossProfitTWD).toLocaleString()+'</span>'):'';
 
   // === 📊 產值與效率 ===
-  document.getElementById('dash-stats').innerHTML=sc((mon?mon+' ':'歷史')+'總產值',formatMultiCurMap(eMap))+sc('計費工時',formatHrs(tH))+sc('平均時薪 (NT$)', (function(){
+  var estTWD=Object.keys(estMap).reduce(function(s,k){return s+toTWD(estMap[k],k);},0);
+  var estNote=estTWD>0?'<div class="text-[10px] text-slate-500 font-normal mt-1" title="進行中的論件任務依報價，按（本期工時 ÷ 任務總工時）比例分攤估算，結案確認後自動轉為已確認產值">其中估算 NT$ '+Math.round(estTWD).toLocaleString()+'</div>':'';
+  document.getElementById('dash-stats').innerHTML=sc((mon?mon+' ':'歷史')+'總產值'+(estTWD>0?'（含估算）':''),formatMultiCurMap(eMap)+estNote)+sc('計費工時',formatHrs(tH))+sc('平均時薪 (NT$)'+(estTWD>0?'（估）':''), (function(){
     var billHrs=tH; // 已是篩選後計費工時
     var earnedTWD2=totalEarnedTWD;
     if(billHrs<=0)return '<span class="text-slate-500">-</span>';
     var avgRate=Math.round(earnedTWD2/billHrs);
     var tgt=getGlobalRate();
     var col=avgRate>=tgt?'text-emerald-400':(avgRate>0?'text-amber-400':'text-slate-400');
-    return '<span class="'+col+'">NT$ '+avgRate.toLocaleString()+'</span><span class="text-xs text-slate-500 ml-1">/ h</span>';
+    return '<span class="'+col+'" title="'+(estTWD>0?'含進行中任務的估算產值，實際時薪以結案確認為準':'')+'">'+(estTWD>0?'≈ ':'')+'NT$ '+avgRate.toLocaleString()+'</span><span class="text-xs text-slate-500 ml-1">/ h</span>';
   })());
 
   // === 💰 現金流與獲利 ===
