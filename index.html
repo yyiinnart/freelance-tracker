@@ -1730,7 +1730,7 @@ function getPieMode(){var m=localStorage.getItem('ft_pieMode')||'task';if(m==='g
 function setPieMode(m){localStorage.setItem('ft_pieMode',m);renderPie();}
 
 // 產值組成明細：估算中的任務＋漏填報價的任務（由 renderDash 收集）
-var DASH_VAL_DETAIL={mon:'',est:[],missing:[]};
+var DASH_VAL_DETAIL={mon:'',est:[],missing:[],zeroOut:[],snap:[],over:[]};
 function showValDetail(){
   var d=DASH_VAL_DETAIL;
   var scopeLabel=d.mon?d.mon:'歷史全部';
@@ -1746,11 +1746,26 @@ function showValDetail(){
       +d.missing.map(function(it){return row(it,formatHrs(it.hrs)+' · '+it.reason);}).join('')+'</div>';
   }
   if(d.est.length){
-    html+='<div class="text-xs font-semibold text-slate-400 mb-1.5">進行中任務的估算分攤（依報價 × 本期工時比例）</div>';
+    html+='<div class="text-xs font-semibold text-slate-400 mb-1.5">進行中任務的估算認列'+(d.mon?'（完工比例法優先，未填預估工時者採快照分攤）':'')+'</div>';
     html+='<div class="rounded-lg border border-slate-800 overflow-hidden">'
-      +d.est.map(function(it){return row(it,'≈ '+fmtMoney(it.amt,it.cur)+(d.mon?' <span class="text-slate-600">('+it.pct+'%)</span>':''));}).join('')+'</div>';
+      +d.est.map(function(it){return row(it,'≈ '+fmtMoney(it.amt,it.cur)+(d.mon&&it.m?' <span class="text-slate-600">('+it.m+' '+it.pct+'%)</span>':''));}).join('')+'</div>';
   }
-  if(!d.missing.length&&!d.est.length){
+  if(d.over&&d.over.length){
+    html+='<div class="text-xs font-semibold text-rose-400/90 mt-4 mb-1.5">⏱ 已超過預估工時（認列封頂，本期工時不再產生產值 → 報價或估時需檢討）</div>';
+    html+='<div class="rounded-lg border border-rose-500/20 bg-rose-500/5 overflow-hidden">'
+      +d.over.map(function(it){return row(it,formatHrs(it.hrs)+' · 進度 '+it.pct+'%');}).join('')+'</div>';
+  }
+  if(d.snap&&d.snap.length){
+    html+='<div class="text-xs font-semibold text-slate-500 mt-4 mb-1.5">未填預估工時（採快照分攤，月認列會隨後續進度回溯變動，建議補填）</div>';
+    html+='<div class="rounded-lg border border-slate-800/60 overflow-hidden">'
+      +d.snap.map(function(it){return row(it,formatHrs(it.hrs));}).join('')+'</div>';
+  }
+  if(d.zeroOut&&d.zeroOut.length){
+    html+='<div class="text-xs font-semibold text-slate-500 mt-4 mb-1.5">外包／轉包・零產值（視為無毛利，不列入漏填警示）</div>';
+    html+='<div class="rounded-lg border border-slate-800/60 overflow-hidden opacity-70">'
+      +d.zeroOut.map(function(it){return row(it,formatHrs(it.hrs)+' · '+it.mode);}).join('')+'</div>';
+  }
+  if(!d.missing.length&&!d.est.length&&!(d.zeroOut&&d.zeroOut.length)&&!(d.snap&&d.snap.length)&&!(d.over&&d.over.length)){
     html+='<div class="text-center text-sm text-slate-500 py-6">本期產值皆為已確認金額，沒有估算或漏填項目 ✓</div>';
   }
   openModal('產值組成明細',html,null,'關閉',true);
@@ -5129,7 +5144,7 @@ function rPay(){
   body.innerHTML=filteredP.map(p=>{
     var isExp=p.payType==='expense';
     var typeBdg=isExp?'<span class=\"badge bg-amber-950/50 text-amber-400 border border-amber-900/50\">付款</span>':'<span class=\"badge bg-emerald-950/50 text-emerald-400 border border-emerald-900/50\">收款</span>';
-    return `<tr><td class=\"text-slate-400\">${p.date}</td><td>${typeBdg}</td><td class=\"font-medium text-slate-300\">${p.pid?esc(pname(p.pid)):'未分類'}</td><td class=\"${isExp?'text-amber-400':'text-emerald-400'} font-medium\">${isExp?'-':''}${fmtMoney(p.amt,p.cur)}</td><td class=\"text-slate-500 text-xs\">${esc(p.note||'')}</td><td><button class=\"text-xs text-red-400\" onclick=\"P=P.filter(x=>x.id!==${p.id});save();rPay();rProj()\">刪除</button></td></tr>`;
+    return `<tr${p.pid?` class=\"cursor-pointer hover:bg-slate-800/30 transition-colors\" title=\"點擊開啟任務詳情\" onclick=\"openDetail(${p.pid})\"`:''}><td class=\"text-slate-400\">${p.date}</td><td>${typeBdg}</td><td class=\"font-medium text-slate-300\">${p.pid?esc(pname(p.pid)):'未分類'}</td><td class=\"${isExp?'text-amber-400':'text-emerald-400'} font-medium\">${isExp?'-':''}${fmtMoney(p.amt,p.cur)}</td><td class=\"text-slate-500 text-xs\">${esc(p.note||'')}</td><td><button class=\"text-xs text-red-400\" onclick=\"event.stopPropagation();P=P.filter(x=>x.id!==${p.id});save();rPay();rProj()\">刪除</button></td></tr>`;
   }).join('');
 
   // ===== 產值明細表格 =====
@@ -5937,52 +5952,76 @@ function renderDash(){
     if(p.bill==='hourly') return Math.round((p.hrs||0)*(p.hrate||0)*100)/100;
     return Math.max(p.earned||0, p.budget||0);
   };
-  // 產值採「應計分攤」：任務價值依工時比例分攤到各月。
-  // 修正兩種失真：(1) 進行中論件任務原本 earned=0，工時進分母、產值掛零，時薪被嚴重低估；
-  // (2) 跨月任務原本在每個有工時的月份都整筆重複計入，高估月產值。
-  if(mon){
-    var monHrsByPid={}; fLogs.forEach(function(l){monHrsByPid[l.pid]=(monHrsByPid[l.pid]||0)+l.hrs;});
-    var totHrsByPid={}; DLOGS.forEach(function(l){totHrsByPid[l.pid]=(totHrsByPid[l.pid]||0)+l.hrs;});
-    PJ.forEach(function(p){
-      if(p.nonBillable||!monHrsByPid[p.id])return;
-      var tot=totHrsByPid[p.id]||0; if(tot<=0)return;
-      var ratio=monHrsByPid[p.id]/tot;
-      var estT=taskEstTotal(p), conf=(p.bill==='hourly')?estT:(p.earned||0);
-      var cur=p.budgetCur||'TWD';
-      eMap[cur]+=estT*ratio;
-      estMap[cur]+=Math.max(0,estT-conf)*ratio;
-    });
-  } else {
-    PJ.forEach(function(p){
-      if(p.nonBillable)return;
-      var estT=taskEstTotal(p), conf=(p.bill==='hourly')?estT:(p.earned||0);
-      var cur=p.budgetCur||'TWD';
-      eMap[cur]+=estT;
-      estMap[cur]+=Math.max(0,estT-conf);
-    });
-  }
-  Object.keys(eMap).forEach(function(k){eMap[k]=Math.round(eMap[k]);estMap[k]=Math.round(estMap[k]);});
-  // 收集明細：哪些任務貢獻了估算、哪些有工時卻漏填報價（產值掛零、稀釋時薪）
-  DASH_VAL_DETAIL={mon:mon,est:[],missing:[]};
+  // 產值認列規則（依優先序）：
+  // 1. 時薪制：本期工時 × 時薪（天然正確）。
+  // 2. 論件＋有填預估工時 → 完工比例法：累計認列 = 總值 × min(1, 累計工時÷預估工時)，
+  //    本期認列 = 期末累計認列 − 期初累計認列。已認列的歷史月份不會回溯變動；
+  //    超過預估工時後認列封頂，本期工時不再增加產值（超時警報）；
+  //    已完成任務在最後活動月補認列剩餘差額，確保總和 = 總值。
+  // 3. 論件＋未填預估工時 → 快照分攤：總值 × (本期工時 ÷ 至今累計工時)，會隨進度回溯變動（次級算法）。
+  DASH_VAL_DETAIL={mon:mon,est:[],missing:[],zeroOut:[],snap:[],over:[]};
   (function(){
-    var monH=null,totH={};
-    if(mon){monH={};fLogs.forEach(function(l){monH[l.pid]=(monH[l.pid]||0)+l.hrs;});}
-    DLOGS.forEach(function(l){totH[l.pid]=(totH[l.pid]||0)+l.hrs;});
-    PJ.forEach(function(p){
-      if(p.nonBillable)return;
-      var scopeH=mon?(monH[p.id]||0):(totH[p.id]||p.hrs||0);
-      if(scopeH<=0)return;
-      var estT=taskEstTotal(p), conf=(p.bill==='hourly')?estT:(p.earned||0);
-      if(estT<=0){
-        DASH_VAL_DETAIL.missing.push({id:p.id,name:p.name,hrs:scopeH,reason:p.bill==='hourly'?'未填時薪':'未填報價'});
-      } else if(estT>conf){
-        var ratio=mon?(scopeH/(totH[p.id]||scopeH)):1;
-        DASH_VAL_DETAIL.est.push({id:p.id,name:p.name,hrs:scopeH,cur:p.budgetCur||'TWD',amt:Math.round((estT-conf)*ratio),pct:Math.round(ratio*100)});
+    var monH={},cumBefore={},totH={},lastMon={};
+    DLOGS.forEach(function(l){
+      totH[l.pid]=(totH[l.pid]||0)+l.hrs;
+      var m=l.date.slice(0,7);
+      if(!lastMon[l.pid]||m>lastMon[l.pid])lastMon[l.pid]=m;
+      if(mon){
+        if(m===mon)monH[l.pid]=(monH[l.pid]||0)+l.hrs;
+        else if(m<mon)cumBefore[l.pid]=(cumBefore[l.pid]||0)+l.hrs;
       }
     });
-    DASH_VAL_DETAIL.est.sort(function(a,b){return b.amt-a.amt;});
-    DASH_VAL_DETAIL.missing.sort(function(a,b){return b.hrs-a.hrs;});
+    PJ.forEach(function(p){
+      if(p.nonBillable)return;
+      var mh=mon?(monH[p.id]||0):0;
+      var scopeH=mon?mh:(totH[p.id]||p.hrs||0);
+      if(scopeH<=0)return;
+      var estT=taskEstTotal(p), conf=(p.bill==='hourly')?estT:(p.earned||0);
+      var cur=p.budgetCur||'TWD';
+      if(estT<=0){
+        // 外包／轉包任務的 0 報價可能是刻意無毛利，不當作漏填，另列資訊區
+        if(p.execMode&&p.execMode!=='self'){
+          DASH_VAL_DETAIL.zeroOut.push({id:p.id,name:p.name,hrs:scopeH,mode:p.execMode==='resell'?'轉包':'外包'});
+        } else {
+          DASH_VAL_DETAIL.missing.push({id:p.id,name:p.name,hrs:scopeH,reason:p.bill==='hourly'?'未填時薪':'未填報價'});
+        }
+        return;
+      }
+      var rec, method='', compPct=null;
+      if(!mon){
+        rec=estT;
+      } else if(p.bill==='hourly'){
+        rec=mh*(p.hrate||0);
+      } else if((p.estHrs||0)>0){
+        var E=p.estHrs, cb=cumBefore[p.id]||0, ct=cb+mh;
+        if(p.st==='done'&&lastMon[p.id]===mon){
+          rec=estT*(1-Math.min(1,cb/E)); // 完成月補認列剩餘
+        } else {
+          rec=estT*(Math.min(1,ct/E)-Math.min(1,cb/E));
+        }
+        method='完工'; compPct=Math.min(100,Math.round(ct/E*100));
+        if(p.st!=='done'&&cb>=E&&mh>0){
+          DASH_VAL_DETAIL.over.push({id:p.id,name:p.name,hrs:mh,pct:Math.round(ct/E*100)});
+        }
+      } else {
+        var tot=totH[p.id]||scopeH;
+        rec=estT*(mh/tot); method='快照';
+        if(p.st!=='done'){
+          DASH_VAL_DETAIL.snap.push({id:p.id,name:p.name,hrs:mh});
+        }
+      }
+      var estPortion=(conf>=estT)?0:rec*(1-conf/estT);
+      eMap[cur]+=rec;
+      estMap[cur]+=Math.max(0,estPortion);
+      if(estPortion>=1){
+        DASH_VAL_DETAIL.est.push({id:p.id,name:p.name,hrs:scopeH,cur:cur,amt:Math.round(estPortion),pct:compPct!==null?compPct:Math.round((mon?(mh/(totH[p.id]||mh)):1)*100),m:method});
+      }
+    });
+    ['est','missing','zeroOut','snap','over'].forEach(function(k){
+      DASH_VAL_DETAIL[k].sort(function(a,b){return (b.amt||b.hrs)-(a.amt||a.hrs);});
+    });
   })();
+  Object.keys(eMap).forEach(function(k){eMap[k]=Math.round(eMap[k]);estMap[k]=Math.round(estMap[k]);});
   fp.forEach(p=>{if((p.payType||'income')==='income') rMap[p.cur]+=p.amt;});
   var arMap=totalARMap();
 
