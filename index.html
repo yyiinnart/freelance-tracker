@@ -3304,18 +3304,26 @@ function rGrp(){
 
         var moneyLeft=[arBadge,payBadge].filter(Boolean).join('&nbsp;');
 
+        // 右側指標：累計工時 + 時薪，同一行組合顯示
         // 時薪：計時制顯示約定時薪；計件/計價以「應收 ÷ 工時」換算等效時薪
         // 等效時薪低於適用目標時薪（TWD 才比較）以琥珀色提示，其餘一律中性灰
-        var rateHtml='';
+        var ratePart='';
         if(!p.nonBillable){
           if(p.bill==='hourly'){
-            if(p.hrate>0) rateHtml='<span style="font-size:10px;color:#64748b;white-space:nowrap;flex-shrink:0">時薪 '+fmtMoney(p.hrate,p.budgetCur||'TWD')+'</span>';
+            if(p.hrate>0) ratePart='時薪 '+fmtMoney(p.hrate,p.budgetCur||'TWD');
           } else if((p.hrs||0)>0&&(p.earned||0)>0){
             var eqRate=(p.earned||0)/(p.hrs||1);
             var rCur=p.budgetCur||'TWD';
             var below=(rCur==='TWD')&&eqRate<getEffectiveRate(p);
-            rateHtml='<span style="font-size:10px;color:'+(below?'#f59e0b':'#64748b')+';white-space:nowrap;flex-shrink:0">時薪 ≈'+fmtMoney(eqRate,rCur)+'</span>';
+            ratePart='<span style="color:'+(below?'#f59e0b':'#64748b')+'">時薪 ≈'+fmtMoney(eqRate,rCur)+'</span>';
           }
+        }
+        var hrsPart=(p.hrs||0)>0?'<span style="color:#7d8aa0;font-weight:500">'+formatHrs(p.hrs)+'</span>':'';
+        var rateHtml='';
+        if(hrsPart||ratePart){
+          rateHtml='<span style="font-size:10px;color:#64748b;white-space:nowrap;flex-shrink:0">'
+            +[hrsPart,ratePart].filter(Boolean).join('<span style="color:#334155;margin:0 4px">·</span>')
+            +'</span>';
         }
 
         // 卡片備註：有內容顯示備註文字，沒有則顯示極淡的「＋ 備註」入口，點擊皆可直接編輯
