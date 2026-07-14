@@ -109,6 +109,11 @@ tbody tr:hover td{background:#131f2e;}
 .tag-dd-item:hover{background:#273548;}
 .tag-dd-item input[type=checkbox]{accent-color:#3b82f6;}
 
+/* 專案時間分佈：模式切換按鈕 */
+.pie-mode-btn{font-size:11px;font-weight:400;line-height:1;padding:4px 10px;border-radius:6px;color:#64748b;transition:all .15s;}
+.pie-mode-btn:hover{color:#94a3b8;}
+.pie-mode-btn.active{background:#1e293b;color:#60a5fa;font-weight:600;}
+
 /* 專案群組與 Fieldset */
 .proj-group{background:#080f1a;border:1px solid #1a2540;border-radius:12px;margin-bottom:12px;overflow:hidden;}
 .proj-group-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:#0c1525;border-bottom:1px solid #1a2540;cursor:pointer;user-select:none;}
@@ -1062,7 +1067,16 @@ tbody tr[onclick]:hover td{background:#131f2e;}
       <!-- 專案時間分佈 -->
       <div data-panel="pie" class="dash-panel mb-6">
         <div class="bg-slate-900 rounded-xl border border-slate-800 p-5">
-          <h3 class="text-sm font-semibold text-slate-300 mb-4 flex items-center justify-between">專案時間分佈<button type="button" class="text-[11px] font-normal text-slate-500 hover:text-blue-400 transition-colors" title="前往排程日曆的工時回顧" onclick="goTab('cal','hist')">工時回顧 →</button></h3>
+          <h3 class="text-sm font-semibold text-slate-300 mb-4 flex items-center justify-between">
+            <span class="flex items-center gap-3">專案時間分佈
+              <span class="flex items-center gap-1 bg-slate-800/60 rounded-lg p-0.5" id="pie-mode-seg">
+                <button type="button" id="pie-mode-task" class="pie-mode-btn" onclick="setPieMode('task')" title="依單一任務統計工時佔比">任務</button>
+                <button type="button" id="pie-mode-grp" class="pie-mode-btn" onclick="setPieMode('grp')" title="依專案群組彙整工時（未歸屬群組的任務列為「未分組」）">群組</button>
+                <button type="button" id="pie-mode-cat" class="pie-mode-btn" onclick="setPieMode('cat')" title="依業務類型彙整工時，顏色沿用類型設定色">類型</button>
+              </span>
+            </span>
+            <button type="button" class="text-[11px] font-normal text-slate-500 hover:text-blue-400 transition-colors" title="前往排程日曆的工時回顧" onclick="goTab('cal','hist')">工時回顧 →</button>
+          </h3>
           <div class="flex flex-col md:flex-row items-center gap-6">
             <div style="position:relative;width:100%;max-width:240px;height:220px;margin:0 auto"><canvas id="c-pie"></canvas></div>
             <div id="pie-leg" class="text-xs text-slate-400 flex-1 w-full max-h-48 overflow-y-auto no-scrollbar flex flex-col gap-2"></div>
@@ -1711,6 +1725,9 @@ function saveGlobalRate() {
 }
 
 function getWorkMode() { return localStorage.getItem('ft_wmode') || 'solo'; }
+// 專案時間分佈的聚合模式：task 任務｜grp 專案群組｜cat 業務類型（solo 模式下群組退回任務）
+function getPieMode(){var m=localStorage.getItem('ft_pieMode')||'task';if(m==='grp'&&getWorkMode()!=='manager')m='task';return m;}
+function setPieMode(m){localStorage.setItem('ft_pieMode',m);renderDash();}
 function saveWorkMode() {
   var v = document.querySelector('input[name="work-mode"]:checked');
   if(v) localStorage.setItem('ft_wmode', v.value);
@@ -6057,14 +6074,45 @@ function renderDash(){
   if(!mon && fLogs.length===0){
     PJ.filter(p=>(p.hrs||0)>0).forEach(p=>{pieData[p.id]=p.hrs;});
   }
-  var pieEntries=Object.keys(pieData).map(pid=>({pid:+pid,hrs:pieData[pid]})).filter(e=>e.hrs>0).sort((a,b)=>b.hrs-a.hrs).slice(0,10);
-  var pk=pieEntries.map(e=>pname(e.pid)), pd=pieEntries.map(e=>Math.round(e.hrs*100)/100);
-  var pc=['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#84cc16','#f97316','#ec4899','#64748b'];
+  var pMode=getPieMode();
+  var basePc=['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#84cc16','#f97316','#ec4899','#64748b'];
+  var pk,pd,pc;
+  if(pMode==='task'){
+    var pieEntries=Object.keys(pieData).map(pid=>({pid:+pid,hrs:pieData[pid]})).filter(e=>e.hrs>0).sort((a,b)=>b.hrs-a.hrs).slice(0,10);
+    pk=pieEntries.map(e=>pname(e.pid)); pd=pieEntries.map(e=>Math.round(e.hrs*100)/100);
+    pc=pk.map((k,i)=>basePc[i%basePc.length]);
+  } else {
+    // 依群組或業務類型彙整：把每筆 pid 工時映射到對應的分類鍵
+    var agg={}, colorOf={};
+    Object.keys(pieData).forEach(function(pid){
+      var p=pBy(+pid), key;
+      if(pMode==='grp'){
+        key=(p&&p.gid&&grpName(p.gid))?grpName(p.gid):'未分組';
+      } else {
+        var c=p?catBy(p.type):null;
+        key=c?c.name:'未知';
+        if(c&&!(key in colorOf))colorOf[key]=(BC[c.color]||BC.gray).text;
+      }
+      if(!agg[key])agg[key]=0;
+      agg[key]+=pieData[pid];
+    });
+    var aggEntries=Object.keys(agg).map(k=>({k:k,hrs:agg[k]})).filter(e=>e.hrs>0).sort((a,b)=>b.hrs-a.hrs);
+    pk=aggEntries.map(e=>e.k); pd=aggEntries.map(e=>Math.round(e.hrs*100)/100);
+    pc=pMode==='cat'?pk.map((k,i)=>colorOf[k]||basePc[i%basePc.length]):pk.map((k,i)=>basePc[i%basePc.length]);
+  }
+  var pieTotal=pd.reduce(function(s,v){return s+v;},0);
+  var piePct=function(v){return pieTotal>0?Math.round(v/pieTotal*1000)/10:0;};
+  // 更新模式切換按鈕狀態（solo 模式隱藏群組選項）
+  ['task','grp','cat'].forEach(function(k){
+    var b=document.getElementById('pie-mode-'+k); if(!b)return;
+    if(k==='grp')b.style.display=getWorkMode()==='manager'?'':'none';
+    b.classList.toggle('active',k===pMode);
+  });
   if(CH.pie)CH.pie.destroy();
   if(pd.length>0){
-    CH.pie=new Chart(document.getElementById('c-pie'),{type:'doughnut',data:{labels:pk,datasets:[{data:pd,backgroundColor:pc,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.label+': '+formatHrs(ctx.raw)}}},cutout:'65%'}});
+    CH.pie=new Chart(document.getElementById('c-pie'),{type:'doughnut',data:{labels:pk,datasets:[{data:pd,backgroundColor:pc,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.label+': '+formatHrs(ctx.raw)+' ('+piePct(ctx.raw)+'%)'}}},cutout:'65%'}});
   }
-  document.getElementById('pie-leg').innerHTML=pk.length?pk.map((k,i)=>'<div class="flex items-center justify-between"><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full" style="background:'+pc[i%pc.length]+'"></span><span class="truncate w-40" title="'+esc(k)+'">'+esc(k)+'</span></div><span class="font-mono text-slate-300">'+formatHrs(pd[i])+'</span></div>').join(''):'<div class="text-center text-slate-600 py-2">無工時資料</div>';
+  document.getElementById('pie-leg').innerHTML=pk.length?pk.map((k,i)=>'<div class="flex items-center justify-between"><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full flex-shrink-0" style="background:'+pc[i%pc.length]+'"></span><span class="truncate w-40" title="'+esc(k)+'">'+esc(k)+'</span></div><span class="font-mono text-slate-300">'+formatHrs(pd[i])+' <span class="text-slate-600 text-[10px]">'+piePct(pd[i])+'%</span></span></div>').join(''):'<div class="text-center text-slate-600 py-2">無工時資料</div>';
 
   renderDailyTimeline();
   applyDashPanels(); // 套用自訂面板設定
