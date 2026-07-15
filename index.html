@@ -1729,7 +1729,7 @@ function getWorkMode() { return localStorage.getItem('ft_wmode') || 'solo'; }
 function getPieMode(){var m=localStorage.getItem('ft_pieMode')||'task';if(m==='grp'&&getWorkMode()!=='manager')m='task';return m;}
 function setPieMode(m){localStorage.setItem('ft_pieMode',m);renderPie();}
 
-// 產值組成明細：估算中的任務＋漏填報價的任務（由 renderDash 收集）
+// 產值組成明細：估算中的任務＋漏填報價的任務（由共用引擎 calcValRec 收集，收付款與分析匯出同源）
 var DASH_VAL_DETAIL={mon:'',est:[],missing:[],zeroOut:[],snap:[],over:[]};
 function showValDetail(){
   var d=DASH_VAL_DETAIL;
@@ -1756,7 +1756,7 @@ function showValDetail(){
       +d.over.map(function(it){return row(it,formatHrs(it.hrs)+' · 進度 '+it.pct+'%');}).join('')+'</div>';
   }
   if(d.snap&&d.snap.length){
-    html+='<div class="text-xs font-semibold text-slate-500 mt-4 mb-1.5">未填預估工時（採快照分攤，月認列會隨後續進度回溯變動，建議補填）</div>';
+    html+='<div class="text-xs font-semibold text-slate-500 mt-4 mb-1.5">未填預估工時（每月產值先按時數平均分攤：之後每登一筆新工時，過去月份的數字都會跟著重算。建議補填，月報數字才會固定）</div>';
     html+='<div class="rounded-lg border border-slate-800/60 overflow-hidden">'
       +d.snap.map(function(it){return row(it,formatHrs(it.hrs));}).join('')+'</div>';
   }
@@ -3919,7 +3919,7 @@ function openDetail(id){
             <div class="flex items-center gap-1">
               <input type="number" min="0" step="0.5" class="bg-transparent outline-none hover:bg-slate-800/60 border border-transparent hover:border-slate-700 rounded px-1.5 py-0.5 w-16 transition-colors text-slate-300" value="${p.estHrs||''}" placeholder="—" onchange="updateProjField(${id}, 'estHrs', this.value)">
               <span class="text-slate-600 text-[10px]">h</span>
-              ${p.estHrs?`<span class="text-[10px] text-slate-600 ml-1">已投入 ${formatHrs(p.hrs||0)} / 剩餘 ${formatHrs(Math.max(0,(p.estHrs||0)-(p.hrs||0)))}</span>`:'<span class="text-[10px] text-red-400/90 ml-1">⚠ 尚未填寫，無法排進排程試算</span>'}
+              ${p.estHrs?`<span class="text-[10px] text-slate-600 ml-1">已投入 ${formatHrs(p.hrs||0)} / 剩餘 ${formatHrs(Math.max(0,(p.estHrs||0)-(p.hrs||0)))}</span>`:`<span class="text-[10px] text-red-400/90 ml-1 cursor-help" title="未填預估工時的影響：1. 無法排進排程試算；${p.bill!=='hourly'?'2. 每月產值只能按時數平均分攤，之後每登一筆新工時，過去月份的產值數字都會跟著重算。補填後改用完工比例法，月報數字才會固定。':''}">⚠ 尚未填寫 ⓘ</span>`}
             </div>
           </div>
 
@@ -4960,6 +4960,103 @@ function toggleDoneProj(){
   if(lbl) lbl.textContent=cur?'收合 ▴':'展開 ▾';
 }
 
+/* ===== 產值認列共用引擎 =====
+   「收付款」分頁與「分析匯出」共用這一套演算法，只差在口徑：
+   ・分析匯出（經營評估視角）＝ rec（含估算）＝ conf + est
+   ・收付款（保守對帳視角）＝ conf（僅已確認金額）
+   → 兩面板同月差額恆等於估算部分（estMap），可互相驗算。
+   認列規則（依優先序）：
+   1. 時薪制：本期工時 × 時薪（天然正確）。
+   2. 論件＋有填預估工時 → 完工比例法：累計認列 = 總值 × min(1, 累計工時÷預估工時)，
+      本期認列 = 期末累計 − 期初累計。已認列的歷史月份不會回溯變動；
+      超過預估工時後認列封頂，本期工時不再增加產值（超時警報）；
+      已完成任務在最後活動月補認列剩餘差額，確保總和 = 總值。
+   3. 論件＋未填預估工時 → 快照分攤：總值 × (本期工時 ÷ 至今累計工時)，
+      會隨後續進度回溯變動（次級算法，入口有提醒補填）。
+   已確認/估算拆分：各月認列額按「已確認金額 ÷ 任務總值」的比例拆成 conf 與 est。 */
+function calcValRec(mon){
+  var recMap={TWD:0,USD:0,CNY:0,JPY:0}, estMap={TWD:0,USD:0,CNY:0,JPY:0}, confMap={TWD:0,USD:0,CNY:0,JPY:0};
+  var byPid={};
+  var detail={mon:mon||'',est:[],missing:[],zeroOut:[],snap:[],over:[]};
+  // 任務估算總值：時薪制＝工時×時薪；論件＝已確認 earned 與報價 budget 取大（進行中以報價估算）
+  var taskEstTotal=function(p){
+    if(p.nonBillable) return 0;
+    if(p.bill==='hourly') return Math.round((p.hrs||0)*(p.hrate||0)*100)/100;
+    return Math.max(p.earned||0, p.budget||0);
+  };
+  var monH={},cumBefore={},totH={},lastMon={};
+  DLOGS.forEach(function(l){
+    totH[l.pid]=(totH[l.pid]||0)+l.hrs;
+    var m=l.date.slice(0,7);
+    if(!lastMon[l.pid]||m>lastMon[l.pid])lastMon[l.pid]=m;
+    if(mon){
+      if(m===mon)monH[l.pid]=(monH[l.pid]||0)+l.hrs;
+      else if(m<mon)cumBefore[l.pid]=(cumBefore[l.pid]||0)+l.hrs;
+    }
+  });
+  PJ.forEach(function(p){
+    if(p.nonBillable)return;
+    var mh=mon?(monH[p.id]||0):0;
+    var estT=taskEstTotal(p);
+    var scopeH=mon?mh:(totH[p.id]||p.hrs||0);
+    if(mon){ if(mh<=0)return; } else { if(scopeH<=0&&estT<=0)return; }
+    var conf=(p.bill==='hourly')?estT:(p.earned||0);
+    var cur=p.budgetCur||'TWD';
+    var row={pid:p.id,name:p.name,cur:cur,isPiece:p.bill!=='hourly',hrs:scopeH,
+             totHrs:totH[p.id]||p.hrs||0,earned:p.earned||0,budget:p.budget||0,
+             hrate:p.hrate||0,rec:0,conf:0,est:0,method:'',compPct:null,missing:false};
+    if(estT<=0){
+      // 外包／轉包任務的 0 報價可能是刻意無毛利，不當作漏填，另列資訊區
+      if(p.execMode&&p.execMode!=='self'){
+        detail.zeroOut.push({id:p.id,name:p.name,hrs:scopeH,mode:p.execMode==='resell'?'轉包':'外包'});
+      } else {
+        detail.missing.push({id:p.id,name:p.name,hrs:scopeH,reason:p.bill==='hourly'?'未填時薪':'未填報價'});
+        row.missing=true;
+        byPid[p.id]=row;
+      }
+      return;
+    }
+    var rec, method='', compPct=null;
+    if(!mon){
+      rec=estT;
+    } else if(p.bill==='hourly'){
+      rec=mh*(p.hrate||0);
+    } else if((p.estHrs||0)>0){
+      var E=p.estHrs, cb=cumBefore[p.id]||0, ct=cb+mh;
+      if(p.st==='done'&&lastMon[p.id]===mon){
+        rec=estT*(1-Math.min(1,cb/E)); // 完成月補認列剩餘
+      } else {
+        rec=estT*(Math.min(1,ct/E)-Math.min(1,cb/E));
+      }
+      method='完工'; compPct=Math.min(100,Math.round(ct/E*100));
+      if(p.st!=='done'&&cb>=E&&mh>0){
+        detail.over.push({id:p.id,name:p.name,hrs:mh,pct:Math.round(ct/E*100)});
+      }
+    } else {
+      var tot=totH[p.id]||scopeH;
+      rec=estT*(mh/tot); method='快照';
+      if(p.st!=='done'){
+        detail.snap.push({id:p.id,name:p.name,hrs:mh});
+      }
+    }
+    var confPortion=(conf>=estT)?rec:rec*(conf/estT);
+    var estPortion=Math.max(0,rec-confPortion);
+    recMap[cur]=(recMap[cur]||0)+rec;
+    confMap[cur]=(confMap[cur]||0)+confPortion;
+    estMap[cur]=(estMap[cur]||0)+estPortion;
+    row.rec=rec; row.conf=confPortion; row.est=estPortion;
+    row.method=method; row.compPct=compPct;
+    byPid[p.id]=row;
+    if(estPortion>=1){
+      detail.est.push({id:p.id,name:p.name,hrs:scopeH,cur:cur,amt:Math.round(estPortion),pct:compPct!==null?compPct:Math.round((mon?(mh/(totH[p.id]||mh)):1)*100),m:method});
+    }
+  });
+  ['est','missing','zeroOut','snap','over'].forEach(function(k){
+    detail[k].sort(function(a,b){return (b.amt||b.hrs)-(a.amt||a.hrs);});
+  });
+  return {recMap:recMap,confMap:confMap,estMap:estMap,byPid:byPid,detail:detail};
+}
+
 function rPay(){
   var body=document.getElementById('pay-body'), empty=document.getElementById('pay-empty'), st=document.getElementById('pay-stats');
   var arSection=document.getElementById('pay-ar-section');
@@ -5079,46 +5176,17 @@ function rPay(){
   var recvMap={TWD:0,USD:0,CNY:0,JPY:0}; incomes.forEach(p=>recvMap[p.cur]+=p.amt);
   var expMap={TWD:0,USD:0,CNY:0,JPY:0}; expenses.forEach(p=>expMap[p.cur]+=p.amt);
   
-  // 本月產值：一律以「該月登記的工時」為基礎換算，計件任務用「應收 ÷ 總工時」的等效時薪，
-  // 確保同任務跨月不重複計算，且各月加總 = 任務總應收。事後補登的工時依其登記日期歸入對應月份。
-  // prodRows 以「任務」為單位彙總（同任務當月多筆工時合併成一列），方便快速瀏覽本月做了哪些案子、
-  // 各案產值與效率，不會被同一案子的多天紀錄洗版。
-  var prodMap={TWD:0,USD:0,CNY:0,JPY:0};
-  var totalHrsByPid={};
-  DLOGS.forEach(l=>{ totalHrsByPid[l.pid]=(totalHrsByPid[l.pid]||0)+(l.hrs||0); });
-  var prodLogs=selMonth ? DLOGS.filter(l=>l.date && l.date.startsWith(selMonth)) : DLOGS.slice();
-  var prodAgg={}; // pid -> 彙總列
-  prodLogs.forEach(l=>{
-    var p=pBy(l.pid);
-    if(!p || p.nonBillable) return;
-    var cur=p.budgetCur||'TWD';
-    var effRate, isPiece;
-    if(p.bill==='hourly'){
-      effRate=p.hrate||0; isPiece=false;
-    } else {
-      var tot=totalHrsByPid[p.id]||0;
-      effRate=tot>0?((p.earned||0)/tot):0; isPiece=true; // 計件等效時薪
-    }
-    var val=(l.hrs||0)*effRate;
-    prodMap[cur]=(prodMap[cur]||0)+val;
-    if(!prodAgg[p.id]){
-      prodAgg[p.id]={pid:p.id, name:p.name, isPiece:isPiece, hrs:0, val:0, rate:effRate,
-                     cur:cur, totHrs:totalHrsByPid[p.id]||0, earned:p.earned||0, budget:p.budget||0, lastDate:l.date};
-    }
-    prodAgg[p.id].hrs+=(l.hrs||0);
-    prodAgg[p.id].val+=val;
-    if((l.date||'')>(prodAgg[p.id].lastDate||'')) prodAgg[p.id].lastDate=l.date;
-  });
-  // 依產值（換算 TWD）由大到小：最有貢獻的案子在上、低效率的容易對照
-  // 注意：earned=0 的計件案產值算出來是 0，排序時沉到底，但因為有工時仍會顯示，
-  // 並在產值欄以灰字「預期 X」呈現（見下方表格渲染），不再另立預期列。
-  var prodRows=Object.keys(prodAgg).map(k=>prodAgg[k])
-                 .sort((a,b)=>toTWD(b.val,b.cur)-toTWD(a.val,a.cur));
-  // 「全部」時的歷史產值，仍以任務總應收為準（與工時明細加總一致）
-  if(!selMonth){
-    prodMap={TWD:0,USD:0,CNY:0,JPY:0};
-    PJ.forEach(p=>{ if(!p.nonBillable){var r=projAR(p.id); if(r.earned>0) prodMap[r.cur]=(prodMap[r.cur]||0)+r.earned;} });
-  }
+  // ===== 產值：與「分析匯出」共用 calcValRec 認列引擎（完工比例法優先） =====
+  // 口徑差異刻意保留：本頁只加總「已確認」(conf)＝保守對帳視角；
+  // 分析匯出另含估算 (est)＝經營評估視角。因為分攤法已統一，
+  // 同月兩頁差額恆等於估算金額，卡片下方會直接標示 +估算 NT$X。
+  var VR=calcValRec(selMonth||'');
+  var prodMap=VR.confMap;
+  var prodEstTWD=Object.keys(VR.estMap).reduce(function(s,k){return s+toTWD(VR.estMap[k],k);},0);
+  // 依已確認產值（換算 TWD）由大到小：最有貢獻的案子在上、低效率的容易對照
+  // conf=0 的計件案排序時沉到底，但因為有工時仍會顯示，產值欄以灰字「預期 X」呈現
+  var prodRows=Object.keys(VR.byPid).map(function(k){return VR.byPid[k];})
+                 .sort(function(a,b){return toTWD(b.conf,b.cur)-toTWD(a.conf,a.cur);});
   
   var recvLabel=selMonth?selMonth+' 收款':'歷史收款合計';
   var expLabel=selMonth?selMonth+' 付款':'歷史付款合計';
@@ -5137,8 +5205,12 @@ function rPay(){
       '<p class="text-xs text-slate-500 mb-1">'+dot+l+'</p>'+
       '<div class="text-lg font-semibold text-white leading-tight">'+v+'</div></div>';
   };
+  // 產值卡片小字：明示口徑（僅計已確認），並直接顯示與分析匯出的差額（估算部分）
+  var prodCapNote = prodEstTWD>=1
+    ? '<p class="text-[10px] text-slate-500 mt-1 font-normal leading-tight">僅計已確認 · +估算 NT$ '+Math.round(prodEstTWD).toLocaleString()+' 見分析匯出</p>'
+    : '<p class="text-[10px] text-slate-600 mt-1 font-normal leading-tight">僅計已確認金額</p>';
   st.innerHTML=cardBox('flow',recvLabel,formatMultiCurMap(recvMap),'52,211,153')
-    +cardBox('prod',prodLabel,formatMultiCurMap(prodMap),'96,165,250')
+    +cardBox('prod',prodLabel,formatMultiCurMap(prodMap)+prodCapNote,'96,165,250')
     +(expenses.length?'<div class="rounded-lg border border-slate-800 bg-slate-900 px-4 py-3 cursor-pointer transition-colors" style="background:#0f172a" onclick="setPayView(\'flow\')"><p class="text-xs text-slate-500 mb-1">'+expLabel+'</p><div class="text-lg font-semibold text-amber-400 leading-tight">'+formatMultiCurMap(expMap,true)+'</div></div>':'');
   
   body.innerHTML=filteredP.map(p=>{
@@ -5162,18 +5234,29 @@ function rPay(){
         var billBdg = r.isPiece
           ? '<span class="badge bg-purple-950/50 text-purple-300 border border-purple-900/50">計件</span>'
           : '<span class="badge bg-sky-950/50 text-sky-300 border border-sky-900/50">計時</span>';
-        // 計件案尚未認列產值(earned<=0)但已有工時 → 時薪欄與產值欄改灰字提示（不可一鍵認列，避免破壞跨月分攤；正途是按「完成」）
-        var pending = r.isPiece && (r.earned||0)<=0;
+        // 計件案尚未確認任何金額(earned<=0)但已有工時 → 時薪欄與產值欄改灰字提示
+        //（不可一鍵認列，避免破壞跨月分攤；正途是按「完成」。估算值已列入分析匯出）
+        var pending = r.isPiece && (r.earned||0)<=0 && !r.missing;
         var rateCell, valCell;
-        if(pending){
+        if(r.missing){
+          rateCell = '<span class="text-slate-600 text-xs">'+(r.isPiece?'未填報價':'未填時薪')+'</span>';
+          valCell = '<span class="text-slate-500 italic">—</span>';
+        } else if(pending){
           rateCell = '<span class="text-slate-600 text-xs">尚未回報進度</span>';
           var expTxt = (r.budget||0)>0 ? '預期 '+fmtMoney(r.budget,r.cur) : '未填合約額';
-          valCell = '<span class="text-slate-500 italic">'+expTxt+'</span>';
+          valCell = '<span class="text-slate-500 italic">'+expTxt+'</span>'
+            +((r.est||0)>=1?'<div class="text-[10px] text-slate-600">估算已列入分析匯出</div>':'');
         } else {
+          // 計件：顯示本期等效時薪與認列法（完工比例／快照分攤）
+          var eff = r.hrs>0 ? Math.round((r.conf/r.hrs)*100)/100 : 0;
+          var mLbl = r.method==='完工'
+            ? '完工比例 '+(r.compPct!==null?r.compPct+'%':'')
+            : (r.method==='快照' ? '快照分攤' : fmtMoney(r.earned,r.cur)+' ÷ '+formatHrs(r.totHrs));
           rateCell = r.isPiece
-            ? '<span class="text-slate-300">'+fmtMoney(Math.round(r.rate*100)/100,r.cur)+'</span><div class="text-[10px] text-slate-500">'+fmtMoney(r.earned,r.cur)+' ÷ '+formatHrs(r.totHrs)+'</div>'
-            : '<span class="text-slate-300">'+fmtMoney(r.rate,r.cur)+'</span>';
-          valCell = '<span class="font-medium text-emerald-400">'+fmtMoney(Math.round(r.val),r.cur)+'</span>';
+            ? '<span class="text-slate-300">'+fmtMoney(eff,r.cur)+'</span><div class="text-[10px] text-slate-500">'+mLbl+'</div>'
+            : '<span class="text-slate-300">'+fmtMoney(r.hrate,r.cur)+'</span>';
+          valCell = '<span class="font-medium text-emerald-400">'+fmtMoney(Math.round(r.conf),r.cur)+'</span>'
+            +((r.est||0)>=1?'<div class="text-[10px] text-slate-600">+估算 '+fmtMoney(Math.round(r.est),r.cur)+'</div>':'');
         }
         return `<tr class="cursor-pointer hover:bg-slate-800/30" onclick="openDetail(${r.pid})">`+
           `<td class="font-medium text-slate-300">${esc(r.name)}</td>`+
@@ -5944,83 +6027,13 @@ function renderDash(){
   var otherH=otherLogs.reduce((s,l)=>s+l.hrs,0);
   var hrsLabel=formatHrs(tH)+(otherH>0?' <span class="text-slate-500 text-sm font-normal">+ 其他 '+formatHrs(otherH)+'</span>':'');
   
-  var eMap={TWD:0,USD:0,CNY:0,JPY:0}, rMap={TWD:0,USD:0,CNY:0,JPY:0};
-  var estMap={TWD:0,USD:0,CNY:0,JPY:0}; // eMap 中屬「估算（未確認）」的部分
-  // 任務估算總值：時薪制＝工時×時薪；論件＝已確認 earned 與報價 budget 取大（進行中以報價估算）
-  var taskEstTotal=function(p){
-    if(p.nonBillable) return 0;
-    if(p.bill==='hourly') return Math.round((p.hrs||0)*(p.hrate||0)*100)/100;
-    return Math.max(p.earned||0, p.budget||0);
-  };
-  // 產值認列規則（依優先序）：
-  // 1. 時薪制：本期工時 × 時薪（天然正確）。
-  // 2. 論件＋有填預估工時 → 完工比例法：累計認列 = 總值 × min(1, 累計工時÷預估工時)，
-  //    本期認列 = 期末累計認列 − 期初累計認列。已認列的歷史月份不會回溯變動；
-  //    超過預估工時後認列封頂，本期工時不再增加產值（超時警報）；
-  //    已完成任務在最後活動月補認列剩餘差額，確保總和 = 總值。
-  // 3. 論件＋未填預估工時 → 快照分攤：總值 × (本期工時 ÷ 至今累計工時)，會隨進度回溯變動（次級算法）。
-  DASH_VAL_DETAIL={mon:mon,est:[],missing:[],zeroOut:[],snap:[],over:[]};
-  (function(){
-    var monH={},cumBefore={},totH={},lastMon={};
-    DLOGS.forEach(function(l){
-      totH[l.pid]=(totH[l.pid]||0)+l.hrs;
-      var m=l.date.slice(0,7);
-      if(!lastMon[l.pid]||m>lastMon[l.pid])lastMon[l.pid]=m;
-      if(mon){
-        if(m===mon)monH[l.pid]=(monH[l.pid]||0)+l.hrs;
-        else if(m<mon)cumBefore[l.pid]=(cumBefore[l.pid]||0)+l.hrs;
-      }
-    });
-    PJ.forEach(function(p){
-      if(p.nonBillable)return;
-      var mh=mon?(monH[p.id]||0):0;
-      var scopeH=mon?mh:(totH[p.id]||p.hrs||0);
-      if(scopeH<=0)return;
-      var estT=taskEstTotal(p), conf=(p.bill==='hourly')?estT:(p.earned||0);
-      var cur=p.budgetCur||'TWD';
-      if(estT<=0){
-        // 外包／轉包任務的 0 報價可能是刻意無毛利，不當作漏填，另列資訊區
-        if(p.execMode&&p.execMode!=='self'){
-          DASH_VAL_DETAIL.zeroOut.push({id:p.id,name:p.name,hrs:scopeH,mode:p.execMode==='resell'?'轉包':'外包'});
-        } else {
-          DASH_VAL_DETAIL.missing.push({id:p.id,name:p.name,hrs:scopeH,reason:p.bill==='hourly'?'未填時薪':'未填報價'});
-        }
-        return;
-      }
-      var rec, method='', compPct=null;
-      if(!mon){
-        rec=estT;
-      } else if(p.bill==='hourly'){
-        rec=mh*(p.hrate||0);
-      } else if((p.estHrs||0)>0){
-        var E=p.estHrs, cb=cumBefore[p.id]||0, ct=cb+mh;
-        if(p.st==='done'&&lastMon[p.id]===mon){
-          rec=estT*(1-Math.min(1,cb/E)); // 完成月補認列剩餘
-        } else {
-          rec=estT*(Math.min(1,ct/E)-Math.min(1,cb/E));
-        }
-        method='完工'; compPct=Math.min(100,Math.round(ct/E*100));
-        if(p.st!=='done'&&cb>=E&&mh>0){
-          DASH_VAL_DETAIL.over.push({id:p.id,name:p.name,hrs:mh,pct:Math.round(ct/E*100)});
-        }
-      } else {
-        var tot=totH[p.id]||scopeH;
-        rec=estT*(mh/tot); method='快照';
-        if(p.st!=='done'){
-          DASH_VAL_DETAIL.snap.push({id:p.id,name:p.name,hrs:mh});
-        }
-      }
-      var estPortion=(conf>=estT)?0:rec*(1-conf/estT);
-      eMap[cur]+=rec;
-      estMap[cur]+=Math.max(0,estPortion);
-      if(estPortion>=1){
-        DASH_VAL_DETAIL.est.push({id:p.id,name:p.name,hrs:scopeH,cur:cur,amt:Math.round(estPortion),pct:compPct!==null?compPct:Math.round((mon?(mh/(totH[p.id]||mh)):1)*100),m:method});
-      }
-    });
-    ['est','missing','zeroOut','snap','over'].forEach(function(k){
-      DASH_VAL_DETAIL[k].sort(function(a,b){return (b.amt||b.hrs)-(a.amt||a.hrs);});
-    });
-  })();
+  // ===== 產值認列：與「收付款」分頁共用 calcValRec 引擎（規則詳見該函式註解）=====
+  // 口徑：本面板加總 rec（含估算）＝經營評估視角；收付款只加總 conf（已確認）。
+  // 同月兩面板差額恆等於 estMap（估算部分），可互相驗算。
+  var VR=calcValRec(mon);
+  var eMap=VR.recMap, estMap=VR.estMap;
+  var rMap={TWD:0,USD:0,CNY:0,JPY:0};
+  DASH_VAL_DETAIL=VR.detail;
   Object.keys(eMap).forEach(function(k){eMap[k]=Math.round(eMap[k]);estMap[k]=Math.round(estMap[k]);});
   fp.forEach(p=>{if((p.payType||'income')==='income') rMap[p.cur]+=p.amt;});
   var arMap=totalARMap();
