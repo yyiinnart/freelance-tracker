@@ -6377,7 +6377,7 @@ function renderDailyTimeline(){
   var totalHrs=billableFiltered.reduce(function(s,l){return s+l.hrs;},0);
   var otherHrs=otherFiltered.reduce(function(s,l){return s+l.hrs;},0);
   var uniqueDays=new Set(filtered.map(function(l){return l.date;})).size;
-  var avgPerDay=uniqueDays>0?(totalHrs/uniqueDays):0;
+  var avgPerDay=uniqueDays>0?((totalHrs+otherHrs)/uniqueDays):0;
   var uniqueProjs=new Set(filtered.map(function(l){return l.pid;})).size;
   var hrsDisplay=formatHrs(totalHrs)+(otherHrs>0?' <span class=\"text-sm font-normal text-slate-500\">+ 其他 '+formatHrs(otherHrs)+'</span>':'');
   
@@ -6427,7 +6427,7 @@ function renderDailyTimeline(){
 
   // ========== 核心新增：計算平均每週工時 =========
   var uniqueWeeks = Object.keys(weekAgg).length;
-  var avgPerWeek = uniqueWeeks > 0 ? (totalHrs / uniqueWeeks) : 0;
+  var avgPerWeek = uniqueWeeks > 0 ? ((totalHrs + otherHrs) / uniqueWeeks) : 0;
 
   // ========== 更新畫面卡片 (移到這裡才算得出來) ==========
   document.getElementById('dl-stats').innerHTML=
@@ -6461,7 +6461,7 @@ function renderDailyTimeline(){
       lastWeekKey=wi.key;
       var agg=weekAgg[wi.key];
       var dayCnt=agg.days.size;
-      var avg=dayCnt>0?agg.hrs/dayCnt:0;
+      var avg=dayCnt>0?(agg.hrs+agg.otherHrs)/dayCnt:0;
       var otherPart=agg.otherHrs>0?'<span class=\"text-slate-500\">+ 其他 '+formatHrs(agg.otherHrs)+'</span>':'';
       weekHeader='<div class=\"week-divider\">'+
         '<div><span class=\"wk-label\"> '+wi.label+'</span><span class=\"wk-range\">'+wi.range+'</span></div>'+
