@@ -480,10 +480,10 @@ tbody tr[onclick]:hover td{background:#131f2e;}
               </select>
             </div>
             <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-medium text-slate-400">合約總額</label>
+              <label class="text-xs font-medium text-slate-400">合約總額 <span class="text-[10px] text-slate-600 font-normal">（幣別為任務層級，與約定時薪共用）</span></label>
               <div class="flex gap-2">
                 <input type="number" id="pj-budget" class="inp flex-1" min="0" placeholder="未定可留空">
-                <select id="pj-budgetCur" class="inp w-20 flex-shrink-0">
+                <select id="pj-budgetCur" class="inp w-20 flex-shrink-0" onchange="syncTaskCur('pj', this.value)" title="任務幣別：合約總額、約定時薪、收付款共用">
                   <option value="TWD">TWD</option>
                   <option value="CNY">CNY</option>
                   <option value="USD">USD</option>
@@ -497,7 +497,16 @@ tbody tr[onclick]:hover td{background:#131f2e;}
             </div>
             <div id="wrap-hrate" class="flex flex-col gap-1.5" style="display:none;">
               <label class="text-xs font-medium text-slate-400">約定時薪</label>
-              <input type="number" id="pj-hrate" class="inp" min="0" placeholder="時薪金額">
+              <div class="flex gap-2">
+                <input type="number" id="pj-hrate" class="inp flex-1" min="0" placeholder="時薪金額">
+                <select id="pj-hrateCur" class="inp w-20 flex-shrink-0" onchange="syncTaskCur('pj', this.value)" title="任務幣別：與合約總額共用，改這裡等於改合約幣別">
+                  <option value="TWD">TWD</option>
+                  <option value="CNY">CNY</option>
+                  <option value="USD">USD</option>
+                  <option value="JPY">JPY</option>
+                </select>
+              </div>
+              <p class="text-[10px] text-slate-600">時薪與合約總額同幣別，換幣別時請確認金額也一起改。</p>
             </div>
           </div>
 
@@ -1188,7 +1197,7 @@ tbody tr[onclick]:hover td{background:#131f2e;}
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <div>
             <label class="text-xs font-medium text-slate-400 block mb-1.5">目標時薪 (NT$)</label>
-            <p class="text-[10px] text-slate-600 mb-2">用於計算安全工時上限（合約總額 ÷ 目標時薪）。</p>
+            <p class="text-[10px] text-slate-600 mb-2">用於計算安全工時上限（合約總額 ÷ 目標時薪），以及開工前的「計畫時薪」預警。<span class="text-slate-500">計時制不適用</span>——計時制多做一小時就多賺一小時，不存在虧損水位。</p>
             <input type="number" id="global-rate" class="inp w-32 py-1.5 text-center font-mono" value="500" onchange="saveGlobalRate()">
           </div>
           <div>
@@ -1213,6 +1222,18 @@ tbody tr[onclick]:hover td{background:#131f2e;}
             </div>
           </div>
         </div>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-5">
+        <h3 class="text-sm font-semibold text-white mb-1">正式階段名單</h3>
+        <p class="text-xs text-slate-500 mb-4">只有名單內的階段會在「各階段估時回測」各自成一列並做偏差分析；名單外的名稱一律折進「雜事」。個案細節寫在階段後面的<span class="text-slate-400">附註</span>，附註只做顯示、不進統計。</p>
+        <div id="phase-list-box" class="flex flex-wrap gap-2 mb-3"></div>
+        <div class="flex gap-2 flex-wrap">
+          <input id="phase-new" class="inp text-sm w-48 py-1.5" placeholder="新增階段名（如：分鏡）" onkeydown="if(event.key==='Enter')addPhaseName()">
+          <button class="btn btn-sm" onclick="addPhaseName()">+ 加入</button>
+          <button class="btn btn-sm text-slate-500" onclick="resetPhaseList()">還原預設</button>
+        </div>
+        <p class="text-[10px] text-slate-600 mt-3">移除名單項目<span class="text-slate-500">不會改動任何既有資料</span>，只是該階段之後在統計上會被歸進「雜事」。要真的改寫舊資料的階段名，請用任務詳情裡的 🏷️ 階段名總管。</p>
       </div>
 
       <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-5">
@@ -1724,6 +1745,82 @@ function saveGlobalRate() {
   save();
 }
 
+/* ============================================================
+   正式階段名單（統計只認名單內的階段；其餘一律折進「雜事」）
+   ・名單存 localStorage ft_phases，隨雲端同步
+   ・「雜事」是保留字，不能被加進名單、也不能被改名
+   ・階段的 note 只做顯示，永遠不進統計鍵
+   ============================================================ */
+var DEFAULT_PHASES = ['草稿','線稿','上色','完稿','修改'];
+var MISC_PHASE = '雜事';
+function getPhaseList(){
+  try{
+    var a = JSON.parse(localStorage.getItem('ft_phases')||'null');
+    if(Array.isArray(a) && a.length) return a;
+  }catch(e){}
+  return DEFAULT_PHASES.slice();
+}
+function setPhaseList(arr){
+  var clean = [];
+  (arr||[]).forEach(function(n){
+    n = String(n||'').trim();
+    if(!n) return;
+    if(normPhase(n) === normPhase(MISC_PHASE)) return;
+    if(clean.some(function(x){ return normPhase(x) === normPhase(n); })) return;
+    clean.push(n);
+  });
+  localStorage.setItem('ft_phases', JSON.stringify(clean));
+  save();
+}
+function isCanonPhase(name){
+  var n = normPhase(name); if(!n) return false;
+  return getPhaseList().some(function(x){ return normPhase(x) === n; });
+}
+function isMiscPhase(name){ return !!normPhase(name) && normPhase(name) === normPhase(MISC_PHASE); }
+// 統計歸類鍵：名單內原樣（正規化）；雜事與所有未歸類名稱一律折成雜事鍵
+function phaseStatKey(name){
+  var n = normPhase(name); if(!n) return '';
+  var list = getPhaseList();
+  for(var i=0;i<list.length;i++){ if(normPhase(list[i]) === n) return normPhase(list[i]); }
+  return normPhase(MISC_PHASE);
+}
+// 階段顯示字串：名稱 + 附註（附註不進統計）
+function phaseLabel(m){
+  if(!m || !m.name) return '';
+  return m.note ? (m.name + ' · ' + m.note) : m.name;
+}
+
+/* ============================================================
+   計畫時薪：合約總額 ÷ 預估工時（換算 TWD）
+   ・只適用計件／計價制且有報酬的任務；計時制沒有「效率」概念
+   ・level：ok＝達標｜warn＝低於目標｜bad＝低於目標九成
+   ・回傳 null 代表不適用或資料不足（缺報價、缺預估工時）
+   ============================================================ */
+function planRateInfo(p){
+  if(!p || p.nonBillable || p.bill === 'hourly') return null;
+  var est = +p.estHrs || 0;
+  var budgetTWD = toTWD(+p.budget || 0, p.budgetCur || 'TWD');
+  if(est <= 0 || budgetTWD <= 0) return null;
+  var target = getEffectiveRate(p);
+  if(!(target > 0)) return null;
+  var rate = budgetTWD / est;
+  return {
+    rate: Math.round(rate),
+    target: target,
+    level: rate >= target ? 'ok' : (rate >= target * 0.9 ? 'warn' : 'bad'),
+    maxHrs: Math.round((budgetTWD / target) * 10) / 10,
+    minFeeTWD: Math.ceil(est * target)
+  };
+}
+
+// 任務幣別：合約總額與約定時薪共用同一個幣別，兩處下拉連動
+function syncTaskCur(px, v){
+  ['-budgetCur','-hrateCur'].forEach(function(sfx){
+    var el = document.getElementById(px + sfx);
+    if(el && el.value !== v) el.value = v;
+  });
+}
+
 function getWorkMode() { return localStorage.getItem('ft_wmode') || 'solo'; }
 // 專案時間分佈的聚合模式：task 任務｜grp 專案群組｜cat 業務類型（solo 模式下群組退回任務）
 function getPieMode(){var m=localStorage.getItem('ft_pieMode')||'task';if(m==='grp'&&getWorkMode()!=='manager')m='task';return m;}
@@ -2008,7 +2105,10 @@ function cloudSave(){
     show_hints: localStorage.getItem('ft_show_hints'),
     dash_cfg: localStorage.getItem('ft_dash_cfg'),
     unify_cur: localStorage.getItem('ft_unify_cur'),
-    ai_note: localStorage.getItem('ft_ai_note')
+    ai_note: localStorage.getItem('ft_ai_note'),
+    phases: localStorage.getItem('ft_phases'),
+    phase_hidden: localStorage.getItem('ft_phase_hidden'),
+    estacc_hide_phases: localStorage.getItem('ft_estacc_hide_phases')
   };
   
   // 2. 加入 VACS (休假) 與 CFG (設定) 到上傳名單
@@ -2046,7 +2146,7 @@ function cloudLoad(){
         
         // 2. 讀取並覆寫本地端設定檔
         if(cd.CFG) {
-          ['wmode','trate','dl_crit','wtarget','track_limit','show_tracks','show_hints','dash_cfg','unify_cur','ai_note'].forEach(k=>{
+          ['wmode','trate','dl_crit','wtarget','track_limit','show_tracks','show_hints','dash_cfg','unify_cur','ai_note','phases','phase_hidden','estacc_hide_phases'].forEach(k=>{
             if(cd.CFG[k]) localStorage.setItem('ft_'+k, cd.CFG[k]);
           });
         }
@@ -2063,6 +2163,8 @@ function cloudLoad(){
         applyHintVisibility();
         applyUnifyCurUI();
         applyDashPanels();
+        rPhaseList();
+        refreshPhaseDatalist();
         
         setSyncStatus('ok','已雲端載入'); hasUnsynced = false;
       } else { setSyncStatus('ok'); }
@@ -2145,7 +2247,10 @@ function cloudSaveBeacon(){
     show_hints: localStorage.getItem('ft_show_hints'),
     dash_cfg: localStorage.getItem('ft_dash_cfg'),
     unify_cur: localStorage.getItem('ft_unify_cur'),
-    ai_note: localStorage.getItem('ft_ai_note')
+    ai_note: localStorage.getItem('ft_ai_note'),
+    phases: localStorage.getItem('ft_phases'),
+    phase_hidden: localStorage.getItem('ft_phase_hidden'),
+    estacc_hide_phases: localStorage.getItem('ft_estacc_hide_phases')
   };
   var payload = {version:8, at:new Date().toISOString(),
     P:P, PJ:PJ, CATS:CATS, TAGS:TAGS, GRPS:GRPS,
@@ -2193,7 +2298,7 @@ document.addEventListener('visibilitychange', function() {
   }
 });
 function exportJSON(){
-  var cfg={wmode:localStorage.getItem('ft_wmode'),trate:localStorage.getItem('ft_trate'),dl_crit:localStorage.getItem('ft_dl_crit'),wtarget:localStorage.getItem('ft_wtarget'),track_limit:localStorage.getItem('ft_track_limit'),show_tracks:localStorage.getItem('ft_show_tracks'),show_hints:localStorage.getItem('ft_show_hints'),dash_cfg:localStorage.getItem('ft_dash_cfg')};
+  var cfg={wmode:localStorage.getItem('ft_wmode'),trate:localStorage.getItem('ft_trate'),dl_crit:localStorage.getItem('ft_dl_crit'),wtarget:localStorage.getItem('ft_wtarget'),track_limit:localStorage.getItem('ft_track_limit'),show_tracks:localStorage.getItem('ft_show_tracks'),show_hints:localStorage.getItem('ft_show_hints'),dash_cfg:localStorage.getItem('ft_dash_cfg'),phases:localStorage.getItem('ft_phases'),phase_hidden:localStorage.getItem('ft_phase_hidden'),estacc_hide_phases:localStorage.getItem('ft_estacc_hide_phases')};
   var d={version:8,at:new Date().toISOString(),P:P,PJ:PJ,CATS:CATS,TAGS:TAGS,GRPS:GRPS,DLOGS:DLOGS,VENDORS:VENDORS,VACS:VACS,WORKDAYS:WORKDAYS,MEXP:MEXP,REM:REM,CFG:cfg};
   var a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'}));
@@ -2215,7 +2320,7 @@ function importJSON(e){
         MEXP=d.MEXP||{}; // 匯入每月總支出
         REM=d.REM||[]; // 匯入日曆小提醒
         if(d.CFG){ // 匯入設定
-          ['wmode','trate','dl_crit','wtarget','track_limit','show_tracks','show_hints','dash_cfg'].forEach(k=>{
+          ['wmode','trate','dl_crit','wtarget','track_limit','show_tracks','show_hints','dash_cfg','phases','phase_hidden','estacc_hide_phases'].forEach(k=>{
             if(d.CFG[k]) localStorage.setItem('ft_'+k, d.CFG[k]);
           });
         }
@@ -2231,6 +2336,8 @@ function importJSON(e){
         applyWorkMode();
         applyHintVisibility();
         applyDashPanels();
+        rPhaseList();
+        refreshPhaseDatalist();
         syncSel(); rCats(); rProj(); rPay(); rGrp(); rTagStats(); rVendors(); renderCal();
         // 若有設定雲端，立刻推送（覆蓋雲端為新資料），不走 3 秒防震
         if(getScriptUrl()) save(true); else save();
@@ -2512,14 +2619,55 @@ function renamePhase(norm, newName){
   return mergePhaseNames([norm], newName.trim());
 }
 
-// 動態填入階段名建議 datalist（供 milestone / 排程接新案輸入框共用）；跳過「下拉隱藏」的名稱。
+// 階段名建議 datalist：只給「正式名單 ＋ 雜事」，不再把所有用過的名字全倒出來，
+// 名單才不會隨自由命名無限變長（供排程接新案的階段輸入框使用）。
 function refreshPhaseDatalist(){
   var dl = document.getElementById('phase-suggest');
   if(!dl) return;
-  var hidden = getHiddenPhaseSuggest();
-  dl.innerHTML = collectPhaseNames().filter(function(o){ return hidden.indexOf(o.norm) < 0; }).map(function(o){
-    return '<option value="'+esc(o.label)+'">';
+  dl.innerHTML = getPhaseList().concat([MISC_PHASE]).map(function(n){
+    return '<option value="'+esc(n)+'">';
   }).join('');
+}
+
+// ===== 設定頁：正式階段名單維護 =====
+function rPhaseList(){
+  var box = document.getElementById('phase-list-box'); if(!box) return;
+  var lst = getPhaseList();
+  var chips = lst.map(function(n, i){
+    return '<span class="inline-flex items-center gap-1 bg-slate-800 border border-slate-700 rounded-full pl-3 pr-1 py-1 text-xs text-slate-300">◇ ' + esc(n)
+      + '<button type="button" class="text-slate-600 hover:text-red-400 px-1" title="從名單移除（既有資料不動，之後統計歸入雜事）" onclick="delPhaseName(' + i + ')">✕</button></span>';
+  }).join('');
+  chips += '<span class="inline-flex items-center bg-slate-950 border border-slate-800 rounded-full px-3 py-1 text-xs text-slate-600" title="保留名稱，永遠存在且不可移除">◇ ' + esc(MISC_PHASE) + '（保留）</span>';
+  box.innerHTML = chips;
+}
+function addPhaseName(){
+  var el = document.getElementById('phase-new'); if(!el) return;
+  var n = (el.value||'').trim();
+  if(!n) return;
+  if(isMiscPhase(n)){ showToast('「'+MISC_PHASE+'」是保留名稱，不用加入', 'amber'); return; }
+  if(isCanonPhase(n)){ showToast('名單裡已經有這個階段了', 'amber'); return; }
+  var lst = getPhaseList(); lst.push(n); setPhaseList(lst);
+  el.value = ''; rPhaseList(); refreshPhaseDatalist(); rerenderActive();
+  showToast('✓ 已加入：'+n, 'green');
+}
+function delPhaseName(i){
+  var lst = getPhaseList();
+  var n = lst[i]; if(n === undefined) return;
+  openModal('從名單移除階段', '<div class="text-sm text-slate-300">要把「<span class="text-white">'+esc(n)+'</span>」移出正式名單嗎？</div>'
+    + '<div class="text-xs text-slate-500 mt-2 leading-relaxed">既有任務與工時的階段標記<span class="text-slate-300">完全不會被改動</span>，只是之後在「各階段估時回測」裡會被折進「'+esc(MISC_PHASE)+'」那一列。隨時可以再加回來。</div>', function(){
+    var cur = getPhaseList(); cur.splice(i, 1); setPhaseList(cur);
+    rPhaseList(); refreshPhaseDatalist(); rerenderActive();
+    if(!document.getElementById('v-dash').classList.contains('hidden')) renderEstAcc();
+    closeModal(); showToast('已移除：'+n, 'green');
+  }, '確認移除');
+}
+function resetPhaseList(){
+  openModal('還原預設名單', '<div class="text-sm text-slate-300">把正式階段名單還原成預設值？</div>'
+    + '<div class="text-xs text-slate-500 mt-2">預設：'+esc(DEFAULT_PHASES.join('、'))+'。既有資料不受影響。</div>', function(){
+    setPhaseList(DEFAULT_PHASES.slice());
+    rPhaseList(); refreshPhaseDatalist(); rerenderActive();
+    closeModal(); showToast('✓ 已還原預設名單', 'green');
+  }, '確認還原');
 }
 // ===== 🏷️ 階段名總管 =====
 // 列出所有用過的階段名與引用數，提供：改名、併入既有、下拉隱藏/取消隱藏。
@@ -2547,11 +2695,19 @@ function renderPhaseManagerBody(){
     var isHid = hidden.indexOf(o.norm) >= 0;
     var normEsc = esc(o.norm).replace(/'/g,"\\'");
     var refTxt = o.msCount + ' 任務 · ' + o.logCount + ' 筆工時';
+    var inList = isCanonPhase(o.label);
+    var isMisc = isMiscPhase(o.label);
+    var tagHtml = inList
+      ? '<span class="text-[9px] text-emerald-500/70 no-underline">正式名單</span>'
+      : (isMisc ? '<span class="text-[9px] text-slate-500 no-underline">保留字</span>'
+                : '<span class="text-[9px] text-amber-500/70 no-underline">未歸類 · 統計折進'+esc(MISC_PHASE)+'</span>');
     return '<div class="flex items-center gap-2 bg-slate-950/40 border '+(isHid?'border-slate-800/60':'border-slate-800')+' rounded-lg px-3 py-2">'
       + '<div class="flex-1 min-w-0">'
-        + '<div class="text-sm '+(isHid?'text-slate-500 line-through':'text-slate-300')+' truncate">◇ '+esc(o.label)+(isHid?' <span class="text-[9px] text-slate-600 no-underline">已隱藏</span>':'')+'</div>'
+        + '<div class="text-sm '+(isHid?'text-slate-500 line-through':'text-slate-300')+' truncate">◇ '+esc(o.label)+(isHid?' <span class="text-[9px] text-slate-600 no-underline">已隱藏</span>':'')+' '+tagHtml+'</div>'
         + '<div class="text-[10px] text-slate-600">'+refTxt+'</div>'
       + '</div>'
+      + (inList||isMisc ? '' : '<button type="button" class="text-[11px] text-slate-500 hover:text-emerald-400 px-1.5" title="把這個名稱加進正式階段名單（不改任何資料）" onclick="pmAddToList(\''+normEsc+'\')">納入名單</button>')
+      + (isMisc ? '' : '<button type="button" class="text-[11px] text-slate-500 hover:text-amber-400 px-1.5" title="把這個階段的所有引用改寫成「'+esc(MISC_PHASE)+'」（工時數字保留）" onclick="pmToMisc(\''+normEsc+'\')">歸'+esc(MISC_PHASE)+'</button>')
       + '<button type="button" class="text-[11px] text-slate-500 hover:text-violet-300 px-1.5" title="改名（連同工時一起改標籤）" onclick="pmRename(\''+normEsc+'\')">改名</button>'
       + '<button type="button" class="text-[11px] text-slate-500 hover:text-violet-300 px-1.5" title="併入另一個現有階段名" onclick="pmMergeInto(\''+normEsc+'\')">併入</button>'
       + '<button type="button" class="text-[11px] '+(isHid?'text-emerald-500/80 hover:text-emerald-400':'text-slate-500 hover:text-amber-400')+' px-1.5" title="'+(isHid?'恢復顯示於輸入下拉':'從輸入下拉隱藏（不刪工時）')+'" onclick="togglePhaseHidden(\''+normEsc+'\');renderPhaseManagerBody();">'+(isHid?'取消隱藏':'隱藏')+'</button>'
@@ -2604,6 +2760,44 @@ function pmMergeInto(norm){
     showToast('✓ 已併入「'+tgt+'」：更新 '+res.tasks+' 任務、'+res.logs+' 筆工時'+(res.dedup?'，去重 '+res.dedup+' 個':''), 'green');
     setTimeout(openPhaseManager, 0);
   }, '確認併入');
+}
+
+// 納入正式名單：只改名單，完全不動任何 milestone 或工時資料
+function pmAddToList(norm){
+  var cur = collectPhaseNames().find(function(o){ return o.norm === norm; });
+  var label = cur ? cur.label : norm;
+  if(isCanonPhase(label)){ showToast('名單裡已經有這個階段了', 'amber'); return; }
+  var lst = getPhaseList(); lst.push(label); setPhaseList(lst);
+  if(typeof rPhaseList === 'function') rPhaseList();
+  refreshPhaseDatalist(); rerenderActive();
+  if(!document.getElementById('v-dash').classList.contains('hidden')) renderEstAcc();
+  showToast('✓ 已納入正式名單：'+label, 'green');
+  setTimeout(openPhaseManager, 0);
+}
+
+// 批次歸入雜事：把該階段名的所有引用改寫成「雜事」（工時數字、日期、案子全部保留）
+function pmToMisc(norm){
+  var cur = collectPhaseNames().find(function(o){ return o.norm === norm; });
+  var label = cur ? cur.label : norm;
+  var refs = phaseRefs(norm);
+  var html = '<div class="flex flex-col gap-2">'
+    + '<div class="text-sm text-slate-300">把「<span class="text-white">'+esc(label)+'</span>」歸入「'+esc(MISC_PHASE)+'」？</div>'
+    + '<div class="text-xs text-slate-500 leading-relaxed">會改寫 <span class="text-slate-300">'+refs.tasks.length+'</span> 個任務與 <span class="text-slate-300">'+refs.logCount+'</span> 筆工時的階段標籤，工時數字與日期完全不變、不會刪任何紀錄。原本的名稱會保留在階段的<span class="text-slate-300">附註</span>欄，之後仍看得到。</div>'
+    + '</div>';
+  openModal('歸入'+MISC_PHASE, html, function(){
+    // 先把原名塞進 note（沒有 note 才塞，避免覆蓋使用者自己寫的附註）
+    PJ.forEach(function(p){
+      (p.milestones||[]).forEach(function(m){
+        if(m && m.name && normPhase(m.name) === norm && !m.note) m.note = m.name;
+      });
+    });
+    var res = mergePhaseNames([norm], MISC_PHASE);
+    var h = getHiddenPhaseSuggest(); var i = h.indexOf(norm); if(i>=0){ h.splice(i,1); setHiddenPhaseSuggest(h); }
+    save(); rProj(); rGrp(); refreshPhaseDatalist();
+    if(!document.getElementById('v-dash').classList.contains('hidden')) renderEstAcc();
+    showToast('✓ 已歸入'+MISC_PHASE+'：更新 '+res.tasks+' 任務、'+res.logs+' 筆工時', 'green');
+    setTimeout(openPhaseManager, 0);
+  }, '確認歸入');
 }
 
 function startTimer(id){activeTimers[id]=Date.now();localStorage.setItem('ft_timers',JSON.stringify(activeTimers));rProj();}
@@ -2819,7 +3013,8 @@ function toggleExecMode(px) {
 function syncSel(){
   // 1. 原有邏輯：更新任務建立面板的選單
   document.getElementById('pj-type').innerHTML=CATS.map(c=>'<option value="'+c.id+'">'+esc(c.name)+'</option>').join('');
-  var go='<option value="">— 無 —</option>'+GRPS.map(g=>'<option value="'+g.id+'">'+esc(g.name)+'</option>').join('');
+  // 已完成的群組不列入「新建任務」下拉，避免名單無限變長（篩選用下拉仍保留全部）
+  var go='<option value="">— 無 —</option>'+GRPS.filter(g=>g.st!=='done').map(g=>'<option value="'+g.id+'">'+esc(g.name)+'</option>').join('');
   document.getElementById('pj-grp').innerHTML=go;
   buildTagDD('pj-tag-dd','pj');
 
@@ -3227,7 +3422,8 @@ function rCats(){
 function editCat(id){
   var c=CATS.find(x=>x.id===id);if(!c)return;
   var colorOpts=['blue','teal','purple','amber','rose','green','gray'].map(v=>'<option value="'+v+'" '+(c.color===v?'selected':'')+'>'+({blue:'藍色',teal:'青綠',purple:'紫色',amber:'琥珀',rose:'玫瑰',green:'綠色',gray:'灰色'}[v])+'</option>').join('');
-  var grpOpts='<option value="">— 不指定 —</option>'+GRPS.map(g=>'<option value="'+g.id+'" '+(c.tplGrp===g.id?'selected':'')+'>'+esc(g.name)+'</option>').join('');
+  // 已完成群組不列入範本預設（除非目前就設定為它）
+  var grpOpts='<option value="">— 不指定 —</option>'+GRPS.filter(g=>g.st!=='done'||c.tplGrp===g.id).map(g=>'<option value="'+g.id+'" '+(c.tplGrp===g.id?'selected':'')+'>'+esc(g.name)+(g.st==='done'?'（已完成）':'')+'</option>').join('');
   var billOpts=[['piece','計件制'],['hourly','計時制'],['fixed','計價制']].map(function(x){return '<option value="'+x[0]+'" '+(( c.tplBill||'piece')===x[0]?'selected':'')+'>'+x[1]+'</option>';}).join('');
   var execOpts=[['self','自行執行'],['outsource','外包'],['resell','轉包']].map(function(x){return '<option value="'+x[0]+'" '+((c.tplExec||'self')===x[0]?'selected':'')+'>'+x[1]+'</option>';}).join('');
   var curOpts=CURS.map(function(cu){return '<option value="'+cu+'" '+((c.tplBudgetCur||'TWD')===cu?'selected':'')+'>'+cu+'</option>';}).join('');
@@ -3589,7 +3785,7 @@ function onQuickTypeChange(){
     var budgetEl=document.getElementById('pj-budget');
     var budgetCurEl=document.getElementById('pj-budgetCur');
     if(budgetEl && cat.tplBudget) budgetEl.value=cat.tplBudget;
-    if(budgetCurEl && cat.tplBudgetCur) budgetCurEl.value=cat.tplBudgetCur;
+    if(budgetCurEl && cat.tplBudgetCur){ budgetCurEl.value=cat.tplBudgetCur; syncTaskCur('pj', cat.tplBudgetCur); }
     // 執行方式
     var execEl=document.getElementById('pj-exec');
     if(execEl && cat.tplExec){ execEl.value=cat.tplExec; toggleExecMode('pj'); }
@@ -3660,6 +3856,8 @@ function addProj(){
   toggleExecMode('pj');
   var nbEl=document.getElementById('pj-nb');
   if(nbEl){nbEl.checked=false;toggleNonBillable('pj');}
+  var bcEl=document.getElementById('pj-budgetCur');
+  if(bcEl) syncTaskCur('pj', bcEl.value||'TWD');
 }
 
 function openProgressModal(id) {
@@ -3678,7 +3876,7 @@ function openProgressModal(id) {
       <div class="flex flex-col gap-1.5">
         <label class="text-sm font-medium text-slate-300">總應收 (${cur})</label>
         <input type="number" class="inp text-lg bg-slate-800 text-slate-500 cursor-not-allowed" value="${currentEarned}" readonly>
-        <p class="text-xs text-slate-500 mt-1">💡 計時制應收由「工時 × 約定時薪 (${p.hrate||0})」自動計算。</p>
+        <p class="text-xs text-slate-500 mt-1">💡 計時制應收由「工時 × 約定時薪 (${p.hrate||0} ${cur})」自動計算。</p>
       </div>
       ` : `
       <div class="flex flex-col gap-1.5">
@@ -3701,7 +3899,8 @@ function editProj(id) {
   var isHourly = p.bill === 'hourly';
   var oldMoney = {budget:p.budget, hrate:p.hrate, earned:p.earned, bill:p.bill, st:p.st};
   var catOpts=CATS.map(c=>`<option value="${c.id}" ${p.type===c.id?'selected':''}>${esc(c.name)}</option>`).join('');
-  var grpOpts='<option value="">— 無（獨立任務）—</option>'+GRPS.map(g=>`<option value="${g.id}" ${p.gid===g.id?'selected':''}>${esc(g.name)}</option>`).join('');
+  // 已完成群組只在「本任務目前就歸屬於它」時保留，否則不列出
+  var grpOpts='<option value="">— 無（獨立任務）—</option>'+GRPS.filter(g=>g.st!=='done'||p.gid===g.id).map(g=>`<option value="${g.id}" ${p.gid===g.id?'selected':''}>${esc(g.name)}${g.st==='done'?'（已完成）':''}</option>`).join('');
   var curOpts=CURS.map(c=>`<option value="${c}" ${(p.budgetCur||'TWD')===c?'selected':''}>${c}</option>`).join('');
   
   var html=`<div class="flex flex-col gap-4">
@@ -3739,13 +3938,14 @@ function editProj(id) {
       <div><label class="text-xs font-semibold text-slate-500 block mb-1">計費模式</label><select id="ep-bill" class="inp" onchange="toggleHrate('ep-bill', 'ep-hrate-wrap')"><option value="piece" ${p.bill==='piece'?'selected':''}>計件制</option><option value="hourly" ${p.bill==='hourly'?'selected':''}>計時制</option><option value="fixed" ${p.bill==='fixed'?'selected':''}>計價制</option></select></div>
       <div>
         <label class="text-xs font-semibold text-slate-500 block mb-1">合約總額</label>
-        <div class="flex gap-1"><input id="ep-budget" type="number" class="inp" value="${p.budget}"><select id="ep-budgetCur" class="inp" style="width:70px">${curOpts}</select></div>
+        <div class="flex gap-1"><input id="ep-budget" type="number" class="inp" value="${p.budget}"><select id="ep-budgetCur" class="inp" style="width:70px" onchange="syncTaskCur('ep', this.value)" title="任務幣別：合約總額、約定時薪、收付款共用">${curOpts}</select></div>
         <div class="flex items-center gap-2 mt-2"><input type="checkbox" id="ep-nb" class="accent-blue-500" ${p.nonBillable?'checked':''} onchange="toggleNonBillable('ep')"><label for="ep-nb" class="text-xs text-slate-400 select-none">不計入酬勞統計</label></div>
       </div>
     </div>
     <div id="ep-hrate-wrap" style="display:${isHourly?'block':'none'}">
       <label class="text-xs font-semibold text-slate-500 block mb-1">約定時薪</label>
-      <input id="ep-hrate" type="number" class="inp" value="${p.hrate||0}">
+      <div class="flex gap-1"><input id="ep-hrate" type="number" class="inp" value="${p.hrate||0}"><select id="ep-hrateCur" class="inp" style="width:70px" onchange="syncTaskCur('ep', this.value)" title="任務幣別：與合約總額共用">${curOpts}</select></div>
+      <p class="text-[10px] text-slate-600 mt-1">時薪與合約總額同幣別。</p>
     </div>
 
     <div class="grid grid-cols-2 gap-3">
@@ -3847,7 +4047,7 @@ function openDetail(id){
   var sortedLogDates = Object.keys(logsByDate).sort((a,b)=>b.localeCompare(a));
 
   var catOpts = CATS.map(c => `<option value="${c.id}" class="bg-slate-900 text-slate-200" ${p.type===c.id?'selected':''}>${esc(c.name)}</option>`).join('');
-  var grpOpts = '<option value="" class="bg-slate-900 text-slate-200">無群組</option>' + GRPS.map(g => `<option value="${g.id}" class="bg-slate-900 text-slate-200" ${p.gid===g.id?'selected':''}>${esc(g.name)}</option>`).join('');
+  var grpOpts = '<option value="" class="bg-slate-900 text-slate-200">無群組</option>' + GRPS.filter(g=>g.st!=='done'||p.gid===g.id).map(g => `<option value="${g.id}" class="bg-slate-900 text-slate-200" ${p.gid===g.id?'selected':''}>${esc(g.name)}${g.st==='done'?'（已完成）':''}</option>`).join('');
 
   var stCol = p.st==='active'?'text-teal-400 border-teal-900/50 bg-teal-950/30' : p.st==='done'?'text-blue-400 border-blue-900/50 bg-blue-950/30' : 'text-slate-400 border-slate-700/50 bg-slate-800/30';
 
@@ -3922,6 +4122,20 @@ function openDetail(id){
               ${p.estHrs?`<span class="text-[10px] text-slate-600 ml-1">已投入 ${formatHrs(p.hrs||0)} / 剩餘 ${formatHrs(Math.max(0,(p.estHrs||0)-(p.hrs||0)))}</span>`:`<span class="text-[10px] text-red-400/90 ml-1 cursor-help" title="未填預估工時的影響：1. 無法排進排程試算；${p.bill!=='hourly'?'2. 每月產值只能按時數平均分攤，之後每登一筆新工時，過去月份的產值數字都會跟著重算。補填後改用完工比例法，月報數字才會固定。':''}">⚠ 尚未填寫 ⓘ</span>`}
             </div>
           </div>
+
+          ${(function(){
+            // 計畫時薪：合約總額 ÷ 預估工時，開工前就先算，低於目標時薪即警示
+            var pi = planRateInfo(p);
+            if(!pi) return '';
+            var col = pi.level==='bad' ? 'text-rose-400' : (pi.level==='warn' ? 'text-amber-400' : 'text-emerald-400/90');
+            var icon = pi.level==='ok' ? '✓' : '⚠';
+            var body = '<span class="'+col+' font-medium">'+icon+' NT$ '+pi.rate.toLocaleString()+' /h</span>'
+              + '<span class="text-slate-600 ml-1.5">目標 '+pi.target.toLocaleString()+'</span>';
+            if(pi.level!=='ok'){
+              body += '<div class="text-[10px] text-slate-500 mt-1 leading-relaxed">要達標，二選一：預估工時壓到 <span class="text-slate-300">'+pi.maxHrs+'h</span> 以內（現為 '+formatHrs(p.estHrs)+'），或報價提到 <span class="text-slate-300">NT$ '+pi.minFeeTWD.toLocaleString()+'</span> 以上。</div>';
+            }
+            return '<div class="text-slate-500">計畫時薪</div><div class="text-xs -ml-1.5" title="合約總額 ÷ 預估工時，換算 TWD。這是報價當下就決定的效率，與實際投入無關。">'+body+'</div>';
+          })()}
 
           <div class="text-slate-500">標籤設定</div>
           <div class="-ml-1.5">
@@ -4029,13 +4243,14 @@ function openDetail(id){
           })()}
           </div>
         </div>
-        <p class="text-[10px] text-slate-600 mb-3 px-1">例如：草稿交付、線稿確認、完稿截止等。</p>
+        <p class="text-[10px] text-slate-600 mb-3 px-1">階段名只能從<span class="text-slate-500">正式名單</span>選，其餘一律歸「${MISC_PHASE}」；細節寫在後面的附註，附註不會進統計。名單可在 <span class="text-slate-500">⚙ 設定 → 正式階段名單</span> 增修。</p>
         <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl overflow-hidden mb-3">
           ${(p.milestones||[]).map((m,i)=>`
             <div class="flex items-center justify-between p-2.5 px-3 border-b border-slate-700/50 last:border-b-0 hover:bg-slate-800/60 transition-colors">
               <div class="flex items-center gap-3 flex-1">
                 <input type="checkbox" class="accent-rose-500 w-4 h-4 cursor-pointer" ${m.done?'checked':''} onchange="toggleMS(${id},${i})">
-                <input class="bg-transparent text-sm outline-none w-full ${m.done?'text-slate-500 line-through':'text-slate-300'}" list="phase-suggest" autocomplete="off" value="${esc(m.name)}" data-msf="name" onchange="editMS(${id},${i},this)">
+                <select class="bg-transparent text-sm outline-none flex-shrink-0 w-24 cursor-pointer ${m.done?'text-slate-500':'text-slate-300'}" data-msf="name" onchange="editMS(${id},${i},this)">${phaseSelectOptions(m.name)}</select>
+                <input class="bg-transparent text-xs outline-none flex-1 min-w-0 hover:bg-slate-900/50 border border-transparent hover:border-slate-700 rounded px-1.5 py-0.5 transition-colors ${m.done?'text-slate-600':'text-slate-500'}" value="${esc(m.note||'')}" placeholder="附註（不進統計）" data-msf="note" onchange="editMS(${id},${i},this)">
               </div>
               <div class="flex items-center gap-2 flex-shrink-0">
                 <span class="flex items-center gap-0.5" title="此階段預估工時（排程分段檢查用）">
@@ -4054,7 +4269,8 @@ function openDetail(id){
           ${(p.milestones||[]).length===0 ? '<div class="text-center text-xs text-slate-600 py-3">尚無階段目標</div>' : ''}
         </div>
         <div class="flex gap-2">
-          <input type="text" id="dt-ms-name" list="phase-suggest" autocomplete="off" class="inp text-sm flex-1 bg-slate-800/40 border-slate-700/50 rounded-xl placeholder-slate-600" placeholder="階段名稱（如：草稿）" onkeydown="if(event.key==='Enter')addMS(${id})">
+          <select id="dt-ms-name" class="inp text-sm w-28 flex-shrink-0 bg-slate-800/40 border-slate-700/50 rounded-xl" onchange="onNewMSPhaseChange(${id})">${phaseSelectOptions('')}</select>
+          <input type="text" id="dt-ms-note" class="inp text-sm flex-1 bg-slate-800/40 border-slate-700/50 rounded-xl placeholder-slate-600" placeholder="附註（選填，不進統計）" onkeydown="if(event.key==='Enter')addMS(${id})">
           <input type="number" id="dt-ms-est" min="0" step="0.5" class="inp text-sm w-20 bg-slate-800/40 border-slate-700/50 rounded-xl text-slate-400 placeholder-slate-600" placeholder="工時h" title="此階段預估工時（選填）">
           <label class="flex items-center gap-1 cursor-pointer select-none px-1" title="此階段為硬截止"><input type="checkbox" id="dt-ms-hard" class="accent-rose-500 w-3.5 h-3.5"><span class="text-[10px] text-slate-500">硬</span></label>
           <input type="date" id="dt-ms-date" class="inp text-sm w-36 bg-slate-800/40 border-slate-700/50 rounded-xl text-slate-400" value="${toLocalDate()}">
@@ -4191,14 +4407,61 @@ function delPayFromDetail(payId, pid){
   save();rerenderActive();
 }
 
+// 階段名下拉選項：正式名單 ＋ 雜事 ＋（目前值若不在名單內則保留原值）＋ 新增到名單
+function phaseSelectOptions(cur){
+  cur = cur || '';
+  var q = function(t){ return esc(t).replace(/"/g,'&quot;'); };
+  var html = '<option value="">—（未指定）</option>';
+  var matched = false;
+  getPhaseList().forEach(function(n){
+    var sel = normPhase(n) === normPhase(cur);
+    if(sel) matched = true;
+    html += '<option value="'+q(n)+'"'+(sel?' selected':'')+'>'+esc(n)+'</option>';
+  });
+  var miscSel = isMiscPhase(cur);
+  if(miscSel) matched = true;
+  html += '<option value="'+q(MISC_PHASE)+'"'+(miscSel?' selected':'')+'>'+esc(MISC_PHASE)+'</option>';
+  if(cur && !matched){
+    // 舊資料的未歸類名稱原樣保留，不自動改寫（要整理請用 🏷️ 階段名總管）
+    html += '<option value="'+q(cur)+'" selected>'+esc(cur)+'（未歸類）</option>';
+  }
+  html += '<option value="__newphase__">＋ 新增到正式名單…</option>';
+  return html;
+}
+
+// 下拉選到「新增到正式名單」時的共用處理：成功回傳新名稱，取消／失敗回傳 null
+function promptNewPhase(){
+  var nn = prompt('新增正式階段名（加入名單後，所有任務都可以選）：', '');
+  nn = (nn||'').trim();
+  if(!nn) return null;
+  if(isMiscPhase(nn)){ showToast('「'+MISC_PHASE+'」是保留名稱，不需要加入名單', 'amber'); return null; }
+  if(isCanonPhase(nn)){ showToast('名單裡已經有這個階段了', 'amber'); return nn; }
+  var lst = getPhaseList(); lst.push(nn); setPhaseList(lst);
+  showToast('✓ 已加入正式名單：'+nn, 'green');
+  return nn;
+}
+
+// 新增列的階段下拉：選到「＋ 新增到正式名單」時就地處理
+function onNewMSPhaseChange(pid){
+  var el = document.getElementById('dt-ms-name'); if(!el) return;
+  if(el.value !== '__newphase__') return;
+  var nn = promptNewPhase();
+  el.innerHTML = phaseSelectOptions(nn || '');
+  el.value = nn || '';
+}
+
 function addMS(pid){
   var p=pBy(pid);if(!p)return;
-  var name=document.getElementById('dt-ms-name').value.trim();
+  var sel=document.getElementById('dt-ms-name');
+  var name=(sel?sel.value:'').trim();
+  if(name==='__newphase__'){ onNewMSPhaseChange(pid); return; }
+  var note=((document.getElementById('dt-ms-note')||{}).value||'').trim();
   var date=document.getElementById('dt-ms-date').value;
   var est=+((document.getElementById('dt-ms-est')||{}).value)||0;
   if(!name)return;
   if(!p.milestones)p.milestones=[];
   var ms={name:name,date:date,done:false};
+  if(note)ms.note=note;
   if(est>0)ms.estHrs=est;
   var hardEl=document.getElementById('dt-ms-hard');
   ms.hard=!!(hardEl&&hardEl.checked); // 以單階段為準，未勾選即軟截止
@@ -4217,7 +4480,16 @@ function toggleMS(pid,idx){
 function editMS(pid,idx,el){
   var p=pBy(pid);if(!p||!p.milestones)return;
   var f=el.getAttribute('data-msf');
-  if(f==='name')p.milestones[idx].name=el.value;
+  if(f==='name'){
+    var v=el.value;
+    if(v==='__newphase__'){
+      var nn=promptNewPhase();
+      if(!nn){ rerenderActive(); return; }   // 取消：還原成原本的值
+      v=nn;
+    }
+    p.milestones[idx].name=v;
+  }
+  if(f==='note')p.milestones[idx].note=el.value.trim();
   if(f==='estHrs')p.milestones[idx].estHrs=(+el.value)||0;
   if(f==='hard')p.milestones[idx].hard=el.checked;
   if(f==='date'){p.milestones[idx].date=el.value;p.milestones.sort(function(a,b){return(a.date||'9').localeCompare(b.date||'9');});}
@@ -4286,7 +4558,7 @@ function tagDayPhase(pid, date){
     return;
   }
   var msOpts = '<option value="">—（清除階段標記）</option>' + p.milestones.map(function(m){
-    return '<option value="'+esc(m.name)+'">'+esc(m.name)+(m.done?' ✓':'')+'</option>';
+    return '<option value="'+esc(m.name)+'">'+esc(phaseLabel(m))+(m.done?' ✓':'')+'</option>';
   }).join('');
   var html = `<div class="flex flex-col gap-3">
     <div class="text-xs text-slate-500">將 <span class="text-slate-300 font-mono">${date}</span> 這一整天的工時紀錄，全部標記為同一個階段：</div>
@@ -4378,7 +4650,7 @@ function addLogManual(pid){
   var msList = (p && p.milestones) ? p.milestones : [];
   var curPh = currentPhaseName(p);
   var msOpts = '<option value="">—（不標階段）</option>' + msList.map(function(m){
-    return '<option value="'+esc(m.name)+'"'+(m.name===curPh?' selected':'')+'>'+esc(m.name)+(m.done?' ✓':'')+'</option>';
+    return '<option value="'+esc(m.name)+'"'+(m.name===curPh?' selected':'')+'>'+esc(phaseLabel(m))+(m.done?' ✓':'')+'</option>';
   }).join('');
   var msField = msList.length ? `<div><label class="text-xs text-slate-500 block mb-1">階段</label><select id="ml-ms" class="inp">${msOpts}</select></div>` : '';
   var html=`<div class="flex flex-col gap-3">
@@ -4412,7 +4684,7 @@ function editLog(logId,pid){
   var p = pBy(pid);
   var msList = (p && p.milestones) ? p.milestones : [];
   var msOpts = '<option value="">—（不標階段）</option>' + msList.map(function(m){
-    return '<option value="'+esc(m.name)+'"'+(m.name===log.ms?' selected':'')+'>'+esc(m.name)+(m.done?' ✓':'')+'</option>';
+    return '<option value="'+esc(m.name)+'"'+(m.name===log.ms?' selected':'')+'>'+esc(phaseLabel(m))+(m.done?' ✓':'')+'</option>';
   }).join('');
   var msField = msList.length ? `<div><label class="text-xs text-slate-500 block mb-1">階段</label><select id="el-ms" class="inp">${msOpts}</select></div>` : '';
   var html=`<div class="flex flex-col gap-3">
@@ -4661,37 +4933,80 @@ function renderRows(list, isDone, scores, bucketKey, currentTopId) {
             rateHtml = rateTWD ? `<span class=\"${rateColor} font-bold\">${rateTWD.toLocaleString()} /h</span> <span class=\"text-[10px] text-slate-600\">(TWD)</span>` : `<span class=\"text-slate-600\">—</span>`;
         }
 
-        var maxHrs = budgetTWD > 0 ? (budgetTWD / pRate) : 0;
         var hrs = p.hrs || 0;
+        var maxHrs = 0;
 
-        // 工時預警進度條計算
+        // 工時水位：計時制與計件／計價制的意義完全相反，必須分開算
         if (!p.nonBillable) {
-            if (maxHrs > 0) {
-                var ratio = Math.min(hrs / maxHrs, 1) * 100;
-                var barColor = 'bg-blue-500';
-                var textColor = 'text-slate-500';
-                var remainText = '';
-
-                if (hrs >= maxHrs) {
-                    barColor = 'bg-red-500'; textColor = 'text-red-400'; remainText = `超時 ${(hrs - maxHrs).toFixed(1)}h`;
-                } else if (hrs >= maxHrs * 0.8) {
-                    barColor = 'bg-amber-500'; textColor = 'text-amber-400'; remainText = `剩餘 ${(maxHrs - hrs).toFixed(1)}h`;
+            if (p.bill === 'hourly') {
+                // 計時制：多做一小時就多賺一小時，不存在「虧損水位」，不套用目標時薪。
+                // 有填合約總額時改顯示「合約封頂工時 ＝ 合約總額 ÷ 約定時薪」，提醒該請款或談加簽。
+                var capHrs = ((p.budget || 0) > 0 && (p.hrate || 0) > 0) ? ((p.budget || 0) / (p.hrate || 0)) : 0;
+                if (capHrs > 0) {
+                    var cRatio = Math.min(hrs / capHrs, 1) * 100;
+                    var cBar = 'bg-sky-500', cTxt = 'text-slate-500';
+                    var cNote = `剩餘 ${(capHrs - hrs).toFixed(1)}h`;
+                    if (hrs >= capHrs) { cBar = 'bg-red-500'; cTxt = 'text-red-400'; cNote = `超出封頂 ${(hrs - capHrs).toFixed(1)}h`; }
+                    else if (hrs >= capHrs * 0.8) { cBar = 'bg-amber-500'; cTxt = 'text-amber-400'; }
+                    progressHtml = `
+                <div class=\"mt-2 w-full max-w-[150px]\">
+                    <div class=\"flex justify-between text-[10px] mb-0.5 ${cTxt} font-medium tracking-wide\">
+                        <span>${hrs.toFixed(1)} / 封頂 ${capHrs.toFixed(1)}h</span>
+                        <span>${cNote}</span>
+                    </div>
+                    <div class=\"w-full bg-slate-800 rounded-full h-1.5 border border-slate-700/50 overflow-hidden shadow-inner\">
+                        <div class=\"${cBar} h-full rounded-full transition-all duration-300\" style=\"width: ${cRatio}%\"></div>
+                    </div>
+                    <div class=\"text-[9px] text-slate-600 mt-0.5\">計時制 · 依合約總額換算封頂工時</div>
+                </div>`;
                 } else {
-                    remainText = `剩餘 ${(maxHrs - hrs).toFixed(1)}h`;
+                    progressHtml = `<div class=\"text-[10px] text-slate-500 mt-2\">計時制 · 無工時上限</div>`;
                 }
+            } else {
+                maxHrs = budgetTWD > 0 ? (budgetTWD / pRate) : 0;
+                // 計畫時薪預警：報價 ÷ 預估工時，在還沒開始做之前就先亮
+                var pi = planRateInfo(p);
+                var planMark = '', planNote = '';
+                if (pi) {
+                    if (maxHrs > 0) {
+                        var mPct = Math.min((+p.estHrs || 0) / maxHrs, 1.08) * 100;
+                        var mCol = pi.level === 'bad' ? '#f43f5e' : (pi.level === 'warn' ? '#f59e0b' : '#475569');
+                        planMark = `<div style=\"position:absolute;top:-2px;bottom:-2px;left:${mPct}%;width:2px;background:${mCol};border-radius:1px\" title=\"預估工時 ${(+p.estHrs||0).toFixed(1)}h\"></div>`;
+                    }
+                    if (pi.level !== 'ok') {
+                        var pCol = pi.level === 'bad' ? 'text-rose-400' : 'text-amber-400';
+                        planNote = `<div class=\"text-[10px] ${pCol} mt-1 leading-snug\" title=\"計畫時薪 ＝ 合約總額 ÷ 預估工時；達標需把預估壓到 ${pi.maxHrs}h 以內，或報價提到 NT$ ${pi.minFeeTWD.toLocaleString()} 以上\">⚠ 計畫時薪 ${pi.rate.toLocaleString()}/h（目標 ${pi.target.toLocaleString()}）</div>`;
+                    }
+                }
+                if (maxHrs > 0) {
+                    var ratio = Math.min(hrs / maxHrs, 1) * 100;
+                    var barColor = 'bg-blue-500';
+                    var textColor = 'text-slate-500';
+                    var remainText = '';
 
-                progressHtml = `
+                    if (hrs >= maxHrs) {
+                        barColor = 'bg-red-500'; textColor = 'text-red-400'; remainText = `超時 ${(hrs - maxHrs).toFixed(1)}h`;
+                    } else if (hrs >= maxHrs * 0.8) {
+                        barColor = 'bg-amber-500'; textColor = 'text-amber-400'; remainText = `剩餘 ${(maxHrs - hrs).toFixed(1)}h`;
+                    } else {
+                        remainText = `剩餘 ${(maxHrs - hrs).toFixed(1)}h`;
+                    }
+
+                    progressHtml = `
                 <div class=\"mt-2 w-full max-w-[150px]\">
                     <div class=\"flex justify-between text-[10px] mb-0.5 ${textColor} font-medium tracking-wide\">
                         <span>${hrs.toFixed(1)} / ${maxHrs.toFixed(1)}h</span>
                         <span>${remainText}</span>
                     </div>
-                    <div class=\"w-full bg-slate-800 rounded-full h-1.5 border border-slate-700/50 overflow-hidden shadow-inner\">
+                    <div class=\"relative w-full bg-slate-800 rounded-full h-1.5 border border-slate-700/50 shadow-inner\">
                         <div class=\"${barColor} h-full rounded-full transition-all duration-300\" style=\"width: ${ratio}%\"></div>
+                        ${planMark}
                     </div>
+                    ${planNote}
                 </div>`;
-            } else {
-                progressHtml = `<div class=\"text-[10px] text-slate-500 mt-2\">無設定合約上限</div>`;
+                } else {
+                    progressHtml = `<div class=\"text-[10px] text-slate-500 mt-2\">無設定合約上限</div>` + planNote;
+                }
             }
         }
         
@@ -5741,9 +6056,14 @@ function renderEstAcc(){
     // 以 normPhase 為彙整鍵，避免空白/全半形/拼字差異把同一階段拆成兩列；顯示用首見原字串。
     var byPhase = {};
     var anyPhaseData = false;
+    // 彙整鍵改用 phaseStatKey()：正式名單各自成列，雜事與所有未歸類名稱一律折成單一「雜事」列，
+    // 名單才不會隨著自由命名無限變長。原始資料完全不動，只是統計時歸類。
+    var miscKey = normPhase(MISC_PHASE);
+    var miscRaw = {}; // 折進雜事的原始名稱，供該列註腳顯示
     function phaseBucket(raw){
-      var nk = normPhase(raw);
-      if(!byPhase[nk]) byPhase[nk] = { norm:nk, label:String(raw), estArr:[], actArr:[], estSrc:[], actSrc:[] };
+      var nk = phaseStatKey(raw);
+      if(!byPhase[nk]) byPhase[nk] = { norm:nk, label:(nk===miscKey?MISC_PHASE:String(raw)), estArr:[], actArr:[], estSrc:[], actSrc:[] };
+      if(nk===miscKey && !isMiscPhase(raw)) miscRaw[String(raw)] = 1;
       return byPhase[nk];
     }
     doneAll.forEach(function(p){
@@ -5752,7 +6072,7 @@ function renderEstAcc(){
         var b = phaseBucket(m.name);
         if((+m.estHrs||0) > 0){
           b.estArr.push(+m.estHrs||0);
-          b.estSrc.push({pid:p.id, name:p.name, v:+m.estHrs||0, note: normPhase(m.name)!==normPhase(b.label)||m.name!==b.label ? m.name : ''});
+          b.estSrc.push({pid:p.id, name:p.name, v:+m.estHrs||0, note: phaseLabel(m)!==b.label ? phaseLabel(m) : ''});
         }
       });
       // 該任務每個階段的實際工時：先按階段彙整成「每案每階段一筆」，才能正確算案件數
@@ -5760,17 +6080,24 @@ function renderEstAcc(){
       var actByPhase = {};
       DLOGS.forEach(function(l){
         if(l.pid===p.id && l.ms){
-          var nk = normPhase(l.ms);
+          var nk = phaseStatKey(l.ms);
+          if(nk===miscKey && !isMiscPhase(l.ms)) miscRaw[String(l.ms)] = 1;
           actByPhase[nk] = (actByPhase[nk]||0) + (l.hrs||0);
           anyPhaseData = true;
         }
       });
       Object.keys(actByPhase).forEach(function(nk){
-        if(!byPhase[nk]) byPhase[nk] = { norm:nk, label:nk, estArr:[], actArr:[], estSrc:[], actSrc:[] };
+        if(!byPhase[nk]) byPhase[nk] = { norm:nk, label:(nk===miscKey?MISC_PHASE:nk), estArr:[], actArr:[], estSrc:[], actSrc:[] };
         byPhase[nk].actArr.push(actByPhase[nk]);
         byPhase[nk].actSrc.push({pid:p.id, name:p.name, v:actByPhase[nk]});
       });
     });
+    // 雜事列補上「由哪些名稱折進來」的說明
+    if(byPhase[miscKey]){
+      var mrn = Object.keys(miscRaw);
+      byPhase[miscKey].label = MISC_PHASE + (mrn.length ? '／未歸類' : '');
+      byPhase[miscKey].miscFrom = mrn;
+    }
     var hidePhases = getHiddenPhases();
     var allPhaseKeys = Object.keys(byPhase).filter(function(k){ return byPhase[k].estArr.length || byPhase[k].actArr.length; });
     var phaseKeys = allPhaseKeys.filter(function(k){ return hidePhases.indexOf(k) < 0; });
@@ -5797,11 +6124,19 @@ function renderEstAcc(){
         var devTxt, devCls;
         if(r===null){ devTxt = estAvg>0?'尚無實際':'無預估'; devCls='text-slate-600'; }
         else { devCls = r>1.05?'text-red-400':(r<0.95?'text-blue-400':'text-emerald-400'); devTxt=(r>=1?'+':'')+Math.round((r-1)*100)+'%'; }
-        var warn = !hasBoth && !!dupNorms[g.norm];
+        var isMiscRow = (g.norm === miscKey);
+        if(isMiscRow){
+          // 雜事是異質內容的集合，做估時偏差分析沒有意義，只保留數字供概覽
+          devTxt = '—'; devCls = 'text-slate-600';
+        }
+        var warn = !isMiscRow && !hasBoth && !!dupNorms[g.norm];
         if(warn) anyWarn = true;
         var nameInner = warn
           ? '<button type="button" class="text-left text-slate-300 hover:text-violet-300 underline decoration-dotted decoration-slate-600 underline-offset-2" onclick="showPhaseRefs(\'' + esc(g.norm).replace(/'/g,"\\'") + '\')" title="這個階段名疑似與另一個名稱重複，點擊查看出處">◇ ' + esc(g.label) + ' <span class="text-[9px] text-amber-500/70">⚠</span></button>'
           : '<span class="text-slate-300">◇ ' + esc(g.label) + '</span>';
+        if(isMiscRow && (g.miscFrom||[]).length){
+          nameInner += '<div class="text-[9px] text-slate-600 mt-0.5 leading-snug" title="這些名稱不在正式階段名單內，統計時一律折進此列（原始資料未被改動）">含 ' + esc(g.miscFrom.slice(0,4).join('、')) + (g.miscFrom.length>4?(' 等 '+g.miscFrom.length+' 種'):'') + '</div>';
+        }
         var hideBtn = ' <button type="button" class="text-slate-700 hover:text-red-400 text-[10px] ml-1 align-middle" title="隱藏此階段" onclick="toggleHidePhase(\''+esc(g.norm).replace(/'/g,"\\'")+'\')">✕</button>';
         return '<tr><td>' + nameInner + hideBtn + '</td>'
           + _srcCell(g.estArr, g.estSrc, '◇ ' + g.label + '｜階段預估來源')
@@ -5809,7 +6144,7 @@ function renderEstAcc(){
           + '<td class="font-mono text-xs ' + devCls + '">' + devTxt + '</td></tr>';
       }).join('');
       html += '<div class="tbl-wrap mb-4"><table><thead><tr><th>階段</th><th>預估</th><th>實際</th><th>偏差</th></tr></thead><tbody>' + pRows + '</tbody></table></div>'
-        + '<div class="text-[10px] text-slate-600 px-1 mb-1">粗體為<span class="text-slate-500">平均</span>，次行為中位數與範圍（×N 為案件數）。<span class="text-slate-500">點預估／實際數字可查看由哪些卡片組成</span>。平均與中位數差很多＝有極端案件，這格平均別盡信。「尚無實際」代表此階段還沒登工時（正常）；未標記階段的工時不計入此表。</div>'
+        + '<div class="text-[10px] text-slate-600 px-1 mb-1">粗體為<span class="text-slate-500">平均</span>，次行為中位數與範圍（×N 為案件數）。<span class="text-slate-500">點預估／實際數字可查看由哪些卡片組成</span>。平均與中位數差很多＝有極端案件，這格平均別盡信。「尚無實際」代表此階段還沒登工時（正常）；未標記階段的工時不計入此表。<span class="text-slate-500">只有「正式階段名單」內的階段會各自成列，其餘一律折進「雜事」且不做偏差分析</span>。</div>'
         + (anyWarn ? '<div class="text-[10px] text-amber-500/70 px-1 mb-4">標 ⚠ 的階段疑似與另一個名稱是同一階段（命名不一致被拆成兩列），點名稱可查出處，或用下方合併區處理。</div>' : '<div class="mb-4"></div>');
     } else if(hiddenPhaseCount > 0){
       html += '<div class="flex items-center gap-2 mb-4 px-1"><span class="text-[10px] text-slate-600">階段回測：'+hiddenPhaseCount+' 項已隱藏</span>'
@@ -7079,7 +7414,7 @@ function renderCalGrid(){
       (p.milestones||[]).forEach(function(m){
         if(m.date===dateStr){
           var msCls=m.done?'ev-ms-done':'ev-ms';
-          evs.push({id:p.id,type:'ms',cls:msCls,label:'◇ '+dp+p.name+' · '+m.name+(m.done?' ✓':''),color:'#a78bfa',sort:m.done?3:2,isDel:!!dp});
+          evs.push({id:p.id,type:'ms',cls:msCls,label:'◇ '+dp+p.name+' · '+phaseLabel(m)+(m.done?' ✓':''),color:'#a78bfa',sort:m.done?3:2,isDel:!!dp});
         }
       });
     });
@@ -8407,7 +8742,44 @@ function init(){
   applyWorkMode();
   applyHintVisibility();
   applyUnifyCurUI();
-  fetchFX(); 
+  rPhaseList();
+  refreshPhaseDatalist();
+  fetchFX();
+  setTimeout(checkForeignHrate, 1200);
+}
+
+/* ============================================================
+   外幣時薪健檢
+   時薪一直以來都是用「合約總額的幣別」在換算，但輸入框旁邊沒有標示幣別，
+   所以「合約設外幣、時薪其實填台幣」的舊資料會被放大數十倍。
+   這裡只做偵測與提示，不自動改任何數字——金額只有你知道原本是哪一種。
+   同一批任務提醒過一次就不再跳（記在 ft_fxhrate_ack）。
+   ============================================================ */
+function checkForeignHrate(){
+  var bad = PJ.filter(function(p){
+    return p && p.bill === 'hourly' && !p.nonBillable
+      && (p.budgetCur || 'TWD') !== 'TWD' && (+p.hrate || 0) > 0;
+  });
+  if(!bad.length) return;
+  var sig = bad.map(function(p){ return p.id + ':' + p.budgetCur + ':' + p.hrate; }).sort().join('|');
+  var ack = '';
+  try{ ack = localStorage.getItem('ft_fxhrate_ack') || ''; }catch(e){}
+  if(ack === sig) return;
+  var rows = bad.map(function(p){
+    var twd = Math.round(toTWD(+p.hrate || 0, p.budgetCur || 'TWD'));
+    return '<button type="button" class="w-full text-left flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg hover:bg-slate-800/60 border-b border-slate-800/60 last:border-0" onclick="closeModal();openDetail(' + p.id + ')">'
+      + '<span class="text-sm text-slate-300 truncate">' + esc(p.name) + '</span>'
+      + '<span class="text-xs font-mono text-amber-400 flex-shrink-0">' + (+p.hrate).toLocaleString() + ' ' + esc(p.budgetCur) + ' ≈ NT$ ' + twd.toLocaleString() + '/h</span></button>';
+  }).join('');
+  var html = '<div class="flex flex-col gap-3">'
+    + '<div class="text-xs text-slate-400 leading-relaxed">下列計時制任務的<span class="text-slate-200">合約幣別是外幣</span>，時薪也會照那個幣別換算。請確認金額本來就是外幣金額；如果當初其實是照台幣填的，數字會被放大數十倍，請點進去改正。</div>'
+    + '<div class="rounded-lg border border-amber-500/20 bg-amber-500/5 overflow-hidden">' + rows + '</div>'
+    + '<div class="text-[10px] text-slate-600">確認無誤後按下方按鈕，這批資料就不會再提醒。</div>'
+    + '</div>';
+  openModal('⚠ 外幣時薪健檢', html, function(){
+    try{ localStorage.setItem('ft_fxhrate_ack', sig); }catch(e){}
+    closeModal();
+  }, '都正確，不用再提醒');
 }
 function showCloudMask(show){
   var el=document.getElementById('cloud-load-mask');
