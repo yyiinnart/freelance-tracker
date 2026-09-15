@@ -119,6 +119,11 @@ tbody tr:hover td{background:#131f2e;}
 .proj-group-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:#0c1525;border-bottom:1px solid #1a2540;cursor:pointer;user-select:none;}
 .proj-group-hdr:hover{background:#0f1d30;}
 .proj-group-body{padding:10px 12px;}
+/* 已完成群組：置底、降低視覺權重（hover 恢復） */
+.proj-group.grp-done{opacity:.5;transition:opacity .2s;}
+.proj-group.grp-done:hover{opacity:1;}
+.grp-done-sep{display:flex;align-items:center;gap:10px;margin:26px 0 12px;color:#475569;font-size:11px;letter-spacing:.08em;user-select:none;}
+.grp-done-sep::before,.grp-done-sep::after{content:"";height:1px;background:#1a2540;flex:1;}
 .fieldset-title{font-size:12px;font-weight:600;color:#60a5fa;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;}
 
 /* 任務卡片 (群組內) */
@@ -3474,8 +3479,13 @@ function addGrp(){var n=document.getElementById('grp-name').value.trim();if(!n)r
 function rGrp(){
   var el=document.getElementById('grp-list');
   document.getElementById('grp-empty').style.display=GRPS.length?'none':'block';
-  el.innerHTML=GRPS.map(g=>{
+  // 已完成群組置底：進行中／暫停維持原順序，done 整批移到最後
+  var ordered=GRPS.filter(x=>x.st!=='done').concat(GRPS.filter(x=>x.st==='done'));
+  var firstDone=ordered.find(x=>x.st==='done');
+  var firstDoneId=firstDone?firstDone.id:null;
+  el.innerHTML=ordered.map(g=>{
     var tasks=PJ.filter(p=>p.gid===g.id);
+    var isDone=g.st==='done';
     var isExp=expandedGrps[g.id];
     var totalHrs=tasks.reduce((s,p)=>s+(p.hrs||0),0);
     var totalEarned=tasks.reduce((s,p)=>s+(p.earned||0),0);
@@ -3622,7 +3632,8 @@ function rGrp(){
         ${archivedBlock}
       </div></div>`;
     }
-    return `<div class="proj-group">
+    var doneSep=(isDone&&g.id===firstDoneId)?`<div class="grp-done-sep"><span>已完成</span></div>`:'';
+    return doneSep+`<div class="proj-group${isDone?' grp-done':''}">
       <div class="proj-group-hdr" onclick="toggleGrp('${g.id}')">
         <div class="flex items-center gap-3">
           <span class="chevron ${isExp?'expanded':''}" style="color:#64748b">▶</span>
@@ -3764,6 +3775,8 @@ function editGrp(gid){
   openModal('編輯群組',html,function(){
     g.name=document.getElementById('eg-name').value.trim()||g.name;
     g.st=document.getElementById('eg-st').value;
+    // 標記為已完成時自動收合（含內部已結案區塊）
+    if(g.st==='done'){ expandedGrps[g.id]=false; expandedGrps[g.id+'_arc']=false; }
     var rv=document.getElementById('eg-rate').value.trim();
     if(rv===''){ delete g.rate; } else { var rn=parseInt(rv); if(isNaN(rn)||rn<0){delete g.rate;} else {g.rate=rn;} }
     save();rGrp();rProj();syncSel();
