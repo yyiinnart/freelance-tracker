@@ -7710,8 +7710,13 @@ function computeSchedule(extra, capOverride){
       .slice().sort(function(a,b){ return a.date.localeCompare(b.date); })
       .map(function(m){ return {label:m.name, deadline:m.date, est:+m.estHrs, done:!!m.done, hard:(typeof m.hard==='boolean') ? m.hard : false}; });
     var msSum = phases.reduce(function(s,ph){ return s+ph.est; }, 0);
-    if(msSum > p.estHrs){ overSum.push(p); return; } // 資料矛盾，不排，請使用者修正
-    var finalEst = p.estHrs - msSum;
+    // 階段預估加總 > 任務總預估：兩個預估互相矛盾。
+    // 階段是比較細、比較新的資料，所以改用階段加總當有效總量繼續排程，
+    // 只是仍列入提示請使用者回頭修正總預估（早期版本直接把任務踢出排程，
+    // 會讓帶硬截止的案子在排程表上無聲消失，風險更高）。
+    var effEst = p.estHrs;
+    if(msSum > p.estHrs){ overSum.push(p); effEst = msSum; }
+    var finalEst = effEst - msSum;
     if(finalEst > 0 || phases.length === 0){
       phases.push({label: phases.length ? '完稿' : '', deadline: p.edate || '', est: finalEst > 0 ? finalEst : p.estHrs, done:false, hard: false});
     }
@@ -8434,7 +8439,7 @@ function renderSched(){
   var relaxCount = relaxGroups.length;
   var html = '';
   if(R.overSum.length){
-    html += '<div class="text-[11px] text-amber-400 bg-amber-950/20 border border-amber-900/40 rounded-lg px-3 py-2 mb-3">⚠ '+R.overSum.map(function(p){return esc(p.name);}).join('、')+'：階段工時加總超過任務總預估，已暫不排程。請至任務詳情修正。</div>';
+    html += '<div class="text-[11px] text-amber-400 bg-amber-950/20 border border-amber-900/40 rounded-lg px-3 py-2 mb-3">⚠ '+R.overSum.map(function(p){return esc(p.name);}).join('、')+'：階段<span class="text-amber-300/80">預估</span>加總超過任務總預估，已改用階段加總排程。建議至任務詳情把總預估更新為階段加總（詳情頁階段區的 ⟩ 按鈕可一鍵帶入）。</div>';
   }
   if(rows || relaxRows){
     var relaxCollapsed = localStorage.getItem('ft_relax_collapsed') !== '0'; // 預設摺疊
@@ -8652,7 +8657,7 @@ function renderSched(){
       var wParts = [];
       if(lateCnt) wParts.push('來不及 '+lateCnt);
       if(noEstDl.length) wParts.push('缺工時 '+noEstDl.length);
-      if(R.overSum.length) wParts.push('資料矛盾 '+R.overSum.length);
+      if(R.overSum.length) wParts.push('預估不一致 '+R.overSum.length);
       cards.push({l:'警示', v: warnTotal ? '<span class="text-rose-400">⚠ '+warnTotal+'</span>' : '<span class="text-emerald-400">✓ 0</span>',
         sub: warnTotal ? wParts.join(' · ') : '無來不及／缺工時'});
 
