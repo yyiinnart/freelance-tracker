@@ -6084,13 +6084,26 @@ function renderEstAcc(){
       return byPhase[nk];
     }
     doneAll.forEach(function(p){
+      // 同一案同一階段可能有多個檢查節點（例：草稿·動態草圖 / 草稿·精緻草圖），
+      // 它們是排程用的分段截止，不是兩件獨立案子。預估要先在案內加總成「每案每階段一筆」，
+      // 才會跟下面實際工時的彙整方式對稱、案件數 N 也才正確。
+      var estByPhase = {}, estParts = {};
       (p.milestones||[]).forEach(function(m){
         if(!m.name) return;
         var b = phaseBucket(m.name);
         if((+m.estHrs||0) > 0){
-          b.estArr.push(+m.estHrs||0);
-          b.estSrc.push({pid:p.id, name:p.name, v:+m.estHrs||0, note: phaseLabel(m)!==b.label ? phaseLabel(m) : ''});
+          estByPhase[b.norm] = (estByPhase[b.norm]||0) + (+m.estHrs||0);
+          (estParts[b.norm] = estParts[b.norm] || []).push(phaseLabel(m));
         }
+      });
+      Object.keys(estByPhase).forEach(function(nk){
+        var b = byPhase[nk];
+        var parts = estParts[nk] || [];
+        var note = parts.length > 1
+          ? (parts.length + ' 節點合計：' + parts.join('＋'))
+          : (parts[0] && parts[0] !== b.label ? parts[0] : '');
+        b.estArr.push(estByPhase[nk]);
+        b.estSrc.push({pid:p.id, name:p.name, v:estByPhase[nk], note:note});
       });
       // 該任務每個階段的實際工時：先按階段彙整成「每案每階段一筆」，才能正確算案件數
       // （不再要求該案有里程碑清單——只要工時帶階段標記就計入）
@@ -6161,7 +6174,7 @@ function renderEstAcc(){
           + '<td class="font-mono text-xs ' + devCls + '">' + devTxt + '</td></tr>';
       }).join('');
       html += '<div class="tbl-wrap mb-4"><table><thead><tr><th>階段</th><th>預估</th><th>實際</th><th>偏差</th></tr></thead><tbody>' + pRows + '</tbody></table></div>'
-        + '<div class="text-[10px] text-slate-600 px-1 mb-1">粗體為<span class="text-slate-500">平均</span>，次行為中位數與範圍（×N 為案件數）。<span class="text-slate-500">點預估／實際數字可查看由哪些卡片組成</span>。平均與中位數差很多＝有極端案件，這格平均別盡信。「尚無實際」代表此階段還沒登工時（正常）；未標記階段的工時不計入此表。<span class="text-slate-500">只有「正式階段名單」內的階段會各自成列，其餘一律折進「雜事」且不做偏差分析</span>。</div>'
+        + '<div class="text-[10px] text-slate-600 px-1 mb-1">粗體為<span class="text-slate-500">平均</span>，次行為中位數與範圍（×N 為案件數）。<span class="text-slate-500">點預估／實際數字可查看由哪些卡片組成</span>。平均與中位數差很多＝有極端案件，這格平均別盡信。「尚無實際」代表此階段還沒登工時（正常）；未標記階段的工時不計入此表。<span class="text-slate-500">同一案若有多個同階段檢查節點（如草稿分動態／精緻兩段），預估與實際都先在案內加總成一筆再進統計</span>。<span class="text-slate-500">只有「正式階段名單」內的階段會各自成列，其餘一律折進「雜事」且不做偏差分析</span>。</div>'
         + (anyWarn ? '<div class="text-[10px] text-amber-500/70 px-1 mb-4">標 ⚠ 的階段疑似與另一個名稱是同一階段（命名不一致被拆成兩列），點名稱可查出處，或用下方合併區處理。</div>' : '<div class="mb-4"></div>');
     } else if(hiddenPhaseCount > 0){
       html += '<div class="flex items-center gap-2 mb-4 px-1"><span class="text-[10px] text-slate-600">階段回測：'+hiddenPhaseCount+' 項已隱藏</span>'
