@@ -1049,7 +1049,7 @@ tbody tr[onclick]:hover td{background:#131f2e;}
       <div class="flex gap-2 items-center">
         <button class="btn btn-sm bg-transparent border-slate-700 text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-colors" onclick="openDashSettings()">自訂面板</button>
         <button class="btn btn-sm bg-transparent border-slate-700 text-slate-500 hover:text-blue-400 hover:bg-slate-800 transition-colors" id="copy-btn" onclick="doExport()">📋 AI近況分析</button>
-        <button class="btn btn-sm bg-transparent border-slate-700 text-slate-500 hover:text-blue-400 hover:bg-slate-800 transition-colors" id="ai-note-btn" onclick="editAINote()" title="編輯複製到 AI 分析開頭的客製化備註">✏️ 分析備註</button>
+        <button class="btn btn-sm bg-transparent border-slate-700 text-slate-500 hover:text-blue-400 hover:bg-slate-800 transition-colors px-2" id="ai-note-btn" onclick="goAIExportCfg()" title="AI 匯出設定：分析備註、單任務模板" aria-label="AI 匯出設定">⚙</button>
       </div>
     </div>
 
@@ -1256,6 +1256,39 @@ tbody tr[onclick]:hover td{background:#131f2e;}
             <option value="JPY">JPY</option>
           </select>
           <span class="text-[10px] text-slate-600">換算為近似值，僅供概覽參考</span>
+        </div>
+      </div>
+
+      <div id="cfg-ai-export" class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-5 transition-shadow">
+        <div class="flex items-center justify-between gap-3 mb-3 flex-wrap">
+          <h3 class="text-sm font-semibold text-white">AI 匯出</h3>
+          <span class="flex items-center gap-1 bg-slate-800/60 rounded-lg p-0.5" role="tablist">
+            <button type="button" id="aix-tab-note" class="pie-mode-btn active" role="tab" onclick="setAIXTab('note')">分析備註</button>
+            <button type="button" id="aix-tab-tpl" class="pie-mode-btn" role="tab" onclick="setAIXTab('tpl')">單任務模板</button>
+          </span>
+        </div>
+
+        <div id="aix-pane-note">
+          <p class="text-[10px] text-slate-600 mb-2">接在「AI近況分析」的分析須知後面，補充只有你知道的脈絡。每行一條，留空則不附加。</p>
+          <textarea id="cfg-ai-note" class="inp w-full text-xs" rows="4" aria-label="分析備註" placeholder="例：近期低工時是配合進修的刻意安排。／某系列任務是同一客戶的子項目，分開掛載屬正常。" onchange="saveAINoteCfg()"></textarea>
+        </div>
+
+        <div id="aix-pane-tpl" class="hidden">
+          <div class="flex items-start justify-between gap-3 mb-2">
+            <p class="text-[10px] text-slate-600">任務的「📋 複製分析」都套用這份模板。點欄位插入到游標位置，沒資料的欄位會自動留白。</p>
+            <button type="button" class="text-[11px] text-slate-500 hover:text-amber-400 flex-shrink-0" onclick="xpTplReset()">恢復預設</button>
+          </div>
+          <div id="cfg-xp-chips" class="flex flex-wrap gap-1 mb-3"></div>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            <textarea id="xp-tpl-input" class="inp w-full font-mono text-xs" rows="12" aria-label="單任務匯出模板" oninput="xpTplPreview()" onchange="saveXpTplCfg()"></textarea>
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 mb-1.5">
+                <span class="text-[11px] text-slate-500 flex-shrink-0">預覽任務</span>
+                <select id="xp-tpl-task" class="inp text-xs py-1 flex-1 min-w-0" onchange="xpTplPreview()"></select>
+              </div>
+              <pre id="xp-tpl-preview" class="bg-slate-950/60 border border-slate-800 rounded-lg p-3 text-[11px] text-slate-400 whitespace-pre-wrap overflow-auto m-0" style="max-height:220px"></pre>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -2113,7 +2146,8 @@ function cloudSave(){
     ai_note: localStorage.getItem('ft_ai_note'),
     phases: localStorage.getItem('ft_phases'),
     phase_hidden: localStorage.getItem('ft_phase_hidden'),
-    estacc_hide_phases: localStorage.getItem('ft_estacc_hide_phases')
+    estacc_hide_phases: localStorage.getItem('ft_estacc_hide_phases'),
+    xp_tpl: localStorage.getItem('ft_xp_tpl')
   };
   
   // 2. 加入 VACS (休假) 與 CFG (設定) 到上傳名單
@@ -2151,7 +2185,7 @@ function cloudLoad(){
         
         // 2. 讀取並覆寫本地端設定檔
         if(cd.CFG) {
-          ['wmode','trate','dl_crit','wtarget','track_limit','show_tracks','show_hints','dash_cfg','unify_cur','ai_note','phases','phase_hidden','estacc_hide_phases'].forEach(k=>{
+          ['wmode','trate','dl_crit','wtarget','track_limit','show_tracks','show_hints','dash_cfg','unify_cur','ai_note','phases','phase_hidden','estacc_hide_phases','xp_tpl'].forEach(k=>{
             if(cd.CFG[k]) localStorage.setItem('ft_'+k, cd.CFG[k]);
           });
         }
@@ -2255,7 +2289,8 @@ function cloudSaveBeacon(){
     ai_note: localStorage.getItem('ft_ai_note'),
     phases: localStorage.getItem('ft_phases'),
     phase_hidden: localStorage.getItem('ft_phase_hidden'),
-    estacc_hide_phases: localStorage.getItem('ft_estacc_hide_phases')
+    estacc_hide_phases: localStorage.getItem('ft_estacc_hide_phases'),
+    xp_tpl: localStorage.getItem('ft_xp_tpl')
   };
   var payload = {version:8, at:new Date().toISOString(),
     P:P, PJ:PJ, CATS:CATS, TAGS:TAGS, GRPS:GRPS,
@@ -2303,7 +2338,7 @@ document.addEventListener('visibilitychange', function() {
   }
 });
 function exportJSON(){
-  var cfg={wmode:localStorage.getItem('ft_wmode'),trate:localStorage.getItem('ft_trate'),dl_crit:localStorage.getItem('ft_dl_crit'),wtarget:localStorage.getItem('ft_wtarget'),track_limit:localStorage.getItem('ft_track_limit'),show_tracks:localStorage.getItem('ft_show_tracks'),show_hints:localStorage.getItem('ft_show_hints'),dash_cfg:localStorage.getItem('ft_dash_cfg'),phases:localStorage.getItem('ft_phases'),phase_hidden:localStorage.getItem('ft_phase_hidden'),estacc_hide_phases:localStorage.getItem('ft_estacc_hide_phases')};
+  var cfg={wmode:localStorage.getItem('ft_wmode'),trate:localStorage.getItem('ft_trate'),dl_crit:localStorage.getItem('ft_dl_crit'),wtarget:localStorage.getItem('ft_wtarget'),track_limit:localStorage.getItem('ft_track_limit'),show_tracks:localStorage.getItem('ft_show_tracks'),show_hints:localStorage.getItem('ft_show_hints'),dash_cfg:localStorage.getItem('ft_dash_cfg'),phases:localStorage.getItem('ft_phases'),phase_hidden:localStorage.getItem('ft_phase_hidden'),estacc_hide_phases:localStorage.getItem('ft_estacc_hide_phases'),xp_tpl:localStorage.getItem('ft_xp_tpl')};
   var d={version:8,at:new Date().toISOString(),P:P,PJ:PJ,CATS:CATS,TAGS:TAGS,GRPS:GRPS,DLOGS:DLOGS,VENDORS:VENDORS,VACS:VACS,WORKDAYS:WORKDAYS,MEXP:MEXP,REM:REM,CFG:cfg};
   var a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'}));
@@ -2325,7 +2360,7 @@ function importJSON(e){
         MEXP=d.MEXP||{}; // 匯入每月總支出
         REM=d.REM||[]; // 匯入日曆小提醒
         if(d.CFG){ // 匯入設定
-          ['wmode','trate','dl_crit','wtarget','track_limit','show_tracks','show_hints','dash_cfg','phases','phase_hidden','estacc_hide_phases'].forEach(k=>{
+          ['wmode','trate','dl_crit','wtarget','track_limit','show_tracks','show_hints','dash_cfg','phases','phase_hidden','estacc_hide_phases','xp_tpl'].forEach(k=>{
             if(d.CFG[k]) localStorage.setItem('ft_'+k, d.CFG[k]);
           });
         }
@@ -3642,6 +3677,7 @@ function rGrp(){
         </div>
         <div class="flex items-center gap-2">
           <button class="btn btn-sm text-xs text-slate-400 border-slate-700" onclick="showGrpStats('${g.id}');event.stopPropagation()">📊 統計</button>
+          <button class="btn btn-sm text-xs text-slate-400 border-slate-700" onclick="copyGroupExport('${g.id}', this);event.stopPropagation()" title="複製整個群組與所有子任務的資料，貼給 AI 做分析">📋 複製分析</button>
           <button class="btn btn-sm text-xs" onclick="editGrp('${g.id}');event.stopPropagation()">✎ 編輯</button>
           <button class="text-xs text-red-400 hover:text-red-300 px-2" onclick="delGrp('${g.id}');event.stopPropagation()">刪除</button>
         </div>
@@ -4080,7 +4116,10 @@ function openDetail(id){
       <div class="flex items-start justify-between mb-5 gap-4">
         <input class="bg-transparent text-lg font-bold text-slate-100 hover:bg-slate-800/50 border border-transparent hover:border-slate-700/50 rounded outline-none px-2 py-1 -ml-2 w-full transition-colors leading-tight"
                value="${esc(p.name)}" onchange="updateProjField(${id}, 'name', this.value)">
-        <button class="btn btn-sm bg-slate-800/60 border-slate-700/50 text-slate-400 hover:text-slate-200 hover:bg-slate-700 flex-shrink-0 mt-0.5" onclick="closeDetail()">✕ 關閉</button>
+        <div class="flex items-center gap-2 flex-shrink-0 mt-0.5">
+          <button class="btn btn-sm bg-transparent border-slate-700 text-slate-500 hover:text-blue-400 hover:bg-slate-800 transition-colors" onclick="copyTaskExport(${id}, this)" title="依模板複製這個任務的全期資料，貼給 AI 分析">📋 複製分析</button>
+          <button class="btn btn-sm bg-slate-800/60 border-slate-700/50 text-slate-400 hover:text-slate-200 hover:bg-slate-700" onclick="closeDetail()">✕ 關閉</button>
+        </div>
       </div>
 
       <div class="grid grid-cols-2 gap-y-4 gap-x-4 mb-6 px-1">
@@ -4942,8 +4981,9 @@ function renderRows(list, isDone, scores, bucketKey, currentTopId) {
             rateHtml = `<span class=\"badge bg-slate-800 text-slate-400 border border-slate-700\">不計酬</span>`;
             progressHtml = `<div class=\"text-[10px] text-slate-600 mt-2\">此任務不列入收費統計</div>`;
         } else if (p.bill === 'hourly') {
+            // 計時制的時薪是約定值、不會變動，改顯示目前累計金額（工時 × 約定時薪），約定時薪降為小字
             rateTWD = toTWD(p.hrate || 0, cur);
-            rateHtml = p.hrate ? `<span class=\"text-emerald-400 font-bold\">${Math.round(rateTWD).toLocaleString()} /h</span> <span class=\"text-[10px] text-slate-600\">(預期)</span>` : `<span class=\"text-slate-600\">—</span>`;
+            rateHtml = p.hrate ? `<span class=\"text-emerald-400 font-bold\">${fmtMoney(Math.round((p.hrs || 0) * p.hrate), cur)}</span> <span class=\"text-[10px] text-slate-600\">(累計 · ${(+p.hrate).toLocaleString()}/h)</span>` : `<span class=\"text-slate-600\">—</span>`;
         } else {
             rateTWD = (p.hrs > 0 && budgetTWD > 0) ? Math.round(budgetTWD / p.hrs) : 0;
             var rateColor = rateTWD >= pRate ? 'text-emerald-400' : (rateTWD > 0 ? 'text-amber-400' : 'text-slate-600');
@@ -7100,25 +7140,459 @@ function doExport(){
   }
 }
 
-/* ===== AI 分析客製化備註 ===== */
-// 讓使用者寫入個人化脈絡（如休整期、特殊接案策略），會自動附加到 AI 近況分析開頭一起複製
-function editAINote(){
-  var cur = localStorage.getItem('ft_ai_note') || '';
-  var body = '<div>'+
-    '<p class="text-xs text-slate-500 mb-2">這段備註會自動接在「AI近況分析」的<span class="text-slate-300 font-semibold">分析須知</span>後面一起複製出去，用來補充只有你自己知道的脈絡，讓 AI 不會誤判。每行一條，留空則不附加。</p>'+
-    '<p class="text-[11px] text-slate-600 mb-2">範例：近期低工時是配合進修／家庭因素的刻意安排。／某系列專案為同一客戶的子項目，分開掛載屬正常。／部分款項為舊案尾款，與本期產出無關。</p>'+
-    '<textarea id="ai-note-input" class="inp w-full" rows="5" placeholder="一行一條補充說明…">'+cur.replace(/</g,'&lt;')+'</textarea>'+
-    '</div>';
-  openModal('✏️ AI 分析客製化備註', body, function(){
-    var v = document.getElementById('ai-note-input').value;
-    if(v && v.trim()){ localStorage.setItem('ft_ai_note', v.trim()); }
-    else { localStorage.removeItem('ft_ai_note'); }
-    save();
-    showToast('✅ 備註已儲存，下次複製分析時會一併帶入', 'green');
-  }, '儲存');
-  setTimeout(function(){var el=document.getElementById('ai-note-input');if(el){el.focus();}},50);
+/* ===== 單任務／單群組分析匯出 =====
+   管線：xpCollectTask / xpCollectGroup（蒐集成資料物件）→ xpRender*（輸出 Markdown）→ xpCopy（複製）
+   與全域「AI近況分析」不同：不套 3 個月時間窗，拿全生命週期資料，並依範圍附上專屬分析須知。
+   金額一律以原幣輸出（不套「統一幣別」顯示設定），避免 AI 誤把換算值當合約值。 */
+var XP_BILL = {piece:'計件制', hourly:'計時制', fixed:'計價制'};
+var XP_EXEC = {self:'自行執行', outsource:'外包', resell:'轉包'};
+var XP_DLVR = {wip:'製作中', reviewing:'審查中', done:'已完成'};
+var XP_ST   = {active:'進行中', done:'已結案', paused:'暫停／待命'};
+var XP_WD   = ['日','一','二','三','四','五','六'];
+var XP_NOPHASE = '（未標階段）';
+
+function xpMoney(n, cur){
+  var c = cur || 'TWD', d = (c === 'TWD' || c === 'JPY') ? 0 : 2;
+  return (+n||0).toLocaleString('en-US', {maximumFractionDigits: d}) + ' ' + c;
+}
+function xpMoneyMap(map){
+  var ks = Object.keys(map).filter(function(k){ return map[k]; });
+  return ks.length ? ks.map(function(k){ return xpMoney(map[k], k); }).join(' + ') : '0';
+}
+function xpDays(a, b){ return Math.round((new Date(b+'T00:00:00') - new Date(a+'T00:00:00')) / 86400000); }
+function xpDev(actual, est){
+  if(!est) return '';
+  var d = Math.round((actual - est) / est * 100);
+  return (d > 0 ? '+' : '') + d + '%';
+}
+function xpCell(s){ return String(s == null ? '' : s).replace(/\|/g, '／').replace(/\n+/g, ' '); }
+function xpQuote(text){
+  return String(text).split('\n').map(function(l){ return '> ' + l; }).join('\n') + '\n';
 }
 
+// ── 蒐集：單一任務 ──
+function xpCollectTask(p){
+  var cur = p.budgetCur || 'TWD';
+  var r = projAR(p.id);
+  var logs = DLOGS.filter(function(l){ return l.pid === p.id; })
+                  .sort(function(a, b){ return a.date.localeCompare(b.date); });
+  var pays = P.filter(function(x){ return x.pid === p.id; })
+              .sort(function(a, b){ return (a.date||'').localeCompare(b.date||''); });
+  var loggedHrs = logs.reduce(function(s, l){ return s + (+l.hrs||0); }, 0);
+  var totalHrs = +p.hrs || loggedHrs;
+
+  // 階段：先以 milestones 建立順序，再補上只出現在工時紀錄裡的階段
+  var phases = [], phaseIdx = {};
+  (p.milestones || []).forEach(function(m){
+    if(!m || !m.name) return;
+    var k = normPhase(m.name);
+    if(phaseIdx[k] != null) return;
+    phaseIdx[k] = phases.length;
+    phases.push({name:m.name, est:+m.estHrs||0, actual:0, date:m.date||'', done:!!m.done, hard:!!m.hard, note:m.note||'', planned:true});
+  });
+  logs.forEach(function(l){
+    var nm = l.ms ? l.ms : XP_NOPHASE;
+    var k = l.ms ? normPhase(l.ms) : '__none__';
+    if(phaseIdx[k] == null){
+      phaseIdx[k] = phases.length;
+      phases.push({name:nm, est:0, actual:0, date:'', done:false, hard:false, note:'', planned:false});
+    }
+    phases[phaseIdx[k]].actual += (+l.hrs||0);
+  });
+
+  // 逐日彙整（同日多筆合併；計時器自動備註不重複列）
+  var byDate = {}, dates = [];
+  logs.forEach(function(l){
+    if(!byDate[l.date]){ byDate[l.date] = {hrs:0, phases:[], notes:[]}; dates.push(l.date); }
+    var d = byDate[l.date];
+    d.hrs += (+l.hrs||0);
+    var msName = l.ms ? String(l.ms).trim() : '';
+    if(msName && d.phases.indexOf(msName) === -1) d.phases.push(msName);
+    if(l.note && l.note !== '計時器自動記錄' && d.notes.indexOf(l.note) === -1) d.notes.push(l.note);
+  });
+  var days = dates.map(function(ds){
+    var d = byDate[ds];
+    return {date:ds, dow:XP_WD[new Date(ds+'T00:00:00').getDay()], hrs:d.hrs, phases:d.phases, notes:d.notes};
+  });
+
+  var income = pays.filter(function(x){ return (x.payType||'income') === 'income'; });
+  var expense = pays.filter(function(x){ return x.payType === 'expense'; });
+  var base = r.earned || r.expected || (+p.budget||0);
+  var firstLog = dates[0] || null, lastLog = dates.length ? dates[dates.length-1] : null;
+  var delegated = !!(p.execMode && p.execMode !== 'self');
+  // 外包／轉包：毛利 = 應收基準 − 發包成本（跨幣別以即時匯率換回任務幣別）
+  var margin = null;
+  if(delegated && !p.nonBillable && base > 0 && p.vendorCost > 0){
+    var vcur = p.vendorCostCur || 'TWD';
+    margin = vcur === cur ? (base - p.vendorCost) : fromTWD(toTWD(base, cur) - toTWD(p.vendorCost, vcur), cur);
+  }
+  // 有效時薪：自製＝應收 ÷ 工時；外包＝毛利 ÷ 自身管理工時（沒填發包金額則不計算，避免誤導）
+  var rateOnBase = 0;
+  if(totalHrs > 0){
+    if(!delegated && base > 0) rateOnBase = base / totalHrs;
+    else if(delegated && margin != null) rateOnBase = margin / totalHrs;
+  }
+
+  return {
+    p:p, cur:cur, ar:r, base:base,
+    cat:(CATS.find(function(c){ return c.id === p.type; }) || {name:'未分類'}).name,
+    tags:(p.tags||[]).map(function(t){ var x = TAGS.find(function(y){ return y.id === t; }); return x ? x.name : ''; }).filter(Boolean),
+    grp:p.gid ? grpBy(p.gid) : null,
+    totalHrs:totalHrs, loggedHrs:loggedHrs, est:+p.estHrs||0,
+    firstLog:firstLog, lastLog:lastLog, workDays:dates.length,
+    phases:phases, days:days, income:income, expense:expense,
+    delegated:delegated, margin:margin,
+    rateOnBase:rateOnBase,
+    rateOnRecv:(!delegated && totalHrs > 0 && r.recv > 0) ? r.recv/totalHrs : 0
+  };
+}
+
+// ── 蒐集：單一群組 ──
+function xpCollectGroup(g){
+  var tasks = PJ.filter(function(p){ return p.gid === g.id; }).map(xpCollectTask);
+  var sum = {hrs:0, est:0, estCovered:0, base:{}, recv:{}, ar:{}, cost:{}, stCount:{active:0, done:0, paused:0}};
+  var phaseAgg = {}, phaseOrder = [], monthAgg = {}, firstLog = null, lastLog = null, sdate = null, edate = null;
+  tasks.forEach(function(t){
+    var p = t.p;
+    sum.hrs += t.totalHrs;
+    if(t.est){ sum.est += t.est; sum.estCovered += t.totalHrs; }
+    sum.stCount[p.st] = (sum.stCount[p.st]||0) + 1;
+    if(!p.nonBillable){
+      sum.base[t.cur] = (sum.base[t.cur]||0) + t.base;
+      sum.recv[t.cur] = (sum.recv[t.cur]||0) + t.ar.recv;
+      var arv = Math.max(0, t.base - t.ar.recv);
+      sum.ar[t.cur] = (sum.ar[t.cur]||0) + arv;
+    }
+    if(t.delegated && p.vendorCost > 0){
+      var vc = p.vendorCostCur || 'TWD';
+      sum.cost[vc] = (sum.cost[vc]||0) + p.vendorCost;
+    }
+    t.phases.forEach(function(ph){
+      var k = ph.name === XP_NOPHASE ? '__none__' : normPhase(ph.name);
+      if(!phaseAgg[k]){ phaseAgg[k] = {name:ph.name, est:0, actual:0, tasks:0}; phaseOrder.push(k); }
+      phaseAgg[k].est += ph.est; phaseAgg[k].actual += ph.actual; phaseAgg[k].tasks++;
+    });
+    t.days.forEach(function(d){
+      var mk = d.date.slice(0, 7);
+      monthAgg[mk] = (monthAgg[mk]||0) + d.hrs;
+    });
+    if(t.firstLog && (!firstLog || t.firstLog < firstLog)) firstLog = t.firstLog;
+    if(t.lastLog && (!lastLog || t.lastLog > lastLog)) lastLog = t.lastLog;
+    if(p.sdate && (!sdate || p.sdate < sdate)) sdate = p.sdate;
+    if(p.edate && (!edate || p.edate > edate)) edate = p.edate;
+  });
+  return {
+    g:g, tasks:tasks, sum:sum,
+    phases:phaseOrder.map(function(k){ return phaseAgg[k]; }),
+    months:Object.keys(monthAgg).sort().map(function(k){ return {month:k, hrs:monthAgg[k]}; }),
+    firstLog:firstLog, lastLog:lastLog, sdate:sdate, edate:edate
+  };
+}
+
+// ── 輸出：任務區塊（full = 單任務完整版；精簡版用於群組內的子任務明細）──
+// ── 輸出區塊：每塊獨立產生，單任務模板與群組明細共用 ──
+function xpBlkBasic(t, h){
+  var p = t.p, out = h + ' 基本\n';
+  var l1 = ['類型：' + t.cat];
+  if(t.grp) l1.push('群組：' + t.grp.name);
+  if(t.tags.length) l1.push('標籤：' + t.tags.join(', '));
+  out += '- ' + l1.join('｜') + '\n';
+  var l2 = ['計費：' + (p.nonBillable ? '不計酬' : (XP_BILL[p.bill] || p.bill || '未設定')), XP_EXEC[p.execMode||'self'] || p.execMode];
+  if(t.delegated) l2.push('交件：' + (XP_DLVR[p.deliverySt||'wip'] || p.deliverySt));
+  out += '- ' + l2.join('｜') + '\n';
+  var l3 = [];
+  if(p.sdate || p.edate) l3.push('排定：' + (p.sdate || '?') + ' ~ ' + (p.edate || '未定'));
+  if(t.firstLog) l3.push('實際：' + t.firstLog + ' ~ ' + t.lastLog + '（' + t.workDays + ' 天有紀錄）');
+  if(l3.length) out += '- ' + l3.join('｜') + '\n';
+  return out;
+}
+function xpBlkHours(t, h){
+  var out = h + ' 工時\n- 實際 ' + formatHrs(t.totalHrs);
+  out += t.est ? '／預估 ' + formatHrs(t.est) + '（' + xpDev(t.totalHrs, t.est) + '）' : '（未設預估）';
+  if(Math.abs(t.totalHrs - t.loggedHrs) > 0.05) out += '｜紀錄合計 ' + formatHrs(t.loggedHrs);
+  if(t.p.st === 'active' && t.lastLog){
+    var idle = xpDays(t.lastLog, toLocalDate());
+    if(idle >= 14) out += '｜已停 ' + idle + ' 天';
+  }
+  return out + '\n';
+}
+function xpBlkPhases(t, h){
+  if(!t.phases.length) return '';
+  var out = h + ' 階段（✓＝已完成）\n| 階段 | 預估 | 實際 | 偏差 |\n|---|---|---|---|\n';
+  t.phases.forEach(function(ph){
+    out += '| ' + xpCell(ph.name) + (ph.done ? ' ✓' : '') + ' | ' + (ph.est ? formatHrs(ph.est) : '—') + ' | ' + formatHrs(ph.actual) + ' | ' + (xpDev(ph.actual, ph.est) || '—') + ' |\n';
+  });
+  return out;
+}
+function xpBlkMoney(t, h, withRecords){
+  var p = t.p, cur = t.cur, out = h + ' 金流\n';
+  if(p.nonBillable) return out + '- 不計酬\n';
+  if(p.bill === 'hourly' && p.hrate){
+    out += '- 計時 ' + xpMoney(p.hrate, cur) + '/h × ' + formatHrs(t.totalHrs) + ' = ' + xpMoney(p.hrate * t.totalHrs, cur);
+    if(p.budget > 0) out += '（封頂 ' + xpMoney(p.budget, cur) + '）';
+    out += '\n';
+  } else {
+    out += '- 應收 ' + xpMoney(t.base, cur) + (t.ar.isExpected ? '（依合約預估）' : '') + '\n';
+  }
+  out += '- 已收 ' + xpMoney(t.ar.recv, cur) + '｜待收 ' + xpMoney(Math.max(0, t.base - t.ar.recv), cur) + '\n';
+  if(!t.delegated && p.bill !== 'hourly' && t.rateOnBase) out += '- 有效時薪 ' + xpMoney(t.rateOnBase, cur) + '/h\n';
+  if(withRecords){
+    var fmt = function(list){
+      return list.map(function(x){ return (x.date || '?') + ' ' + xpMoney(x.amt, x.cur || cur) + (x.note ? '（' + x.note + '）' : ''); }).join('、');
+    };
+    if(t.income.length) out += '- 收款：' + fmt(t.income) + '\n';
+    if(t.expense.length) out += '- 支出：' + fmt(t.expense) + '\n';
+  }
+  return out;
+}
+function xpBlkVendor(t, h){
+  if(!t.delegated) return '';
+  var p = t.p, cur = t.cur, out = h + ' ' + (XP_EXEC[p.execMode] || '外包') + '\n';
+  var l1 = [p.vendorName || '對象未填'];
+  l1.push(p.vendorCost > 0 ? '發包 ' + xpMoney(p.vendorCost, p.vendorCostCur || 'TWD') + '（' + (p.vendorPaid ? '已付' : '未付') + '）' : '發包金額未填');
+  if(p.execMode === 'resell') l1.push('上游' + (p.upstreamReceived ? '已收' : '未收'));
+  out += '- ' + l1.join('｜') + '\n';
+  if(t.margin != null){
+    out += '- 毛利 ' + xpMoney(t.margin, cur) + '（' + Math.round(t.margin / t.base * 100) + '%）';
+    if(t.rateOnBase) out += '｜毛利時薪 ' + xpMoney(t.rateOnBase, cur) + '/h';
+    out += '\n';
+  }
+  return out;
+}
+function xpBlkDays(t, h){
+  if(!t.days.length) return '';
+  var out = h + ' 逐日工時\n';
+  t.days.forEach(function(d){
+    out += '- ' + d.date + ' ' + d.dow + ' ' + formatHrs(d.hrs);
+    if(d.phases.length) out += ' ' + d.phases.join('、');
+    if(d.notes.length) out += '｜' + d.notes.join(' / ');
+    out += '\n';
+  });
+  return out;
+}
+function xpBlkNotes(t){
+  var p = t.p, out = '';
+  if(p.notes && p.notes.trim()) out += '> 任務備註：\n' + xpQuote(p.notes.trim());
+  if(p.cardNote && p.cardNote.trim()) out += '> 卡片備註：' + p.cardNote.trim() + '\n';
+  return out;
+}
+function xpBlkQuestions(t){
+  if(t.p.st === 'done') return '1. 超支集中在哪個階段？為什麼？\n2. 這個報價合理嗎？下次同類案子該怎麼報？\n';
+  if(t.p.st === 'paused') return '1. 目前的投入值得繼續嗎？\n2. 重新啟動前需要先確認什麼？\n';
+  return '1. 照目前進度，趕得上截止日嗎？\n2. 最大的風險在哪？接下來該先做什麼？\n';
+}
+// 群組明細用的精簡版（不含收款紀錄與逐日）
+function xpTaskBody(t, h){
+  return [xpBlkBasic(t, h), xpBlkHours(t, h), xpBlkPhases(t, h), xpBlkMoney(t, h, false), xpBlkVendor(t, h)]
+    .filter(Boolean).join('\n') + '\n';
+}
+
+// ── 單任務模板：{{欄位}} 會被替換，其餘文字原樣保留；存 ft_xp_tpl，隨雲端同步 ──
+var XP_TPL_DEFAULT = [
+  '# {{任務名}}｜{{狀態}}（{{匯出日}}）',
+  '',
+  '> 同一任務的全期資料，工時與收款可直接相除算時薪。',
+  '{{任務備註}}',
+  '',
+  '{{基本資訊}}',
+  '{{工時}}',
+  '{{階段}}',
+  '{{金流}}',
+  '{{外包}}',
+  '{{逐日}}',
+  '請幫我分析：',
+  '{{建議提問}}'
+].join('\n');
+var XP_TPL_KEYS = [
+  ['任務名', '任務名稱'], ['狀態', '進行中／已結案／暫停'], ['匯出日', '今天日期'],
+  ['任務備註', '任務與卡片備註，沒有就留白'], ['基本資訊', '類型、群組、計費、期間'],
+  ['工時', '實際與預估工時'], ['階段', '各階段工時表'], ['金流', '應收、已收、時薪、收款紀錄'],
+  ['外包', '外包對象、成本、毛利；非外包留白'], ['逐日', '每天的工時紀錄'], ['建議提問', '依任務狀態自動產生的 2 個問題']
+];
+function getXpTpl(){ return localStorage.getItem('ft_xp_tpl') || XP_TPL_DEFAULT; }
+function xpFill(tpl, t){
+  var v = {
+    '任務名': t.p.name, '狀態': XP_ST[t.p.st] || t.p.st, '匯出日': toLocalDate(),
+    '任務備註': xpBlkNotes(t), '基本資訊': xpBlkBasic(t, '##'), '工時': xpBlkHours(t, '##'),
+    '階段': xpBlkPhases(t, '##'), '金流': xpBlkMoney(t, '##', true), '外包': xpBlkVendor(t, '##'),
+    '逐日': xpBlkDays(t, '##'), '建議提問': xpBlkQuestions(t)
+  };
+  return tpl.replace(/\{\{\s*([^{}]+?)\s*\}\}/g, function(m, k){ return v.hasOwnProperty(k) ? v[k] : m; })
+            .replace(/\n{3,}/g, '\n\n').trim() + '\n';
+}
+function xpRenderTask(t){ return xpFill(getXpTpl(), t); }
+
+// ── 設定頁「AI 匯出」區塊：分析備註＋單任務模板（模板全任務共用）──
+// 設定頁 AI 匯出：內部分頁切換（本次開啟期間記住上次停留的分頁）
+var _aixTab = 'note';
+function setAIXTab(tab){
+  _aixTab = tab;
+  ['note', 'tpl'].forEach(function(k){
+    var b = document.getElementById('aix-tab-' + k), p = document.getElementById('aix-pane-' + k);
+    if(b){ b.classList.toggle('active', k === tab); b.setAttribute('aria-selected', k === tab ? 'true' : 'false'); }
+    if(p) p.classList.toggle('hidden', k !== tab);
+  });
+  if(tab === 'tpl') xpTplPreview();
+}
+function rAIExportCfg(){
+  var note = document.getElementById('cfg-ai-note');
+  if(note && document.activeElement !== note) note.value = localStorage.getItem('ft_ai_note') || '';
+  var ta = document.getElementById('xp-tpl-input');
+  if(ta && document.activeElement !== ta) ta.value = getXpTpl();
+  var chips = document.getElementById('cfg-xp-chips');
+  if(chips && !chips.childElementCount){
+    chips.innerHTML = XP_TPL_KEYS.map(function(k){
+      return '<button type="button" class="btn btn-sm text-[11px] bg-slate-800/60 border-slate-700 text-slate-300 hover:text-blue-300" title="' + esc(k[1]) + '" onclick="xpTplInsert(\'' + k[0] + '\')">{{' + k[0] + '}}</button>';
+    }).join('');
+  }
+  // 預覽任務：有工時紀錄的依最後紀錄日排前面，預設選最近做過的那一個
+  var sel = document.getElementById('xp-tpl-task');
+  if(sel){
+    var last = {};
+    DLOGS.forEach(function(l){ if(!last[l.pid] || l.date > last[l.pid]) last[l.pid] = l.date; });
+    var list = PJ.slice().sort(function(a, b){ return (last[b.id] || '').localeCompare(last[a.id] || ''); });
+    var keep = sel.value;
+    sel.innerHTML = list.length
+      ? list.map(function(p){ return '<option value="' + p.id + '">' + esc(p.name) + '（' + (XP_ST[p.st] || p.st) + '）</option>'; }).join('')
+      : '<option value="">還沒有任務</option>';
+    if(keep && list.some(function(p){ return String(p.id) === keep; })) sel.value = keep;
+  }
+  setAIXTab(_aixTab);
+}
+function xpTplPreview(){
+  var el = document.getElementById('xp-tpl-preview'), ta = document.getElementById('xp-tpl-input');
+  var sel = document.getElementById('xp-tpl-task');
+  if(!el || !ta) return;
+  var p = sel && sel.value ? pBy(+sel.value) : null;
+  el.textContent = p ? xpFill(ta.value, xpCollectTask(p)) : '新增任務後，這裡會顯示套用模板的結果。';
+}
+function saveXpTplCfg(silent){
+  var ta = document.getElementById('xp-tpl-input'); if(!ta) return;
+  var v = ta.value;
+  if(v.trim() && v.trim() !== XP_TPL_DEFAULT.trim()) localStorage.setItem('ft_xp_tpl', v);
+  else localStorage.removeItem('ft_xp_tpl');
+  save();
+  if(!silent) showToast('✅ 單任務模板已儲存', 'green');
+}
+function xpTplInsert(key){
+  var ta = document.getElementById('xp-tpl-input'); if(!ta) return;
+  var ins = '{{' + key + '}}', s = ta.selectionStart, e = ta.selectionEnd;
+  ta.value = ta.value.slice(0, s) + ins + ta.value.slice(e);
+  ta.focus(); ta.selectionStart = ta.selectionEnd = s + ins.length;
+  xpTplPreview(); saveXpTplCfg(true);
+}
+function xpTplReset(){
+  var ta = document.getElementById('xp-tpl-input'); if(!ta) return;
+  ta.value = XP_TPL_DEFAULT; xpTplPreview(); saveXpTplCfg(true);
+  showToast('↺ 已恢復預設模板', 'blue');
+}
+function saveAINoteCfg(){
+  var el = document.getElementById('cfg-ai-note'); if(!el) return;
+  var v = el.value.trim();
+  if(v) localStorage.setItem('ft_ai_note', v); else localStorage.removeItem('ft_ai_note');
+  save();
+  showToast(v ? '✅ 分析備註已儲存，下次複製分析時會一併帶入' : '分析備註已清空', 'green');
+}
+// 儀表板 ⚙ 捷徑：跳到設定頁的 AI 匯出區塊，並把游標放進分析備註
+function goAIExportCfg(){
+  _aixTab = 'note';
+  goTab('cfg');
+  setTimeout(function(){
+    var box = document.getElementById('cfg-ai-export'); if(!box) return;
+    try{ box.scrollIntoView({behavior:'smooth', block:'start'}); }catch(e){ box.scrollIntoView(); }
+    box.classList.add('ring-1', 'ring-blue-500/50');
+    setTimeout(function(){ box.classList.remove('ring-1', 'ring-blue-500/50'); }, 1600);
+    var note = document.getElementById('cfg-ai-note'); if(note) note.focus({preventScroll:true});
+  }, 350);
+}
+
+function xpRenderGroup(G){
+  var g = G.g, s = G.sum, now = toLocalDate();
+  var out = '# 專案群組分析資料：' + g.name + '（匯出日 ' + now + '）\n\n';
+  var notes = [
+    '本資料為單一專案群組的全生命週期紀錄（不限 3 個月），包含群組內所有子任務。',
+    '群組內各任務可能使用不同幣別，彙總金額依幣別分列，未換算加總。',
+    '暫停／待命的任務為主動擱置，不代表失控停滯；外包／轉包任務的自身工時主要是管理溝通。',
+    '階段工時來自每筆工時紀錄標記的階段；「' + XP_NOPHASE + '」代表記錄時沒有選階段。'
+  ];
+  out += '> 分析須知：\n' + notes.map(function(n, i){ return '> ' + (i+1) + '. ' + n; }).join('\n') + '\n\n';
+
+  out += '## 1. 群組總覽\n';
+  out += '- 群組狀態: ' + (XP_ST[g.st] || g.st) + '\n';
+  out += '- 子任務: 共 ' + G.tasks.length + ' 項（進行中 ' + (s.stCount.active||0) + '／已結案 ' + (s.stCount.done||0) + '／暫停 ' + (s.stCount.paused||0) + '）\n';
+  if(G.sdate || G.edate) out += '- 排定期間: ' + (G.sdate || '?') + ' ~ ' + (G.edate || '未定') + '\n';
+  if(G.firstLog) out += '- 實際工作期間: ' + G.firstLog + ' ~ ' + G.lastLog + '\n';
+  out += '- 累計工時: ' + formatHrs(s.hrs) + '\n';
+  if(s.est) out += '- 有設定預估的任務: 預估 ' + formatHrs(s.est) + ' ／ 實際 ' + formatHrs(s.estCovered) + '（偏差 ' + xpDev(s.estCovered, s.est) + '）\n';
+  out += '- 應收基準: ' + xpMoneyMap(s.base) + '\n';
+  out += '- 已收: ' + xpMoneyMap(s.recv) + ' | 待收: ' + xpMoneyMap(s.ar) + '\n';
+  if(Object.keys(s.cost).length) out += '- 發包成本: ' + xpMoneyMap(s.cost) + '\n';
+  out += '\n';
+
+  out += '## 2. 子任務對照表\n';
+  out += '| 任務 | 狀態 | 類型 | 執行 | 工時 | 預估 | 偏差 | 應收基準 | 已收 | 有效時薪 |\n|---|---|---|---|---|---|---|---|---|---|\n';
+  G.tasks.forEach(function(t){
+    var p = t.p;
+    out += '| ' + xpCell(p.name) + ' | ' + (XP_ST[p.st] || p.st) + ' | ' + xpCell(t.cat) + ' | ' + (XP_EXEC[p.execMode||'self'] || '') +
+      ' | ' + formatHrs(t.totalHrs) + ' | ' + (t.est ? formatHrs(t.est) : '—') + ' | ' + (xpDev(t.totalHrs, t.est) || '—') +
+      ' | ' + (p.nonBillable ? '不計酬' : xpMoney(t.base, t.cur)) + ' | ' + (p.nonBillable ? '—' : xpMoney(t.ar.recv, t.cur)) +
+      ' | ' + (t.rateOnBase ? xpMoney(t.rateOnBase, t.cur) + '/h' + (t.delegated ? '（毛利）' : '') : '—') + ' |\n';
+  });
+  out += '\n';
+
+  if(G.phases.length){
+    out += '## 3. 階段工時彙總（跨子任務）\n';
+    out += '| 階段 | 出現於 | 預估合計 | 實際合計 | 偏差 |\n|---|---|---|---|---|\n';
+    G.phases.forEach(function(ph){
+      out += '| ' + xpCell(ph.name) + ' | ' + ph.tasks + ' 項任務 | ' + (ph.est ? formatHrs(ph.est) : '—') + ' | ' + formatHrs(ph.actual) + ' | ' + (xpDev(ph.actual, ph.est) || '—') + ' |\n';
+    });
+    out += '\n';
+  }
+
+  if(G.months.length){
+    out += '## 4. 每月工時分佈\n';
+    G.months.forEach(function(m){ out += '- ' + m.month + ': ' + formatHrs(m.hrs) + '\n'; });
+    out += '\n';
+  }
+
+  out += '## 5. 子任務明細\n\n';
+  G.tasks.forEach(function(t){
+    out += '### ' + t.p.name + '\n';
+    if(t.p.notes && t.p.notes.trim()) out += xpQuote('任務備註：' + t.p.notes.trim().replace(/\n+/g, ' ／ '));
+    out += xpTaskBody(t, '####');
+  });
+
+  out += '## 希望分析的方向\n';
+  out += '1. 各子任務的工時與有效時薪差異有多大？哪些是拖累整體的主因？\n';
+  out += '2. 哪些階段在多個子任務中反覆超支？是流程問題還是預估問題？\n';
+  out += '3. 外包與自製的分工是否划算？有沒有該改外包或收回自做的部分？\n';
+  out += '4. 以目前進度與應收狀況，這個專案群組的整體健康度如何？請給出優先處理事項。\n';
+  return out;
+}
+
+function xpCopy(txt, btn, msg){
+  var done = function(){
+    if(btn){
+      var o = btn.textContent;
+      btn.textContent = '✅ 已複製';
+      setTimeout(function(){ btn.textContent = o; }, 2000);
+    }
+    showToast(msg, 'green');
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(done).catch(function(){ fallbackCopy(txt); done(); });
+  } else { fallbackCopy(txt); done(); }
+}
+function copyTaskExport(pid, btn){
+  var p = pBy(pid); if(!p) return;
+  xpCopy(xpRenderTask(xpCollectTask(p)), btn, '✅ 「' + p.name + '」分析資料已複製');
+}
+function copyGroupExport(gid, btn){
+  var g = grpBy(gid); if(!g) return;
+  var G = xpCollectGroup(g);
+  if(!G.tasks.length){ showToast('這個群組還沒有任務，沒有資料可以複製', 'amber'); return; }
+  xpCopy(xpRenderGroup(G), btn, '✅ 群組「' + g.name + '」分析資料已複製（' + G.tasks.length + ' 項任務）');
+}
 
 // 燈號門檻：忙碌比 = 接龍消化所需週數 / 展望週數（≥1 表示工作量已塞滿展望期）
 function busyLight(ratio){
@@ -8705,7 +9179,7 @@ function go(id,btn){
   document.querySelectorAll('.tab-main,.tab-sub').forEach(el=>el.classList.remove('active'));
   document.getElementById(VIEWS[id]).classList.remove('hidden');
   btn.classList.add('active');
-  if(id==='dash')renderDash(); if(id==='tag')rTagStats(); if(id==='grp')rGrp(); if(id==='cal'){syncCalModeBtns();renderCal();} if(id==='vendor')rVendors(); if(id==='cat')rTagStats(); if(id==='pay')rPay();
+  if(id==='dash')renderDash(); if(id==='tag')rTagStats(); if(id==='grp')rGrp(); if(id==='cal'){syncCalModeBtns();renderCal();} if(id==='vendor')rVendors(); if(id==='cat')rTagStats(); if(id==='pay')rPay(); if(id==='cfg')rAIExportCfg();
 }
 // 程式化跳分頁（給面板上的快捷鈕用）：自動找到對應的導覽按鈕來套用 active 狀態。
 // 若指定 calMode（'sched'|'cal'|'hist'），切到排程日曆後再切換子模式。
