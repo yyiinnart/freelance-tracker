@@ -1012,7 +1012,7 @@ tbody tr[onclick]:hover td{background:#131f2e;}
   </div>
 
 <div id="v-dash" class="hidden">
-    <div class="hint-bar">綜覽接案產值、工時分佈與金流狀況。頂部顯示本週即時配速，下方可依<strong>月份篩選</strong>聚焦單月數據。「現金流與獲利」面板可點擊<strong>當月總支出</strong>填入該月生活開銷，系統會自動算出「淨結餘（實收−支出）」判斷賺得夠不夠。「📋 AI近況分析」可將當期數據整理成文字摘要，方便貼給 AI 助理進行深度分析。</div>
+    <div class="hint-bar">綜覽接案產值、工時分佈與金流狀況。頂部顯示本週即時配速，下方可依<strong>月份篩選</strong>聚焦單月數據。「現金流與獲利」面板可點擊<strong>當月總支出</strong>填入該月生活開銷，系統會自動算出「淨結餘（實收−支出）」判斷賺得夠不夠。「📋 複製 AI 分析」可先選模板：<strong>通用</strong>看近 3 個月總體概況，或挑專題（收支、工時、估時、獲利、排程）只整理那一面的數據，方便貼給 AI 助理深入分析。各模板的內文可按旁邊的 ⚙ 到設定頁修改。</div>
     <!-- 置頂：即時配速區 (不受下方月份篩選影響) -->
     <div class="bg-slate-900 rounded-xl border border-slate-800 p-5 mb-8 relative overflow-hidden shadow-lg shadow-blue-900/5">
       <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-indigo-500"></div>
@@ -1048,8 +1048,9 @@ tbody tr[onclick]:hover td{background:#131f2e;}
       </div>
       <div class="flex gap-2 items-center">
         <button class="btn btn-sm bg-transparent border-slate-700 text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-colors" onclick="openDashSettings()">自訂面板</button>
-        <button class="btn btn-sm bg-transparent border-slate-700 text-slate-500 hover:text-blue-400 hover:bg-slate-800 transition-colors" id="copy-btn" onclick="doExport()">📋 AI近況分析</button>
-        <button class="btn btn-sm bg-transparent border-slate-700 text-slate-500 hover:text-blue-400 hover:bg-slate-800 transition-colors px-2" id="ai-note-btn" onclick="goAIExportCfg()" title="AI 匯出設定：分析備註、單任務模板" aria-label="AI 匯出設定">⚙</button>
+        <select id="aix-sel" class="inp text-xs py-1 w-auto" aria-label="AI 分析模板" onchange="aixSelChange()"></select>
+        <button class="btn btn-sm bg-transparent border-slate-700 text-slate-500 hover:text-blue-400 hover:bg-slate-800 transition-colors" id="copy-btn" onclick="doExport()">📋 複製 AI 分析</button>
+        <button class="btn btn-sm bg-transparent border-slate-700 text-slate-500 hover:text-blue-400 hover:bg-slate-800 transition-colors px-2" id="ai-note-btn" onclick="goAIExportCfg()" title="AI 匯出設定：分析模板、單任務模板" aria-label="AI 匯出設定">⚙</button>
       </div>
     </div>
 
@@ -1263,14 +1264,32 @@ tbody tr[onclick]:hover td{background:#131f2e;}
         <div class="flex items-center justify-between gap-3 mb-3 flex-wrap">
           <h3 class="text-sm font-semibold text-white">AI 匯出</h3>
           <span class="flex items-center gap-1 bg-slate-800/60 rounded-lg p-0.5" role="tablist">
-            <button type="button" id="aix-tab-note" class="pie-mode-btn active" role="tab" onclick="setAIXTab('note')">分析備註</button>
+            <button type="button" id="aix-tab-note" class="pie-mode-btn active" role="tab" onclick="setAIXTab('note')">分析模板</button>
             <button type="button" id="aix-tab-tpl" class="pie-mode-btn" role="tab" onclick="setAIXTab('tpl')">單任務模板</button>
           </span>
         </div>
 
         <div id="aix-pane-note">
-          <p class="text-[10px] text-slate-600 mb-2">接在「AI近況分析」的分析須知後面，補充只有你知道的脈絡。每行一條，留空則不附加。</p>
-          <textarea id="cfg-ai-note" class="inp w-full text-xs" rows="4" aria-label="分析備註" placeholder="例：近期低工時是配合進修的刻意安排。／某系列任務是同一客戶的子項目，分開掛載屬正常。" onchange="saveAINoteCfg()"></textarea>
+          <span id="aix-tpl-pills" class="inline-flex flex-wrap items-center gap-1 bg-slate-800/60 rounded-lg p-0.5 mb-2" role="tablist" aria-label="分析模板"></span>
+          <div class="flex items-start justify-between gap-3 mb-2">
+            <p id="aix-tpl-hint" class="text-[10px] text-slate-600"></p>
+            <button type="button" class="text-[11px] text-slate-500 hover:text-amber-400 flex-shrink-0" onclick="aixTplReset()">恢復預設</button>
+          </div>
+          <div id="aix-tpl-chips" class="flex flex-wrap gap-1 mb-3"></div>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            <textarea id="aix-tpl-input" class="inp w-full font-mono text-xs" rows="16" aria-label="分析模板內文" oninput="aixTplPreview()" onchange="aixTplSave()"></textarea>
+            <div class="min-w-0">
+              <div class="text-[11px] text-slate-500 mb-1.5">預覽（套用目前資料）</div>
+              <pre id="aix-tpl-preview" class="bg-slate-950/60 border border-slate-800 rounded-lg p-3 text-[11px] text-slate-400 whitespace-pre-wrap overflow-auto m-0" style="max-height:340px"></pre>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-800">
+            <div class="flex items-baseline gap-2 mb-1.5 flex-wrap">
+              <span class="text-xs font-semibold text-slate-300">共用背景</span>
+              <span class="text-[10px] text-slate-600">內容只寫一次；在任何模板插入 {{共用背景}} 就會帶入，留空時那一行自動省略。</span>
+            </div>
+            <textarea id="aix-shared-input" class="inp w-full text-xs" rows="3" aria-label="共用背景" placeholder="例：2026 年 4 月轉全職接案，之前的資料偏少。" oninput="aixTplPreview()" onchange="aixSharedSave()"></textarea>
+          </div>
         </div>
 
         <div id="aix-pane-tpl" class="hidden">
@@ -2144,6 +2163,8 @@ function cloudSave(){
     dash_cfg: localStorage.getItem('ft_dash_cfg'),
     unify_cur: localStorage.getItem('ft_unify_cur'),
     ai_note: localStorage.getItem('ft_ai_note'),
+    aix_tpls: localStorage.getItem('ft_aix_tpls'),
+    aix_shared: localStorage.getItem('ft_aix_shared'),
     phases: localStorage.getItem('ft_phases'),
     phase_hidden: localStorage.getItem('ft_phase_hidden'),
     estacc_hide_phases: localStorage.getItem('ft_estacc_hide_phases'),
@@ -2185,7 +2206,7 @@ function cloudLoad(){
         
         // 2. 讀取並覆寫本地端設定檔
         if(cd.CFG) {
-          ['wmode','trate','dl_crit','wtarget','track_limit','show_tracks','show_hints','dash_cfg','unify_cur','ai_note','phases','phase_hidden','estacc_hide_phases','xp_tpl'].forEach(k=>{
+          ['wmode','trate','dl_crit','wtarget','track_limit','show_tracks','show_hints','dash_cfg','unify_cur','ai_note','aix_tpls','aix_shared','phases','phase_hidden','estacc_hide_phases','xp_tpl'].forEach(k=>{
             if(cd.CFG[k]) localStorage.setItem('ft_'+k, cd.CFG[k]);
           });
         }
@@ -2287,6 +2308,8 @@ function cloudSaveBeacon(){
     dash_cfg: localStorage.getItem('ft_dash_cfg'),
     unify_cur: localStorage.getItem('ft_unify_cur'),
     ai_note: localStorage.getItem('ft_ai_note'),
+    aix_tpls: localStorage.getItem('ft_aix_tpls'),
+    aix_shared: localStorage.getItem('ft_aix_shared'),
     phases: localStorage.getItem('ft_phases'),
     phase_hidden: localStorage.getItem('ft_phase_hidden'),
     estacc_hide_phases: localStorage.getItem('ft_estacc_hide_phases'),
@@ -2338,7 +2361,7 @@ document.addEventListener('visibilitychange', function() {
   }
 });
 function exportJSON(){
-  var cfg={wmode:localStorage.getItem('ft_wmode'),trate:localStorage.getItem('ft_trate'),dl_crit:localStorage.getItem('ft_dl_crit'),wtarget:localStorage.getItem('ft_wtarget'),track_limit:localStorage.getItem('ft_track_limit'),show_tracks:localStorage.getItem('ft_show_tracks'),show_hints:localStorage.getItem('ft_show_hints'),dash_cfg:localStorage.getItem('ft_dash_cfg'),phases:localStorage.getItem('ft_phases'),phase_hidden:localStorage.getItem('ft_phase_hidden'),estacc_hide_phases:localStorage.getItem('ft_estacc_hide_phases'),xp_tpl:localStorage.getItem('ft_xp_tpl')};
+  var cfg={wmode:localStorage.getItem('ft_wmode'),trate:localStorage.getItem('ft_trate'),dl_crit:localStorage.getItem('ft_dl_crit'),wtarget:localStorage.getItem('ft_wtarget'),track_limit:localStorage.getItem('ft_track_limit'),show_tracks:localStorage.getItem('ft_show_tracks'),show_hints:localStorage.getItem('ft_show_hints'),dash_cfg:localStorage.getItem('ft_dash_cfg'),phases:localStorage.getItem('ft_phases'),phase_hidden:localStorage.getItem('ft_phase_hidden'),estacc_hide_phases:localStorage.getItem('ft_estacc_hide_phases'),xp_tpl:localStorage.getItem('ft_xp_tpl'),ai_note:localStorage.getItem('ft_ai_note'),aix_tpls:localStorage.getItem('ft_aix_tpls'),aix_shared:localStorage.getItem('ft_aix_shared')};
   var d={version:8,at:new Date().toISOString(),P:P,PJ:PJ,CATS:CATS,TAGS:TAGS,GRPS:GRPS,DLOGS:DLOGS,VENDORS:VENDORS,VACS:VACS,WORKDAYS:WORKDAYS,MEXP:MEXP,REM:REM,CFG:cfg};
   var a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'}));
@@ -2360,7 +2383,7 @@ function importJSON(e){
         MEXP=d.MEXP||{}; // 匯入每月總支出
         REM=d.REM||[]; // 匯入日曆小提醒
         if(d.CFG){ // 匯入設定
-          ['wmode','trate','dl_crit','wtarget','track_limit','show_tracks','show_hints','dash_cfg','phases','phase_hidden','estacc_hide_phases','xp_tpl'].forEach(k=>{
+          ['wmode','trate','dl_crit','wtarget','track_limit','show_tracks','show_hints','dash_cfg','phases','phase_hidden','estacc_hide_phases','xp_tpl','ai_note','aix_tpls','aix_shared'].forEach(k=>{
             if(d.CFG[k]) localStorage.setItem('ft_'+k, d.CFG[k]);
           });
         }
@@ -6032,6 +6055,69 @@ function showEstAccSrc(idx){
   openModal(s.label, html, null, '關閉', true);
 }
 
+// 階段估時回測的彙整（分析頁「各階段估時回測」與 AI 估時模板共用，數字同源）
+// 回傳 {byPhase, miscKey, anyPhaseData}；byPhase[nk] = {norm,label,estArr,actArr,estSrc,actSrc,miscFrom?}
+function estPhaseAgg(doneAll){
+  var byPhase = {};
+  var anyPhaseData = false;
+  // 彙整鍵改用 phaseStatKey()：正式名單各自成列，雜事與所有未歸類名稱一律折成單一「雜事」列，
+  // 名單才不會隨著自由命名無限變長。原始資料完全不動，只是統計時歸類。
+  var miscKey = normPhase(MISC_PHASE);
+  var miscRaw = {}; // 折進雜事的原始名稱，供該列註腳顯示
+  function phaseBucket(raw){
+    var nk = phaseStatKey(raw);
+    if(!byPhase[nk]) byPhase[nk] = { norm:nk, label:(nk===miscKey?MISC_PHASE:String(raw)), estArr:[], actArr:[], estSrc:[], actSrc:[] };
+    if(nk===miscKey && !isMiscPhase(raw)) miscRaw[String(raw)] = 1;
+    return byPhase[nk];
+  }
+  doneAll.forEach(function(p){
+    // 同一案同一階段可能有多個檢查節點（例：草稿·動態草圖 / 草稿·精緻草圖），
+    // 它們是排程用的分段截止，不是兩件獨立案子。預估要先在案內加總成「每案每階段一筆」，
+    // 才會跟下面實際工時的彙整方式對稱、案件數 N 也才正確。
+    var estByPhase = {}, estParts = {};
+    (p.milestones||[]).forEach(function(m){
+      if(!m.name) return;
+      var b = phaseBucket(m.name);
+      if((+m.estHrs||0) > 0){
+        estByPhase[b.norm] = (estByPhase[b.norm]||0) + (+m.estHrs||0);
+        (estParts[b.norm] = estParts[b.norm] || []).push(phaseLabel(m));
+      }
+    });
+    Object.keys(estByPhase).forEach(function(nk){
+      var b = byPhase[nk];
+      var parts = estParts[nk] || [];
+      var note = parts.length > 1
+        ? (parts.length + ' 節點合計：' + parts.join('＋'))
+        : (parts[0] && parts[0] !== b.label ? parts[0] : '');
+      b.estArr.push(estByPhase[nk]);
+      b.estSrc.push({pid:p.id, name:p.name, v:estByPhase[nk], note:note});
+    });
+    // 該任務每個階段的實際工時：先按階段彙整成「每案每階段一筆」，才能正確算案件數
+    // （不再要求該案有里程碑清單——只要工時帶階段標記就計入）
+    var actByPhase = {};
+    DLOGS.forEach(function(l){
+      if(l.pid===p.id && l.ms){
+        var nk = phaseStatKey(l.ms);
+        if(nk===miscKey && !isMiscPhase(l.ms)) miscRaw[String(l.ms)] = 1;
+        actByPhase[nk] = (actByPhase[nk]||0) + (l.hrs||0);
+        anyPhaseData = true;
+      }
+    });
+    Object.keys(actByPhase).forEach(function(nk){
+      if(!byPhase[nk]) byPhase[nk] = { norm:nk, label:(nk===miscKey?MISC_PHASE:nk), estArr:[], actArr:[], estSrc:[], actSrc:[] };
+      byPhase[nk].actArr.push(actByPhase[nk]);
+      byPhase[nk].actSrc.push({pid:p.id, name:p.name, v:actByPhase[nk]});
+    });
+  });
+  // 雜事列補上「由哪些名稱折進來」的說明
+  if(byPhase[miscKey]){
+    var mrn = Object.keys(miscRaw);
+    byPhase[miscKey].label = MISC_PHASE + (mrn.length ? '／未歸類' : '');
+    byPhase[miscKey].miscFrom = mrn;
+  }
+  return {byPhase:byPhase, miscKey:miscKey, anyPhaseData:anyPhaseData};
+}
+
 function renderEstAcc(){
   var el = document.getElementById('est-acc-body'); if(!el) return;
   _estAccSrc = [];
@@ -6111,63 +6197,8 @@ function renderEstAcc(){
   // ---- 階段回測（獨立於總預估門檻，用 doneAll）----
     // ---- 依階段回測（跨所有已結案任務彙整，依工時的階段標記；不要求填總預估）----
     // 以 normPhase 為彙整鍵，避免空白/全半形/拼字差異把同一階段拆成兩列；顯示用首見原字串。
-    var byPhase = {};
-    var anyPhaseData = false;
-    // 彙整鍵改用 phaseStatKey()：正式名單各自成列，雜事與所有未歸類名稱一律折成單一「雜事」列，
-    // 名單才不會隨著自由命名無限變長。原始資料完全不動，只是統計時歸類。
-    var miscKey = normPhase(MISC_PHASE);
-    var miscRaw = {}; // 折進雜事的原始名稱，供該列註腳顯示
-    function phaseBucket(raw){
-      var nk = phaseStatKey(raw);
-      if(!byPhase[nk]) byPhase[nk] = { norm:nk, label:(nk===miscKey?MISC_PHASE:String(raw)), estArr:[], actArr:[], estSrc:[], actSrc:[] };
-      if(nk===miscKey && !isMiscPhase(raw)) miscRaw[String(raw)] = 1;
-      return byPhase[nk];
-    }
-    doneAll.forEach(function(p){
-      // 同一案同一階段可能有多個檢查節點（例：草稿·動態草圖 / 草稿·精緻草圖），
-      // 它們是排程用的分段截止，不是兩件獨立案子。預估要先在案內加總成「每案每階段一筆」，
-      // 才會跟下面實際工時的彙整方式對稱、案件數 N 也才正確。
-      var estByPhase = {}, estParts = {};
-      (p.milestones||[]).forEach(function(m){
-        if(!m.name) return;
-        var b = phaseBucket(m.name);
-        if((+m.estHrs||0) > 0){
-          estByPhase[b.norm] = (estByPhase[b.norm]||0) + (+m.estHrs||0);
-          (estParts[b.norm] = estParts[b.norm] || []).push(phaseLabel(m));
-        }
-      });
-      Object.keys(estByPhase).forEach(function(nk){
-        var b = byPhase[nk];
-        var parts = estParts[nk] || [];
-        var note = parts.length > 1
-          ? (parts.length + ' 節點合計：' + parts.join('＋'))
-          : (parts[0] && parts[0] !== b.label ? parts[0] : '');
-        b.estArr.push(estByPhase[nk]);
-        b.estSrc.push({pid:p.id, name:p.name, v:estByPhase[nk], note:note});
-      });
-      // 該任務每個階段的實際工時：先按階段彙整成「每案每階段一筆」，才能正確算案件數
-      // （不再要求該案有里程碑清單——只要工時帶階段標記就計入）
-      var actByPhase = {};
-      DLOGS.forEach(function(l){
-        if(l.pid===p.id && l.ms){
-          var nk = phaseStatKey(l.ms);
-          if(nk===miscKey && !isMiscPhase(l.ms)) miscRaw[String(l.ms)] = 1;
-          actByPhase[nk] = (actByPhase[nk]||0) + (l.hrs||0);
-          anyPhaseData = true;
-        }
-      });
-      Object.keys(actByPhase).forEach(function(nk){
-        if(!byPhase[nk]) byPhase[nk] = { norm:nk, label:(nk===miscKey?MISC_PHASE:nk), estArr:[], actArr:[], estSrc:[], actSrc:[] };
-        byPhase[nk].actArr.push(actByPhase[nk]);
-        byPhase[nk].actSrc.push({pid:p.id, name:p.name, v:actByPhase[nk]});
-      });
-    });
-    // 雜事列補上「由哪些名稱折進來」的說明
-    if(byPhase[miscKey]){
-      var mrn = Object.keys(miscRaw);
-      byPhase[miscKey].label = MISC_PHASE + (mrn.length ? '／未歸類' : '');
-      byPhase[miscKey].miscFrom = mrn;
-    }
+    var _pa = estPhaseAgg(doneAll);
+    var byPhase = _pa.byPhase, miscKey = _pa.miscKey, anyPhaseData = _pa.anyPhaseData;
     var hidePhases = getHiddenPhases();
     var allPhaseKeys = Object.keys(byPhase).filter(function(k){ return byPhase[k].estArr.length || byPhase[k].actArr.length; });
     var phaseKeys = allPhaseKeys.filter(function(k){ return hidePhases.indexOf(k) < 0; });
@@ -6420,6 +6451,7 @@ function dashMonthStep(dir){
 }
 
 function renderDash(){
+  rAIXSel();
   renderEstAcc();
   var mon=document.getElementById('f-month').value;
   var fp=mon?P.filter(p=>p.date.indexOf(mon)===0):P;
@@ -6935,209 +6967,811 @@ function delLogFromDash(logId){
   save();rProj();rGrp();renderDash();
 }
 
-function buildExport(){
-  var d = new Date(); d.setMonth(d.getMonth() - 3);
-  var cutoffStr = d.getFullYear() + '-' + ('0'+(d.getMonth()+1)).slice(-2) + '-' + ('0'+d.getDate()).slice(-2);
-  var now = toLocalDate();
+/* ===== AI 分析模板（全文可編輯） =====
+   六個模板：通用／收支／工時／估時／獲利／排程。
+   每個模板＝一段可自由改寫的文字，裡面用 {{區塊}} 放資料段落、用 {{數值}} 放單一值。
+   管線：aixCollect[id]()（蒐集成 {fields, blocks}）→ aixFillTpl(模板文字, 資料) → 複製。
+   數字一律取自既有引擎（projAR、calcValRec、estPhaseAgg、computeSchedule／computeSchedStats），與畫面同源。
+   儲存：ft_aix_tpls（JSON，只存改過的模板；沒改過的用預設）、ft_aix_shared（{{共用背景}} 的內容），皆隨雲端同步。 */
+var AIX_TPLS = [
+  {id:'general', icon:'📋', name:'通用', desc:'近 3 個月總體概況'},
+  {id:'cash',    icon:'💰', name:'收支', desc:'近 12 個月現金流與待收'},
+  {id:'hrs',     icon:'⏱', name:'工時', desc:'近 3 個月負荷與作息'},
+  {id:'est',     icon:'🎯', name:'估時', desc:'已結案任務的估時準確度'},
+  {id:'profit',  icon:'📊', name:'獲利', desc:'近 12 個月各案型實際時薪'},
+  {id:'sched',   icon:'📅', name:'排程', desc:'從今天起的排程與產能'}
+];
+function aixTpl(id){ return AIX_TPLS.find(function(t){ return t.id === id; }) || AIX_TPLS[0]; }
+function aixGetSel(){ var v = localStorage.getItem('ft_aix_sel'); return AIX_TPLS.some(function(t){ return t.id === v; }) ? v : 'general'; }
+function aixSetSel(v){ localStorage.setItem('ft_aix_sel', v); }
 
-  // 1. 篩選近 3 個月的基礎資料 (工時與金流)
-  var recentLogs = DLOGS.filter(l => l.date >= cutoffStr);
-  var recentPays = P.filter(p => p.date >= cutoffStr);
+// ── 可插入的欄位：數值（所有模板共用）＋各模板的資料區塊 ──
+var AIX_FIELDS = [
+  ['期間', '本模板的資料期間（無時間窗的模板＝匯出日）'], ['匯出日', '今天日期'],
+  ['週目標', '設定的每週目標工時（h）'], ['每日上限', '設定的每日工時上限（h）'], ['目標時薪', '設定的目標時薪'],
+  ['共用背景', '下方「共用背景」的內容；留空時整行自動省略']
+];
+var AIX_BLOCKS = {
+  general:[['整體產出與金流','計費／不計酬工時、期間實收、發包支出'], ['每週工時','逐週工時與上班／休假天數'], ['休假與作息','上班日、請假、加班週末、工時結構'], ['活躍專案數','期間有活動的專案件數（數值）'], ['活躍專案明細','每個專案的進度、工時、應收與已收']],
+  cash:[['本月','進行中的月份（數值）'], ['每月現金流','12 個月的實收／支出／淨結餘／產值表'], ['現金流摘要','合計、月均、負結餘月份、外幣原幣'], ['已結案待收','結案未收款與帳齡'], ['預計收入','未結案任務的預計未收'], ['應付外包','尚未付給外包的款項']],
+  hrs:[['工時總覽','總工時、上班日均、超時天數、連續工作天數'], ['每週工時','逐週工時、達成週目標、加班週末'], ['星期分佈','每個星期幾的平均工時'], ['超時日','超過每日上限的日子'], ['類型佔比','依業務類型的工時佔比'], ['階段佔比','依階段的工時佔比'], ['任務排行','投入最多的任務（前 8）'], ['休假','請假與加班週末天數']],
+  est:[['整體偏差','樣本數、預估與實際合計、整體偏差'], ['依案型','各案型的預估／實際／偏差'], ['依階段','各階段估時回測（與分析頁同源）'], ['低估個案','實際超出預估最多的個案（前 8）'], ['提早完成個案','比預估快完成的個案（前 3）'], ['進行中風險','進行中已用掉 80% 以上預估的任務']],
+  profit:[['獲利總覽','件數、總工時、淨產值、整體時薪'], ['依類型','各業務類型的實際時薪'], ['依標籤','各標籤的實際時薪'], ['時薪最低','時薪最低的個案（前 5）'], ['時薪最高','時薪最高的個案（前 5）'], ['外包毛利','外包／轉包的毛利與毛利率']],
+  sched:[['排程總覽','剩餘工時、30 天負荷率、預計完工日'], ['各階段','進行中任務各階段的預計完成與餘裕'], ['未來八週','未來 8 週的產能、已排、空檔'], ['未排入任務','未填預估、外包、暫停等沒算進產能的任務']]
+};
 
-  // 2. 統計這 3 個月的總工時與總實收/支出
-  var periodHrs = 0, periodOtherHrs = 0;
-  var periodIncomes = {TWD:0, USD:0, CNY:0, JPY:0};
-  var periodExpenses = {TWD:0, USD:0, CNY:0, JPY:0};
+// ── 預設模板（＝原本的匯出樣式；只改想改的地方即可）──
+var AIX_DEF = {
+general: [
+'# 近 3 個月接案與健康度分析資料 ({{期間}})',
+'',
+'> 分析須知：',
+'> 1. 工時可能因主動排休、淡旺季或案量自然起伏而波動，低工時不必然代表接不到案。',
+'> 2. 「實收帳款」與「本期工時」時間錯位，多筆款項對應更早期專案，不可直接相除推算時薪。',
+'> 3. 零工時的進行中專案可能為子資產、待命或外包，請勿一律視為失控停滯。',
+'> 4. 本工具僅記錄接案相關工時，不含技術學習、投資研究等其他活動。',
+'',
+'{{共用背景}}',
+'',
+'## 1. 期間整體產出與金流',
+'{{整體產出與金流}}',
+'',
+'## 2. 期間每週工時分佈 (過勞/閒置指標)',
+'(連續呈現每一週；零工時週也保留，並標注休假天數，以分辨「真閒置」或「排休」)',
+'{{每週工時}}',
+'',
+'## 3. 休假與作息總覽 (恢復/過勞判斷)',
+'{{休假與作息}}',
+'',
+'## 4. 期間活躍專案明細 (共 {{活躍專案數}} 案)',
+'{{活躍專案明細}}'
+].join('\n'),
+cash: [
+'# 收支健檢：近 12 個月現金流（{{期間}}）',
+'',
+'> 分析須知：',
+'> 1. 金額一律依工具內目前匯率換算為 TWD；外幣實收另列原幣總額。',
+'> 2. 「實收」是到帳時間，多對應更早完成的案子；「當月產值」是當月工時對應的工作價值（含進行中任務的估算）。兩者的差距就是應收或預收的時間差。',
+'> 3. 「生活支出」是手動填寫的月總額，標示「未填」的月份不代表零支出，請勿計入平均。',
+'> 4. 「淨結餘」與儀表板同口徑（實收−生活支出）；「扣發包後」再減去當月付給外包的款項。',
+'> 5. 本模板刻意不含工時資料，請勿推算時薪。',
+'> 6. {{本月}} 為進行中月份，數字尚未完整。',
+'',
+'{{共用背景}}',
+'',
+'## 1. 每月現金流',
+'{{每月現金流}}',
+'',
+'{{現金流摘要}}',
+'',
+'## 2. 已結案待收帳款（應可請款）',
+'{{已結案待收}}',
+'',
+'## 3. 尚未結案的預計收入（未到請款點或已做未收）',
+'{{預計收入}}',
+'',
+'## 4. 尚未付給外包的款項',
+'{{應付外包}}',
+'',
+'## 希望分析的方向',
+'1. 依過去的收入節奏、目前待收與預計收入，未來 1～2 個月有沒有現金缺口？',
+'2. 哪幾筆待收應該優先催款？',
+'3. 收入是否過度集中在少數月份或少數案子？',
+'4. 以目前的生活支出，建議保留多少個月的緩衝金？'
+].join('\n'),
+hrs: [
+'# 工時與作息：近 3 個月負荷分析（{{期間}}）',
+'',
+'> 分析須知：',
+'> 1. 只記錄接案相關工時（含已登錄的不計酬內部任務），不含技術學習、投資研究、家務等其他活動。',
+'> 2. 工時起伏可能來自排休、淡旺季或刻意減量，低工時不必然代表接不到案。',
+'> 3. 本模板刻意不含金額，請勿推論收入或時薪。',
+'> 4. 「上班日」依工具內的週末與休假設定計算；週目標 {{週目標}}h、每日上限 {{每日上限}}h 為使用者自訂值。',
+'',
+'{{共用背景}}',
+'',
+'## 1. 總覽',
+'{{工時總覽}}',
+'',
+'## 2. 每週工時（零工時週也保留）',
+'{{每週工時}}',
+'',
+'## 3. 星期分佈（每個星期幾的平均工時）',
+'{{星期分佈}}',
+'',
+'## 4. 超過每日上限的日子',
+'{{超時日}}',
+'',
+'## 5. 工時花在哪裡',
+'### 依業務類型',
+'{{類型佔比}}',
+'',
+'### 依階段',
+'{{階段佔比}}',
+'',
+'### 投入最多的任務（前 8）',
+'{{任務排行}}',
+'',
+'## 6. 休假',
+'{{休假}}',
+'',
+'## 希望分析的方向',
+'1. 我的節奏有沒有過勞或失衡的跡象（連續無休、週末加班、單日超時）？',
+'2. 哪種案型或階段最吃時間，比例合理嗎？',
+'3. 跟週目標相比，實際工時的落差主要出在哪裡？',
+'4. 建議怎麼調整每週的工時配置？'
+].join('\n'),
+est: [
+'# 估時準確度：報價校準資料（匯出日 {{匯出日}}）',
+'',
+'> 分析須知：',
+'> 1. 整體與案型統計只取「已結案且有填預估工時」的任務；階段回測取所有已結案任務中有標階段的工時。',
+'> 2. 偏差＝實際平均÷預估平均−1；正值代表低估（實際做得比預想久），負值代表高估。',
+'> 3. 「雜事」是未列入正式階段名單的零碎工作集合，只列數字，不做偏差分析。',
+'> 4. 樣本數少（×1、×2）的列參考價值有限；平均與中位數差很多代表有極端個案。',
+'> 5. 實際工時只含有登錄的時數。本模板不含金額。',
+'',
+'{{共用背景}}',
+'',
+'## 1. 整體',
+'{{整體偏差}}',
+'',
+'## 2. 依案型',
+'{{依案型}}',
+'',
+'## 3. 依階段（跨已結案任務，每案每階段算一筆）',
+'{{依階段}}',
+'',
+'## 4. 低估最多的個案（前 8）',
+'{{低估個案}}',
+'',
+'## 5. 比預估快完成的個案（前 3）',
+'{{提早完成個案}}',
+'',
+'## 6. 進行中、已用掉 80% 以上預估的任務',
+'{{進行中風險}}',
+'',
+'## 希望分析的方向',
+'1. 我的估時習慣整體偏樂觀還是保守？哪個案型或階段最失準？',
+'2. 下次報價與排程，各案型建議乘上多少係數？',
+'3. 低估的個案有沒有共同特徵（案型、階段、規模）？',
+'4. 目前進行中的任務，哪些已經有超估風險，該怎麼處理？'
+].join('\n'),
+profit: [
+'# 案型獲利：近 12 個月已結案任務（{{期間}}）',
+'',
+'> 分析須知：',
+'> 1. 只取近 12 個月結案的任務。時薪＝任務應收總額÷該任務全部工時；因為是結案後的完整數字，可以直接相除，跟實收到帳時間無關。',
+'> 2. 論件任務若沒填最終確認金額，以報價計（標註「以報價估」）。',
+'> 3. 外包／轉包任務以毛利（應收−發包成本）÷自己投入的工時計算；自己工時很少時數字會偏高，只供參考。',
+'> 4. 金額依工具內目前匯率換算為 TWD。目標時薪 {{目標時薪}} 為使用者設定值（群組若有覆蓋值，個案另以覆蓋值判斷）。',
+'',
+'{{共用背景}}',
+'',
+'## 1. 總覽',
+'{{獲利總覽}}',
+'',
+'## 2. 依業務類型',
+'{{依類型}}',
+'',
+'## 3. 依標籤（一案多標籤會重複計入）',
+'{{依標籤}}',
+'',
+'## 4. 時薪最低的個案（前 5）',
+'{{時薪最低}}',
+'',
+'## 5. 時薪最高的個案（前 5）',
+'{{時薪最高}}',
+'',
+'## 6. 外包／轉包毛利',
+'{{外包毛利}}',
+'',
+'## 希望分析的方向',
+'1. 哪類案子的實際時薪明顯低於目標，應該漲價、少接，還是調整做法？',
+'2. 哪類案子最划算，值得主動多接？',
+'3. 外包／轉包的毛利，值得投入的溝通與管理時間嗎？',
+'4. 若要讓整體時薪接近目標，建議的案型組合或報價調整是什麼？'
+].join('\n'),
+sched: [
+'# 排程與產能：從今天起的負荷預測（匯出日 {{匯出日}}）',
+'',
+'> 分析須知：',
+'> 1. 排程是模擬結果：硬截止優先，其次依截止日先後，每個上班日最多排到每日上限，跳過週末與休假。',
+'> 2. 只排「進行中、自己執行、有填預估工時」的任務；外包／轉包、暫停、未填預估的任務另列，不佔產能。',
+'> 3. 剩餘工時＝預估−已投入；若登錄的工時與實際進度不符，剩餘量會有誤差。',
+'> 4. 可用產能以每日上限 {{每日上限}}h 計算，不代表每天都應該做滿。本模板不含金額。',
+'',
+'{{共用背景}}',
+'',
+'## 1. 總覽',
+'{{排程總覽}}',
+'',
+'## 2. 進行中任務的各階段',
+'{{各階段}}',
+'',
+'## 3. 未來 8 週的負荷',
+'{{未來八週}}',
+'',
+'## 4. 沒有算進產能的任務',
+'{{未排入任務}}',
+'',
+'## 希望分析的方向',
+'1. 現有排程有沒有撞期或逾期風險？哪個階段最該優先處理？',
+'2. 未來幾週的負荷分布是否平均，有沒有過滿或空窗的週？',
+'3. 如果現在插進一個新案，大約多少工時以內塞得下、最早什麼時候能開始？',
+'4. 未填預估的任務會不會讓實際負荷被嚴重低估？'
+].join('\n')
+};
 
-  var nbPids = {};
-  PJ.forEach(p => { if(p.nonBillable) nbPids[p.id] = true; });
+// ── 模板存取（含舊版備註遷移）──
+function aixTplStore(){ try{ return JSON.parse(localStorage.getItem('ft_aix_tpls') || '{}') || {}; }catch(e){ return {}; } }
+// 舊版「分析備註」（ft_ai_note）與上一版各模板備註（ft_ai_notes）併進對應模板的全文，放在分析須知之後；只做一次
+function aixMigrate(){
+  var old = (localStorage.getItem('ft_ai_note') || '').trim(), olds = {};
+  try{ olds = JSON.parse(localStorage.getItem('ft_ai_notes') || '{}') || {}; }catch(e){ olds = {}; }
+  if(!old && !Object.keys(olds).length) return;
+  var t = aixTplStore(), changed = false;
+  function put(id, note){
+    note = String(note || '').trim();
+    if(!note || t[id]) return;
+    t[id] = AIX_DEF[id].replace('{{共用背景}}', note + '\n\n{{共用背景}}'); changed = true;
+  }
+  put('general', old);
+  Object.keys(olds).forEach(function(id){ if(AIX_DEF[id]) put(id, olds[id]); });
+  if(changed) localStorage.setItem('ft_aix_tpls', JSON.stringify(t));
+  localStorage.removeItem('ft_ai_note'); localStorage.removeItem('ft_ai_notes');
+  if(changed && typeof save === 'function') save();
+}
+function getAixTplText(id){ aixMigrate(); var t = aixTplStore(); return (typeof t[id] === 'string' && t[id].trim()) ? t[id] : AIX_DEF[id]; }
+function setAixTplText(id, v){
+  var t = aixTplStore();
+  if(v && v.trim() && v.trim() !== AIX_DEF[id].trim()) t[id] = v; else delete t[id];
+  if(Object.keys(t).length) localStorage.setItem('ft_aix_tpls', JSON.stringify(t)); else localStorage.removeItem('ft_aix_tpls');
+}
+function aixIsCustom(id){ var t = aixTplStore(); return typeof t[id] === 'string' && !!t[id].trim(); }
+function getAixShared(){ return (localStorage.getItem('ft_aix_shared') || '').trim(); }
 
-  recentLogs.forEach(l => {
-    if(nbPids[l.pid]) periodOtherHrs += l.hrs;
-    else periodHrs += l.hrs;
+// 套用：{{區塊}} 沒資料顯示「- 無」；某行只有一個佔位且內容為空（例如共用背景沒寫）→ 整行省略
+function aixFillTpl(tpl, data){
+  function val(k){
+    if(data.blocks && Object.prototype.hasOwnProperty.call(data.blocks, k)){ var b = String(data.blocks[k] || '').replace(/\s+$/, ''); return b.trim() ? b : '- 無'; }
+    if(data.fields && Object.prototype.hasOwnProperty.call(data.fields, k)) return String(data.fields[k] == null ? '' : data.fields[k]);
+    return null;
+  }
+  var out = [];
+  String(tpl).split('\n').forEach(function(line){
+    var only = line.match(/^\s*\{\{([^{}]+)\}\}\s*$/);
+    if(only){ var v = val(only[1].trim()); if(v === '') return; if(v !== null){ out.push(v); return; } }
+    out.push(line.replace(/\{\{([^{}]+)\}\}/g, function(m, k){ var v = val(k.trim()); return v === null ? m : v; }));
   });
+  return out.join('\n').replace(/\n{3,}/g, '\n\n').replace(/^\s+|\s+$/g, '') + '\n';
+}
+function aixCommonFields(range){
+  return {'期間':range, '匯出日':toLocalDate(), '週目標':getWeeklyTarget(), '每日上限':getDayCap(),
+          '目標時薪':'NT$ ' + getGlobalRate().toLocaleString('en-US') + '/h', '共用背景':getAixShared()};
+}
+function aixRender(id){ return aixFillTpl(getAixTplText(id), aixCollect[id]()); }
 
-  recentPays.forEach(p => {
-    if((p.payType||'income')==='income') periodIncomes[p.cur] = (periodIncomes[p.cur] || 0) + p.amt;
+// ── 共用小工具 ──
+function aixPad(n){ return ('0' + n).slice(-2); }
+function aixMonthsBack(n){
+  var d = new Date(), arr = [];
+  for(var i = n - 1; i >= 0; i--){ var x = new Date(d.getFullYear(), d.getMonth() - i, 1); arr.push(x.getFullYear() + '-' + aixPad(x.getMonth() + 1)); }
+  return arr;
+}
+function aixCutoff(months){ var d = new Date(); d.setMonth(d.getMonth() - months); return toLocalDate(d); }
+function aixTWD(v){ return 'NT$ ' + Math.round(v || 0).toLocaleString('en-US'); }
+function aixDev(r){ return (r >= 1 ? '+' : '') + Math.round((r - 1) * 100) + '%'; }
+function aixDaysSince(ds){ return ds ? Math.round((new Date(toLocalDate() + 'T00:00:00') - new Date(ds + 'T00:00:00')) / 86400000) : null; }
+function aixCat(p){ var c = CATS.find(function(x){ return x.id === p.type; }); return c ? c.name : '未分類'; }
+function aixMode(p){ return p.execMode === 'outsource' ? '外包' : p.execMode === 'resell' ? '轉包' : ''; }
+function aixAvg(a){ return a.length ? a.reduce(function(s, v){ return s + v; }, 0) / a.length : 0; }
+function aixSum(a){ return a.reduce(function(s, v){ return s + v; }, 0); }
+function aixTable(head, rows){
+  if(!rows.length) return '';
+  return '| ' + head.join(' | ') + ' |\n|' + head.map(function(){ return '---'; }).join('|') + '|\n'
+    + rows.map(function(r){ return '| ' + r.join(' | ') + ' |'; }).join('\n');
+}
+function aixLastLogMap(){ var m = {}; DLOGS.forEach(function(l){ if(!m[l.pid] || l.date > m[l.pid]) m[l.pid] = l.date; }); return m; }
+function aixMondayOf(str){ var x = new Date(str + 'T00:00:00'), k = x.getDay(); x.setDate(x.getDate() + (k === 0 ? -6 : 1 - k)); return x; }
+
+var aixCollect = {};
+
+/* ─────────── 📋 通用 ─────────── */
+aixCollect.general = function(){
+  var cutoffStr = aixCutoff(3), now = toLocalDate();
+  var recentLogs = DLOGS.filter(function(l){ return l.date >= cutoffStr; });
+  var recentPays = P.filter(function(p){ return p.date >= cutoffStr; });
+  var periodHrs = 0, periodOtherHrs = 0;
+  var periodIncomes = {TWD:0, USD:0, CNY:0, JPY:0}, periodExpenses = {TWD:0, USD:0, CNY:0, JPY:0};
+  var nbPids = {}; PJ.forEach(function(p){ if(p.nonBillable) nbPids[p.id] = true; });
+  recentLogs.forEach(function(l){ if(nbPids[l.pid]) periodOtherHrs += l.hrs; else periodHrs += l.hrs; });
+  recentPays.forEach(function(p){
+    if((p.payType || 'income') === 'income') periodIncomes[p.cur] = (periodIncomes[p.cur] || 0) + p.amt;
     else periodExpenses[p.cur] = (periodExpenses[p.cur] || 0) + p.amt;
   });
-
-  // 3. 抓出這三個月有活動的專案
-  var activeProjectIds = new Set();
-  recentLogs.forEach(l => activeProjectIds.add(l.pid));
-  recentPays.forEach(p => activeProjectIds.add(p.pid));
-  PJ.forEach(p => {
-    if(p.st === 'active' || (p.sdate && p.sdate >= cutoffStr) || (p.edate && p.edate >= cutoffStr) || (p.st === 'done' && p.edate && p.edate >= cutoffStr)) {
-      activeProjectIds.add(p.id);
-    }
+  var activeIds = new Set();
+  recentLogs.forEach(function(l){ activeIds.add(l.pid); });
+  recentPays.forEach(function(p){ activeIds.add(p.pid); });
+  PJ.forEach(function(p){
+    if(p.st === 'active' || (p.sdate && p.sdate >= cutoffStr) || (p.edate && p.edate >= cutoffStr)) activeIds.add(p.id);
   });
+  var periodProjects = PJ.filter(function(p){ return activeIds.has(p.id); });
 
-  var periodProjects = PJ.filter(p => activeProjectIds.has(p.id));
+  var b1 = '- 總計費工時: ' + formatHrs(periodHrs) + '\n';
+  if(periodOtherHrs > 0) b1 += '- 總不計酬工時 (內耗或投資): ' + formatHrs(periodOtherHrs) + '\n';
+  b1 += '- 期間實收帳款: ' + (formatMultiCurMap(periodIncomes, true) || '0') + '\n';
+  b1 += '  (註：實收為期間內到帳金額，多對應更早期專案，請勿與本期工時直接相除算時薪)\n';
+  b1 += '- 期間發包支出: ' + (formatMultiCurMap(periodExpenses, true) || '0');
 
-  // 4. 組裝詳細報告 (專供 AI 分析用)
-  var report = `# 近 3 個月接案與健康度分析資料 (${cutoffStr} ~ ${now})\n\n`;
-  report += `> 分析須知：\n`;
-  report += `> 1. 工時可能因主動排休、淡旺季或案量自然起伏而波動，低工時不必然代表接不到案。\n`;
-  report += `> 2. 「實收帳款」與「本期工時」時間錯位，多筆款項對應更早期專案，不可直接相除推算時薪。\n`;
-  report += `> 3. 零工時的進行中專案可能為子資產、待命或外包，請勿一律視為失控停滯。\n`;
-  report += `> 4. 本工具僅記錄接案相關工時，不含技術學習、投資研究等其他活動。\n`;
-  var userNote = (localStorage.getItem('ft_ai_note') || '').trim();
-  if(userNote){
-    report += `>\n> 使用者補充備註：\n`;
-    userNote.split('\n').forEach(function(line){ report += `> ${line}\n`; });
-  }
-  report += `\n`;
-  report += `## 1. 期間整體產出與金流\n`;
-  report += `- 總計費工時: ${formatHrs(periodHrs)}\n`;
-  if(periodOtherHrs > 0) report += `- 總不計酬工時 (內耗或投資): ${formatHrs(periodOtherHrs)}\n`;
-  report += `- 期間實收帳款: ${formatMultiCurMap(periodIncomes, true) || '0'}\n`;
-  report += `  (註：實收為期間內到帳金額，多對應更早期專案，請勿與本期工時直接相除算時薪)\n`;
-  report += `- 期間發包支出: ${formatMultiCurMap(periodExpenses, true) || '0'}\n\n`;
-
-  report += `## 2. 期間每週工時分佈 (過勞/閒置指標)\n`;
-  report += `(連續呈現每一週；零工時週也保留，並標注休假天數，以分辨「真閒置」或「排休」)\n`;
-  // 先把工時依「週一」彙整
   var weekAgg = {};
-  recentLogs.forEach(l => {
-      var dt = new Date(l.date + 'T00:00:00');
-      var day = dt.getDay();
-      var diff = (day === 0 ? -6 : 1 - day);
-      var mon = new Date(dt); mon.setDate(dt.getDate() + diff);
-      var wkKey = toLocalDate(mon);
-      if(!weekAgg[wkKey]) weekAgg[wkKey] = 0;
-      weekAgg[wkKey] += l.hrs;
-  });
-  // 用 cutoff ~ 今天的範圍，產出「連續」的每週清單(含零工時週)
-  function mondayOf(dStr){
-    var dt = new Date(dStr + 'T00:00:00');
-    var day = dt.getDay();
-    var diff = (day === 0 ? -6 : 1 - day);
-    dt.setDate(dt.getDate() + diff);
-    return dt;
-  }
-  var wkCursor = mondayOf(cutoffStr);
-  var wkEnd = mondayOf(now);
-  var anyWeek = false;
-  var totWorkDays = 0, totOffDays = 0;
-  while(wkCursor <= wkEnd){
-    var wk = toLocalDate(wkCursor);
-    var offDays = 0, workDays = 0;
-    for(var i=0;i<7;i++){
-      var dd = new Date(wkCursor); dd.setDate(wkCursor.getDate()+i);
+  recentLogs.forEach(function(l){ var k = toLocalDate(aixMondayOf(l.date)); weekAgg[k] = (weekAgg[k] || 0) + l.hrs; });
+  var b2 = [], wk = aixMondayOf(cutoffStr), wkEnd = aixMondayOf(now), totWork = 0, totOff = 0;
+  while(wk <= wkEnd){
+    var k = toLocalDate(wk), off = 0, work = 0;
+    for(var i = 0; i < 7; i++){
+      var dd = new Date(wk); dd.setDate(wk.getDate() + i);
       var ds = toLocalDate(dd);
-      if(ds < cutoffStr || ds > now){ // 只算落在分析窗內的日子
-        continue;
-      }
-      if(isDayOff(ds, dd.getDay())) offDays++; else workDays++;
+      if(ds < cutoffStr || ds > now) continue;
+      if(isDayOff(ds, dd.getDay())) off++; else work++;
     }
-    totWorkDays += workDays; totOffDays += offDays;
-    var hrs = weekAgg[wk] || 0;
-    var flag = '';
-    if(hrs === 0 && workDays > 0) flag = '　← 整週無工時(上班日卻零產出)';
-    else if(hrs === 0 && workDays === 0) flag = '　← 整週排休';
-    report += `- 該週 (${wk} 起): ${formatHrs(hrs)}　[上班 ${workDays} 天 / 休假 ${offDays} 天]${flag}\n`;
-    anyWeek = true;
-    wkCursor.setDate(wkCursor.getDate()+7);
+    totWork += work; totOff += off;
+    var hrs = weekAgg[k] || 0, flag = '';
+    if(hrs === 0 && work > 0) flag = '　← 整週無工時(上班日卻零產出)';
+    else if(hrs === 0 && work === 0) flag = '　← 整週排休';
+    b2.push('- 該週 (' + k + ' 起): ' + formatHrs(hrs) + '　[上班 ' + work + ' 天 / 休假 ' + off + ' 天]' + flag);
+    wk.setDate(wk.getDate() + 7);
   }
-  if(!anyWeek) report += `- 近期無工時紀錄\n`;
-  report += `\n`;
 
-  // 休假與作息總覽
-  report += `## 3. 休假與作息總覽 (恢復/過勞判斷)\n`;
-  var vacInPeriod = (VACS||[]).filter(v => v >= cutoffStr && v <= now).sort();
-  var workWkndInPeriod = (WORKDAYS||[]).filter(v => v >= cutoffStr && v <= now).sort();
-  report += `- 期間累計上班日: ${totWorkDays} 天 / 休假日: ${totOffDays} 天\n`;
-  report += `- 主動標記休假(平日請假): ${vacInPeriod.length} 天\n`;
-  report += `- 加班週末(取消休假改排工): ${workWkndInPeriod.length} 天\n`;
-  // 最長連續休假
-  var maxStreak = 0, curStreak = 0, prev = null;
-  vacInPeriod.forEach(v => {
-    if(prev){
-      var diff = (new Date(v+'T00:00:00') - new Date(prev+'T00:00:00')) / 86400000;
-      curStreak = (diff === 1) ? curStreak + 1 : 1;
-    } else { curStreak = 1; }
-    if(curStreak > maxStreak) maxStreak = curStreak;
-    prev = v;
+  var vac = (VACS || []).filter(function(v){ return v >= cutoffStr && v <= now; }).sort();
+  var wkw = (WORKDAYS || []).filter(function(v){ return v >= cutoffStr && v <= now; }).sort();
+  var b3 = '- 期間累計上班日: ' + totWork + ' 天 / 休假日: ' + totOff + ' 天\n';
+  b3 += '- 主動標記休假(平日請假): ' + vac.length + ' 天\n';
+  b3 += '- 加班週末(取消休假改排工): ' + wkw.length + ' 天\n';
+  var maxS = 0, curS = 0, prev = null;
+  vac.forEach(function(v){
+    curS = (prev && (new Date(v + 'T00:00:00') - new Date(prev + 'T00:00:00')) / 86400000 === 1) ? curS + 1 : 1;
+    if(curS > maxS) maxS = curS; prev = v;
   });
-  if(maxStreak) report += `- 最長連續休假: ${maxStreak} 天\n`;
-  if(workWkndInPeriod.length >= 4) report += `- ⚠️ 加班週末偏多 (${workWkndInPeriod.length} 天)，留意過勞\n`;
-  // 計費 vs 不計費工時佔比
-  var totalLoggedHrs = periodHrs + periodOtherHrs;
-  if(totalLoggedHrs > 0){
-    var nbPct = Math.round(periodOtherHrs / totalLoggedHrs * 100);
-    report += `- 工時結構: 計費 ${formatHrs(periodHrs)} / 不計酬 ${formatHrs(periodOtherHrs)} (不計酬佔 ${nbPct}%)\n`;
-    report += `  (註：此處不計酬僅含已登錄於本工具的內部工時，不代表全部技術學習投入)\n`;
+  if(maxS) b3 += '- 最長連續休假: ' + maxS + ' 天\n';
+  if(wkw.length >= 4) b3 += '- ⚠️ 加班週末偏多 (' + wkw.length + ' 天)，留意過勞\n';
+  var tot = periodHrs + periodOtherHrs;
+  if(tot > 0){
+    b3 += '- 工時結構: 計費 ' + formatHrs(periodHrs) + ' / 不計酬 ' + formatHrs(periodOtherHrs) + ' (不計酬佔 ' + Math.round(periodOtherHrs / tot * 100) + '%)\n';
+    b3 += '  (註：此處不計酬僅含已登錄於本工具的內部工時，不代表全部技術學習投入)';
   }
-  report += `\n`;
 
-  report += `## 4. 期間活躍專案明細 (共 ${periodProjects.length} 案)\n`;
-  periodProjects.forEach(p => {
-    var pLogs = recentLogs.filter(l => l.pid === p.id);
-    var pHrsInPeriod = pLogs.reduce((s,l) => s + l.hrs, 0);
-    var r = projAR(p.id);
-    var cur = p.budgetCur || 'TWD';
+  var b4 = [];
+  periodProjects.forEach(function(p){
+    var pLogs = recentLogs.filter(function(l){ return l.pid === p.id; });
+    var pH = pLogs.reduce(function(s, l){ return s + l.hrs; }, 0);
+    var r = projAR(p.id), cur = p.budgetCur || 'TWD';
     var stTxt = p.st === 'done' ? '[已結案]' : p.st === 'paused' ? '[暫停]' : '[進行中]';
-    var execTxt = p.execMode === 'outsource' ? ' (外包)' : p.execMode === 'resell' ? ' (轉包)' : '';
-
-    // 解析類型與標籤
-    var cName = (CATS.find(c => c.id === p.type) || {name: '未分類'}).name;
-    var tNames = (p.tags || []).map(tid => {
-        var t = TAGS.find(x => x.id === tid);
-        return t ? t.name : '';
-    }).filter(Boolean).join(', ');
-    var tagInfo = tNames ? ` | 標籤: ${tNames}` : '';
-
-    report += `### ${stTxt} ${p.name}${execTxt} [類型: ${cName}${tagInfo}]\n`;
-    // 近三月進度判斷：是否有工時、最後一次記錄日、是否停滯
-    var lastLogDate = pLogs.length ? pLogs.map(l=>l.date).sort().slice(-1)[0] : null;
+    var execTxt = aixMode(p) ? ' (' + aixMode(p) + ')' : '';
+    var tNames = (p.tags || []).map(function(tid){ var t = TAGS.find(function(x){ return x.id === tid; }); return t ? t.name : ''; }).filter(Boolean).join(', ');
+    var s = '### ' + stTxt + ' ' + p.name + execTxt + ' [類型: ' + aixCat(p) + (tNames ? ' | 標籤: ' + tNames : '') + ']\n';
+    var last = pLogs.length ? pLogs.map(function(l){ return l.date; }).sort().slice(-1)[0] : null;
     if(p.st === 'active'){
-      if(pHrsInPeriod === 0){
-        report += `- 🔴 進度: 近3月零工時 (停滯，仍掛進行中)\n`;
-      } else {
-        var daysSince = lastLogDate ? Math.round((new Date(now+'T00:00:00') - new Date(lastLogDate+'T00:00:00'))/86400000) : null;
-        if(daysSince !== null && daysSince >= 21){
-          report += `- 🟡 進度: 最後記錄 ${lastLogDate} (停擺約 ${daysSince} 天)\n`;
-        } else {
-          report += `- 🟢 進度: 持續推進中 (最後記錄 ${lastLogDate})\n`;
-        }
+      if(pH === 0) s += '- 🔴 進度: 近3月零工時 (停滯，仍掛進行中)\n';
+      else {
+        var ds2 = aixDaysSince(last);
+        s += (ds2 !== null && ds2 >= 21) ? '- 🟡 進度: 最後記錄 ' + last + ' (停擺約 ' + ds2 + ' 天)\n' : '- 🟢 進度: 持續推進中 (最後記錄 ' + last + ')\n';
       }
-    } else if(p.st === 'paused'){
-      report += `- ⏸️ 狀態: 待命中 (主動暫停，非異常停滯)\n`;
-    } else if(lastLogDate){
-      report += `- 進度: 最後記錄 ${lastLogDate}\n`;
-    }
-    report += `- 近3月投入工時: ${formatHrs(pHrsInPeriod)} (專案歷史總累計: ${formatHrs(p.hrs||0)})\n`;
-    if(!p.nonBillable) {
-      report += `- 專案總應收: ${r.earned || r.expected || p.budget || 0} ${cur}\n`;
-      report += `- 專案已收: ${r.recv} ${cur} | 待收: ${r.ar > 0 ? r.ar : 0} ${cur}\n`;
-      if (p.hrate) report += `- 約定時薪: ${p.hrate} ${cur}/h\n`;
-    } else {
-      report += `- 屬性: 不計酬\n`;
-    }
+    } else if(p.st === 'paused') s += '- ⏸️ 狀態: 待命中 (主動暫停，非異常停滯)\n';
+    else if(last) s += '- 進度: 最後記錄 ' + last + '\n';
+    s += '- 近3月投入工時: ' + formatHrs(pH) + ' (專案歷史總累計: ' + formatHrs(p.hrs || 0) + ')\n';
+    if(!p.nonBillable){
+      s += '- 專案總應收: ' + (r.earned || r.expected || p.budget || 0) + ' ' + cur + '\n';
+      s += '- 專案已收: ' + r.recv + ' ' + cur + ' | 待收: ' + (r.ar > 0 ? r.ar : 0) + ' ' + cur + '\n';
+      if(p.hrate) s += '- 約定時薪: ' + p.hrate + ' ' + cur + '/h\n';
+    } else s += '- 屬性: 不計酬\n';
+    b4.push(s.replace(/\n$/, ''));
   });
 
-  return report;
+  return {fields:Object.assign(aixCommonFields(cutoffStr + ' ~ ' + now), {'活躍專案數':periodProjects.length}),
+          blocks:{'整體產出與金流':b1, '每週工時':b2.join('\n') || '- 近期無工時紀錄', '休假與作息':b3, '活躍專案明細':b4.join('\n')}};
+};
+
+/* ─────────── 💰 收支 ─────────── */
+aixCollect.cash = function(){
+  var now = toLocalDate(), curMon = now.slice(0, 7), mons = aixMonthsBack(12), start = mons[0] + '-01';
+  var inc = {}, out = {}, fxRecv = {};
+  P.forEach(function(x){
+    if(!x.date || x.date < start || x.date > now) return;
+    var m = x.date.slice(0, 7), v = toTWD(x.amt || 0, x.cur || 'TWD');
+    if((x.payType || 'income') === 'income'){
+      inc[m] = (inc[m] || 0) + v;
+      if(x.cur && x.cur !== 'TWD') fxRecv[x.cur] = (fxRecv[x.cur] || 0) + (x.amt || 0);
+    } else out[m] = (out[m] || 0) + v;
+  });
+  var rows = [], sumInc = 0, sumOut = 0, lifeArr = [], incFull = [], negMons = [];
+  mons.forEach(function(m){
+    var vr = calcValRec(m).recMap;
+    var val = Object.keys(vr).reduce(function(t, k){ return t + toTWD(vr[k], k); }, 0);
+    var i = inc[m] || 0, o = out[m] || 0, life = (typeof MEXP[m] === 'number') ? MEXP[m] : null;
+    var net = life === null ? null : i - life;
+    sumInc += i; sumOut += o;
+    if(m !== curMon){ incFull.push(i); if(life !== null) lifeArr.push(life); if(net !== null && net < 0) negMons.push(m); }
+    rows.push([m + (m === curMon ? '（進行中）' : ''), aixTWD(i), o ? aixTWD(o) : '—', life === null ? '未填' : aixTWD(life),
+      net === null ? '—' : aixTWD(net), net === null ? '—' : aixTWD(net - o), aixTWD(val)]);
+  });
+  var sum = '- 12 個月實收合計：' + aixTWD(sumInc) + '；發包支出合計：' + aixTWD(sumOut) + '\n';
+  sum += '- 已完整月份的月均實收：' + aixTWD(aixAvg(incFull)) + '（' + incFull.length + ' 個月）\n';
+  sum += lifeArr.length ? '- 已填月份的月均生活支出：' + aixTWD(aixAvg(lifeArr)) + '（' + lifeArr.length + ' 個月有填）\n' : '- 生活支出：近 12 個月都未填\n';
+  if(negMons.length) sum += '- 淨結餘為負的月份：' + negMons.join('、') + '\n';
+  var fxK = Object.keys(fxRecv);
+  if(fxK.length) sum += '- 外幣實收原幣合計：' + fxK.map(function(k){ return fmtMoney(fxRecv[k], k); }).join('、') + '\n';
+
+  var last = aixLastLogMap(), doneAR = [], pipe = [];
+  PJ.forEach(function(p){
+    if(p.nonBillable) return;
+    var r = projAR(p.id), rem = (r.earned || r.expected || 0) - r.recv;
+    if(rem < 1) return;
+    var it = {p:p, r:r, rem:rem, remTWD:toTWD(rem, r.cur), ref:last[p.id] || p.edate || '', basis:r.earned ? '' : '（以報價估）'};
+    (p.st === 'done' ? doneAR : pipe).push(it);
+  });
+  var bAR = '';
+  if(doneAR.length){
+    doneAR.sort(function(a, b){ return (a.ref || '9999').localeCompare(b.ref || '9999'); });
+    bAR = aixTable(['任務', '待收', '約合', '最後工時日', '距今'], doneAR.map(function(it){
+      var d = aixDaysSince(it.ref);
+      return [it.p.name + (aixMode(it.p) ? '（' + aixMode(it.p) + '）' : ''), fmtMoney(it.rem, it.r.cur) + it.basis, aixTWD(it.remTWD), it.ref || '—', d === null ? '—' : d + ' 天'];
+    })) + '\n- 合計約 ' + aixTWD(aixSum(doneAR.map(function(it){ return it.remTWD; }))) + '（「距今」以最後一筆工時日推算，近似交件日）';
+  }
+  var bPipe = '';
+  if(pipe.length){
+    pipe.sort(function(a, b){ return (a.p.edate || '9999').localeCompare(b.p.edate || '9999'); });
+    bPipe = aixTable(['任務', '狀態', '預計未收', '約合', '截止日'], pipe.map(function(it){
+      return [it.p.name, XP_ST[it.p.st] || it.p.st, fmtMoney(it.rem, it.r.cur) + it.basis, aixTWD(it.remTWD), it.p.edate || '未定'];
+    })) + '\n- 合計約 ' + aixTWD(aixSum(pipe.map(function(it){ return it.remTWD; })));
+  }
+  var pay = PJ.filter(function(p){ return p.execMode && p.execMode !== 'self' && (p.vendorCost || 0) > 0 && !p.vendorPaid; });
+  var bPay = aixTable(['任務', '應付', '約合', '任務狀態'], pay.map(function(p){
+    return [p.name + '（' + aixMode(p) + '）', fmtMoney(p.vendorCost, p.vendorCostCur || 'TWD'), aixTWD(toTWD(p.vendorCost, p.vendorCostCur || 'TWD')), XP_ST[p.st] || p.st];
+  }));
+  return {fields:Object.assign(aixCommonFields(start + ' ~ ' + now), {'本月':curMon}),
+          blocks:{'每月現金流':aixTable(['月份', '實收', '發包支出', '生活支出', '淨結餘', '扣發包後', '當月產值'], rows),
+                  '現金流摘要':sum, '已結案待收':bAR, '預計收入':bPipe, '應付外包':bPay}};
+};
+
+/* ─────────── ⏱ 工時 ─────────── */
+aixCollect.hrs = function(){
+  var now = toLocalDate(), cutoff = aixCutoff(3);
+  var logs = DLOGS.filter(function(l){ return l.date >= cutoff && l.date <= now; });
+  var nb = {}; PJ.forEach(function(p){ if(p.nonBillable) nb[p.id] = true; });
+  var cap = getDayCap(), wTarget = getWeeklyTarget();
+  var dayHrs = {}, bill = 0, other = 0;
+  logs.forEach(function(l){ dayHrs[l.date] = (dayHrs[l.date] || 0) + l.hrs; if(nb[l.pid]) other += l.hrs; else bill += l.hrs; });
+  var dowName = ['日', '一', '二', '三', '四', '五', '六'], dowHrs = [0,0,0,0,0,0,0], dowCnt = [0,0,0,0,0,0,0];
+  var workDays = 0, offDays = 0, overDays = [], streak = 0, maxStreak = 0, maxStreakEnd = '';
+  var d = new Date(cutoff + 'T00:00:00'), end = new Date(now + 'T00:00:00');
+  while(d <= end){
+    var ds = toLocalDate(d), dw = d.getDay(), h = dayHrs[ds] || 0;
+    dowHrs[dw] += h; dowCnt[dw]++;
+    if(isDayOff(ds, dw)) offDays++; else workDays++;
+    if(h > cap + 0.01) overDays.push({ds:ds, h:h});
+    if(h > 0){ streak++; if(streak > maxStreak){ maxStreak = streak; maxStreakEnd = ds; } } else streak = 0;
+    d.setDate(d.getDate() + 1);
+  }
+  var tot = bill + other;
+  var b1 = '- 總工時：' + formatHrs(tot) + '（計費 ' + formatHrs(bill) + ' / 不計酬 ' + formatHrs(other) + (tot > 0 ? '，不計酬佔 ' + Math.round(other / tot * 100) + '%' : '') + '）\n'
+    + '- 上班日 ' + workDays + ' 天 / 休假日 ' + offDays + ' 天；上班日平均 ' + (workDays ? formatHrs(tot / workDays) : '0h') + '/天\n'
+    + '- 超過每日上限（' + cap + 'h）的日子：' + overDays.length + ' 天\n'
+    + '- 最長連續有登工時：' + maxStreak + ' 天' + (maxStreak ? '（至 ' + maxStreakEnd + '）' : '') + '；目前連續：' + streak + ' 天';
+
+  var rows = [], wk = aixMondayOf(cutoff), wkEnd = aixMondayOf(now);
+  while(wk <= wkEnd){
+    var wh = 0, wd = 0, wkd = 0, peak = 0;
+    for(var i = 0; i < 7; i++){
+      var dd = new Date(wk); dd.setDate(wk.getDate() + i);
+      var dstr = toLocalDate(dd);
+      if(dstr < cutoff || dstr > now) continue;
+      var hh = dayHrs[dstr] || 0; wh += hh; if(hh > peak) peak = hh;
+      if(!isDayOff(dstr, dd.getDay())) wd++;
+      if(isWorkingWeekend(dstr, dd.getDay())) wkd++;
+    }
+    var wkStr = toLocalDate(wk), wkLast = new Date(wk); wkLast.setDate(wk.getDate() + 6);
+    var flag = toLocalDate(wkLast) > now ? '本週進行中' : wkStr < cutoff ? '區間起點，不滿一週'
+      : (wh === 0 && wd > 0) ? '上班日零工時' : (wh === 0 ? '整週排休' : '');
+    rows.push([wkStr, formatHrs(wh), Math.round(wh / wTarget * 100) + '%', wd + ' 天', wkd ? wkd + ' 天' : '—', formatHrs(peak), flag]);
+    wk.setDate(wk.getDate() + 7);
+  }
+  var bDow = [1,2,3,4,5,6,0].map(function(k){ return '週' + dowName[k] + ' ' + (dowCnt[k] ? formatHrs(dowHrs[k] / dowCnt[k]) : '0h'); }).join('｜');
+  overDays.sort(function(a, b){ return b.h - a.h; });
+  var bOver = overDays.slice(0, 6).map(function(o){ return '- ' + o.ds + '：' + formatHrs(o.h); }).join('\n');
+
+  var byCat = {}, byPj = {}, byPh = {}, phLabel = {};
+  logs.forEach(function(l){
+    var p = pBy(l.pid); if(!p) return;
+    var c = aixCat(p); byCat[c] = (byCat[c] || 0) + l.hrs;
+    byPj[l.pid] = (byPj[l.pid] || 0) + l.hrs;
+    var k = l.ms ? phaseStatKey(l.ms) : '_none';
+    if(!phLabel[k]) phLabel[k] = k === '_none' ? '（未標階段）' : (k === normPhase(MISC_PHASE) ? MISC_PHASE + '（含名單外階段）' : String(l.ms));
+    byPh[k] = (byPh[k] || 0) + l.hrs;
+  });
+  function shareRows(map, label){
+    return Object.keys(map).sort(function(a, b){ return map[b] - map[a]; }).map(function(k){
+      return [label(k), formatHrs(map[k]), tot > 0 ? Math.round(map[k] / tot * 100) + '%' : '—'];
+    });
+  }
+  var vac = (VACS || []).filter(function(v){ return v >= cutoff && v <= now; });
+  var wkw = (WORKDAYS || []).filter(function(v){ return v >= cutoff && v <= now; });
+  return {fields:aixCommonFields(cutoff + ' ~ ' + now),
+    blocks:{'工時總覽':b1,
+      '每週工時':aixTable(['週一', '工時', '達成週目標', '上班日', '加班週末', '單日最高', '備註'], rows),
+      '星期分佈':bDow, '超時日':bOver,
+      '類型佔比':aixTable(['類型', '工時', '佔比'], shareRows(byCat, function(k){ return k; })),
+      '階段佔比':aixTable(['階段', '工時', '佔比'], shareRows(byPh, function(k){ return phLabel[k]; })),
+      '任務排行':aixTable(['任務', '工時', '佔比'], shareRows(byPj, function(k){ var p = pBy(+k); return p ? p.name + (p.nonBillable ? '（不計酬）' : '') : '?'; }).slice(0, 8)),
+      '休假':'- 平日主動請假：' + vac.length + ' 天\n- 加班週末（取消休假改排工）：' + wkw.length + ' 天'}};
+};
+
+/* ─────────── 🎯 估時 ─────────── */
+aixCollect.est = function(){
+  var doneAll = PJ.filter(function(p){ return p.st === 'done'; });
+  var done = doneAll.filter(function(p){ return (+p.estHrs || 0) > 0; });
+  var hideT = getHiddenTypes(), hideP = getHiddenPhases();
+  var b1 = '';
+  if(done.length){
+    var se = aixSum(done.map(function(p){ return +p.estHrs; })), sa = aixSum(done.map(function(p){ return p.hrs || 0; }));
+    var r = se > 0 ? sa / se : 1;
+    b1 = '- 樣本：' + done.length + ' 件已結案（另有 ' + (doneAll.length - done.length) + ' 件結案時沒填預估）\n'
+      + '- 預估合計 ' + formatHrs(se) + ' / 實際合計 ' + formatHrs(sa) + '，整體偏差 ' + aixDev(r);
+    if(r > 1.05) b1 += '\n- 分析頁目前的建議：直覺估時 × ' + (Math.ceil(r * 20) / 20).toFixed(2) + ' 作為保守值';
+  }
+  var bT = '';
+  if(done.length){
+    var byT = {};
+    done.forEach(function(p){
+      var t = p.type || '_none'; if(hideT.indexOf(t) >= 0) return;
+      (byT[t] = byT[t] || {e:[], a:[]});
+      byT[t].e.push(+p.estHrs); if((p.hrs || 0) > 0) byT[t].a.push(p.hrs);
+    });
+    bT = aixTable(['案型', '件數', '預估平均', '實際平均', '實際中位', '偏差'], Object.keys(byT).map(function(t){
+      var g = byT[t], ea = aixAvg(g.e), aa = aixAvg(g.a);
+      return {sort:aixSum(g.a), row:[t === '_none' ? '未分類' : catBy(t).name, '×' + g.e.length, formatHrs(ea), g.a.length ? formatHrs(aa) : '—', g.a.length ? formatHrs(_median(g.a)) : '—', (ea > 0 && aa > 0) ? aixDev(aa / ea) : '—']};
+    }).sort(function(a, b){ return b.sort - a.sort; }).map(function(x){ return x.row; }));
+    if(bT && hideT.length) bT += '\n（使用者在分析頁隱藏了 ' + hideT.length + ' 個案型，已排除）';
+  }
+  var agg = estPhaseAgg(doneAll), bP = '';
+  var pk = Object.keys(agg.byPhase).filter(function(k){ var g = agg.byPhase[k]; return (g.estArr.length || g.actArr.length) && hideP.indexOf(k) < 0; });
+  if(agg.anyPhaseData && pk.length){
+    bP = aixTable(['階段', '預估平均', '實際平均', '實際中位', '偏差'], pk.sort(function(a, b){ return aixSum(agg.byPhase[b].actArr) - aixSum(agg.byPhase[a].actArr); }).map(function(k){
+      var g = agg.byPhase[k], ea = aixAvg(g.estArr), aa = aixAvg(g.actArr);
+      return [g.label, g.estArr.length ? formatHrs(ea) + ' ×' + g.estArr.length : '—', g.actArr.length ? formatHrs(aa) + ' ×' + g.actArr.length : '—',
+        g.actArr.length ? formatHrs(_median(g.actArr)) : '—',
+        k === agg.miscKey ? '（雜事不分析）' : (ea > 0 && aa > 0 ? aixDev(aa / ea) : (ea > 0 ? '尚無實際' : '無預估'))];
+    }));
+    if(hideP.length) bP += '\n（使用者在分析頁隱藏了 ' + hideP.length + ' 個階段，已排除）';
+  }
+  var cases = done.filter(function(p){ return (p.hrs || 0) > 0; }).map(function(p){ return {p:p, r:p.hrs / p.estHrs}; });
+  var over = cases.filter(function(c){ return c.r > 1.05; }).sort(function(a, b){ return b.r - a.r; });
+  var under = cases.filter(function(c){ return c.r < 0.95; }).sort(function(a, b){ return a.r - b.r; });
+  var cHead = ['任務', '類型', '預估', '實際', '偏差', '截止日'];
+  function caseRow(c){ return [c.p.name, aixCat(c.p), formatHrs(c.p.estHrs), formatHrs(c.p.hrs), aixDev(c.r), c.p.edate || '—']; }
+  var risk = PJ.filter(function(p){ return p.st === 'active' && (+p.estHrs || 0) > 0 && (p.hrs || 0) / p.estHrs >= 0.8; })
+    .sort(function(a, b){ return (b.hrs / b.estHrs) - (a.hrs / a.estHrs); });
+  return {fields:aixCommonFields(toLocalDate()),
+    blocks:{'整體偏差':b1, '依案型':bT, '依階段':bP,
+      '低估個案':aixTable(cHead, over.slice(0, 8).map(caseRow)),
+      '提早完成個案':aixTable(cHead, under.slice(0, 3).map(caseRow)),
+      '進行中風險':aixTable(['任務', '類型', '已投入 / 預估', '進度用量', '截止日'], risk.map(function(p){
+        return [p.name, aixCat(p), formatHrs(p.hrs) + ' / ' + formatHrs(p.estHrs), Math.round(p.hrs / p.estHrs * 100) + '%', p.edate || '未定'];
+      }))}};
+};
+
+/* ─────────── 📊 獲利 ─────────── */
+aixCollect.profit = function(){
+  var now = toLocalDate(), cutoff = aixCutoff(12), target = getGlobalRate(), last = aixLastLogMap();
+  var inWin = PJ.filter(function(p){
+    if(p.st !== 'done') return false;
+    var a = [last[p.id] || '', p.edate || ''].sort().pop();
+    return a && a >= cutoff;
+  });
+  var items = [], unpriced = [], nbList = [];
+  inWin.forEach(function(p){
+    if(p.nonBillable){ nbList.push(p); return; }
+    var r = projAR(p.id), val = r.earned || r.expected || 0;
+    if(!val){ unpriced.push(p); return; }
+    var valT = toTWD(val, r.cur), cost = (p.execMode && p.execMode !== 'self') ? toTWD(p.vendorCost || 0, p.vendorCostCur || 'TWD') : 0;
+    var hrs = p.hrs || 0, net = valT - cost;
+    items.push({p:p, valT:valT, cost:cost, net:net, hrs:hrs, rate:hrs > 0 ? net / hrs : null, est:!r.earned, tgt:getEffectiveRate(p)});
+  });
+  var hSum = aixSum(items.map(function(i){ return i.hrs; })), nSum = aixSum(items.map(function(i){ return i.net; }));
+  var b1 = '- 計費結案 ' + items.length + ' 件，總工時 ' + formatHrs(hSum) + '，總淨產值（扣發包成本）' + aixTWD(nSum) + '\n'
+    + '- 整體實際時薪：' + (hSum > 0 ? aixTWD(nSum / hSum) + '/h' : '—') + '（目標 ' + aixTWD(target) + '/h）';
+  if(nbList.length) b1 += '\n- 另有不計酬結案 ' + nbList.length + ' 件，共 ' + formatHrs(aixSum(nbList.map(function(p){ return p.hrs || 0; }))) + '（未計入上面的時薪）';
+  if(unpriced.length) b1 += '\n- 未填報價或時薪、無法計算的結案：' + unpriced.map(function(p){ return p.name; }).join('、');
+  function groupTable(keyFn){
+    var g = {};
+    items.forEach(function(i){
+      keyFn(i.p).forEach(function(k){
+        (g[k] = g[k] || {n:0, h:0, v:0, rates:[]});
+        g[k].n++; g[k].h += i.hrs; g[k].v += i.net; if(i.rate !== null) g[k].rates.push(i.rate);
+      });
+    });
+    return aixTable(['分組', '件數', '工時', '淨產值', '實際時薪', '個案中位時薪', '對照目標'], Object.keys(g).sort(function(a, b){ return g[b].v - g[a].v; }).map(function(k){
+      var x = g[k], rate = x.h > 0 ? x.v / x.h : null;
+      return [k, x.n + ' 件', formatHrs(x.h), aixTWD(x.v), rate === null ? '—' : aixTWD(rate), x.rates.length ? aixTWD(_median(x.rates)) : '—', rate === null ? '' : (rate < target ? '低於目標' : '達標')];
+    }));
+  }
+  var self = items.filter(function(i){ return !i.cost && i.rate !== null && i.hrs >= 1; }).sort(function(a, b){ return a.rate - b.rate; });
+  var cHead = ['任務', '類型', '應收', '工時', '實際時薪', '對照目標'];
+  function caseRow(i){ return [i.p.name, aixCat(i.p), aixTWD(i.valT) + (i.est ? '（以報價估）' : ''), formatHrs(i.hrs), aixTWD(i.rate), i.rate < i.tgt ? '低於目標' : '達標']; }
+  var outs = items.filter(function(i){ return i.cost > 0 || (i.p.execMode && i.p.execMode !== 'self'); });
+  return {fields:aixCommonFields(cutoff + ' ~ ' + now),
+    blocks:{'獲利總覽':b1,
+      '依類型':groupTable(function(p){ return [aixCat(p)]; }),
+      '依標籤':groupTable(function(p){ return (p.tags || []).map(function(tid){ var t = TAGS.find(function(x){ return x.id === tid; }); return t ? t.name : ''; }).filter(Boolean); }),
+      '時薪最低':aixTable(cHead, self.slice(0, 5).map(caseRow)),
+      '時薪最高':self.length > 5 ? aixTable(cHead, self.slice(-5).reverse().map(caseRow)) : '',
+      '外包毛利':aixTable(['任務', '模式', '應收', '發包成本', '毛利', '毛利率', '自己投入'], outs.map(function(i){
+        return [i.p.name, aixMode(i.p), aixTWD(i.valT), aixTWD(i.cost), aixTWD(i.net), i.valT > 0 ? Math.round(i.net / i.valT * 100) + '%' : '—', formatHrs(i.hrs)];
+      }))}};
+};
+
+/* ─────────── 📅 排程 ─────────── */
+aixCollect.sched = function(){
+  var now = toLocalDate(), cap = effCap();
+  var R = computeSchedule(null, cap), S = computeSchedStats(R);
+  var allocU = {};
+  Object.keys(R.allocByDate).forEach(function(ds){
+    R.allocByDate[ds].forEach(function(a){ var k = a.pid + '|' + a.phaseLabel; allocU[k] = (allocU[k] || 0) + a.hrs; });
+  });
+  var load = S.capWin > 0 ? Math.round(S.usedWin / S.capWin * 100) : 0;
+  var sumRem = aixSum(R.units.map(function(u){ return (allocU[u.pid + '|' + u.phaseLabel] || 0) + Math.max(0, u.remaining); }));
+  var b1 = '- 排程中的剩餘工時合計：' + formatHrs(sumRem) + '\n'
+    + '- 未來 30 天：可用產能 ' + formatHrs(S.capWin) + '，已排 ' + formatHrs(S.usedWin) + '，負荷率 ' + load + '%\n'
+    + '- 模擬的全部完工日：' + (S.lastDay || '—');
+  if(S.unplaced > 0.01) b1 += '\n- ⚠ 模擬期限內排不完的工時：' + formatHrs(S.unplaced);
+
+  var byPid = {}, order = [];
+  R.units.forEach(function(u){ if(!byPid[u.pid]){ byPid[u.pid] = []; order.push(u.pid); } byPid[u.pid].push(u); });
+  var rows = [], lateN = 0;
+  order.forEach(function(pid){
+    var p = pBy(pid); if(!p) return;
+    byPid[pid].forEach(function(u){
+      var init = (allocU[u.pid + '|' + u.phaseLabel] || 0) + Math.max(0, u.remaining), st;
+      if(u.remaining > 0.01){ st = '⚠ 排不完'; lateN++; }
+      else if(u.deadline && u.lastDay && u.lastDay > u.deadline){ st = '🔴 逾期 ' + Math.abs(workdaysBetween(u.lastDay, u.deadline)) + ' 個工作日'; lateN++; }
+      else if(u.deadline && u.lastDay){ var slack = workdaysBetween(u.lastDay, u.deadline); st = slack > 0 ? '🟢 餘裕 ' + slack + ' 個工作日' : '🟡 剛好趕上（無餘裕）'; }
+      else st = '無截止日';
+      rows.push([p.name, u.phaseLabel || '全案', formatHrs(init), (u.deadline || '—') + (u.hard ? '（硬）' : ''), u.lastDay || '—', st]);
+    });
+  });
+  var bPh = rows.length ? aixTable(['任務', '階段', '剩餘工時', '截止日', '預計完成', '狀態'], rows) + '\n- 有風險的階段：' + lateN + ' 個' : '';
+
+  var st0 = new Date(); st0.setHours(0,0,0,0);
+  if(new Date().getHours() >= getOffHour()) st0.setDate(st0.getDate() + 1);
+  var startStr = toLocalDate(st0), mon = aixMondayOf(startStr), wRows = [];
+  for(var w = 0; w < 8; w++){
+    var wd = 0, used = 0;
+    for(var i = 0; i < 7; i++){
+      var dd = new Date(mon); dd.setDate(mon.getDate() + w * 7 + i);
+      var ds = toLocalDate(dd);
+      if(ds < startStr) continue;
+      if(!isDayOff(ds, dd.getDay())) wd++;
+      (R.allocByDate[ds] || []).forEach(function(a){ used += a.hrs; });
+    }
+    var capW = wd * cap, ws = new Date(mon); ws.setDate(mon.getDate() + w * 7);
+    wRows.push([toLocalDate(ws), wd + ' 天', formatHrs(capW), formatHrs(used), formatHrs(Math.max(0, capW - used)), capW > 0 ? Math.round(used / capW * 100) + '%' : '—']);
+  }
+  var outs = PJ.filter(function(p){ return p.st === 'active' && (p.execMode === 'outsource' || p.execMode === 'resell'); });
+  var paused = PJ.filter(function(p){ return p.st === 'paused'; });
+  var pastDl = PJ.filter(function(p){ return p.st === 'active' && p.edate && p.edate < now; });
+  var b4 = '- 未填預估工時（實際負荷可能被低估）：' + (R.noEst.length ? R.noEst.map(function(p){ return p.name + (p.edate ? '（截止 ' + p.edate + '）' : ''); }).join('、') : '無') + '\n'
+    + '- 已投入工時 ≥ 預估，剩餘視為 0：' + (R.spent.length ? R.spent.map(function(p){ return p.name; }).join('、') : '無') + '\n';
+  if(R.overSum.length) b4 += '- 階段預估加總超過任務總預估（已改用階段加總排程）：' + R.overSum.map(function(p){ return p.name; }).join('、') + '\n';
+  b4 += '- 外包／轉包進行中：' + (outs.length ? outs.map(function(p){ return p.name + '（' + aixMode(p) + (p.edate ? '，截止 ' + p.edate : '') + '）'; }).join('、') : '無') + '\n'
+    + '- 暫停／待命：' + (paused.length ? paused.map(function(p){ return p.name; }).join('、') : '無');
+  if(pastDl.length) b4 += '\n- ⚠ 已過截止日仍在進行中：' + pastDl.map(function(p){ return p.name + '（' + p.edate + '）'; }).join('、');
+  var f = aixCommonFields(now);
+  f['每日上限'] = cap + (SCHED_OT ? '（含本次開啟設定的趕工 +' + SCHED_OT + 'h）' : '');
+  return {fields:f, blocks:{'排程總覽':b1, '各階段':bPh,
+    '未來八週':aixTable(['週一', '上班日', '可用產能', '已排', '空檔', '負荷率'], wRows), '未排入任務':b4}};
+};
+
+// ── 分析頁：複製 ──
+function doExport(){
+  var id = aixGetSel(), t = aixTpl(id), txt = aixRender(id);
+  var done = function(){
+    var b = document.getElementById('copy-btn'), o = b.textContent;
+    b.textContent = '✅ 已複製';
+    showToast('✅ 「' + t.name + '」分析資料已複製（' + t.desc + '），可直接貼給 AI', 'green');
+    setTimeout(function(){ b.textContent = o; }, 2500);
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(done).catch(function(){ fallbackCopy(txt); done(); });
+  } else { fallbackCopy(txt); done(); }
+}
+function rAIXSel(){
+  var sel = document.getElementById('aix-sel'); if(!sel) return;
+  if(!sel.childElementCount) sel.innerHTML = AIX_TPLS.map(function(t){ return '<option value="' + t.id + '">' + t.icon + ' ' + t.name + '</option>'; }).join('');
+  sel.value = aixGetSel(); sel.title = aixTpl(sel.value).desc;
+}
+function aixSelChange(){
+  var sel = document.getElementById('aix-sel'); if(!sel) return;
+  aixSetSel(sel.value); sel.title = aixTpl(sel.value).desc;
 }
 
-function doExport(){
-  var txt = buildExport();
-  var done = function(){
-    var b = document.getElementById('copy-btn');
-    var originalText = b.textContent;
-    b.textContent = '✅ 已複製';
-    showToast('✅ 3 個月資料已複製，可直接貼上讓 AI 診斷', 'green');
-    setTimeout(() => b.textContent = originalText, 2500);
-  };
-
-  if(navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(txt).then(done).catch(function(){
-      fallbackCopy(txt);
-      done();
-    });
-  } else {
-    fallbackCopy(txt);
-    done();
+// ── 設定頁「分析模板」：切換鈕＋可插入欄位＋編輯／預覽＋共用背景 ──
+var _aixEditTpl = 'general', _aixPrevData = {};
+function rAIXTplPane(fresh){
+  aixMigrate();
+  if(fresh) _aixPrevData = {};
+  var id = _aixEditTpl, t = aixTpl(id);
+  var pills = document.getElementById('aix-tpl-pills');
+  if(pills){
+    pills.innerHTML = AIX_TPLS.map(function(x){
+      var on = x.id === id, cus = aixIsCustom(x.id);
+      return '<button type="button" class="pie-mode-btn' + (on ? ' active' : '') + '" role="tab" aria-selected="' + on + '" onclick="aixTplPick(\'' + x.id + '\')" title="' + x.desc + (cus ? '（已自訂）' : '（預設）') + '">'
+        + x.icon + ' ' + x.name + (cus ? ' <span class="text-blue-400" aria-label="已自訂">•</span>' : '') + '</button>';
+    }).join('');
   }
+  var hint = document.getElementById('aix-tpl-hint');
+  if(hint) hint.textContent = '「' + t.name + '」：' + t.desc + '。文字可自由改寫；{{區塊}} 會換成資料，可刪除或調換順序。目前為' + (aixIsCustom(id) ? '自訂版本。' : '預設內容。');
+  var chips = document.getElementById('aix-tpl-chips');
+  if(chips){
+    function chip(k, cls){ return '<button type="button" class="btn btn-sm text-[11px] bg-slate-800/60 border-slate-700 ' + cls + '" title="' + esc(k[1]) + '" onclick="aixTplInsert(\'' + k[0] + '\')">{{' + k[0] + '}}</button>'; }
+    chips.innerHTML = '<span class="text-[10px] text-slate-500 self-center mr-1">資料區塊</span>' + (AIX_BLOCKS[id] || []).map(function(k){ return chip(k, 'text-sky-300 hover:text-sky-200'); }).join('')
+      + '<span class="text-[10px] text-slate-500 self-center ml-2 mr-1">數值</span>' + AIX_FIELDS.map(function(k){ return chip(k, 'text-slate-300 hover:text-blue-300'); }).join('');
+  }
+  var ta = document.getElementById('aix-tpl-input');
+  if(ta && document.activeElement !== ta) ta.value = getAixTplText(id);
+  var sh = document.getElementById('aix-shared-input');
+  if(sh && document.activeElement !== sh) sh.value = localStorage.getItem('ft_aix_shared') || '';
+  aixTplPreview();
+}
+function aixTplPick(id){
+  aixTplSave(); aixSharedSave(); // 切換前先存（內容沒變就不動作）
+  _aixEditTpl = id;
+  var ta = document.getElementById('aix-tpl-input'); if(ta) ta.value = getAixTplText(id);
+  rAIXTplPane();
+}
+function aixTplPreview(){
+  var el = document.getElementById('aix-tpl-preview'), ta = document.getElementById('aix-tpl-input');
+  if(!el || !ta) return;
+  var id = _aixEditTpl;
+  try{
+    if(!_aixPrevData[id]) _aixPrevData[id] = aixCollect[id](); // 資料只算一次，打字時只重新套版
+    var d = _aixPrevData[id], sh = document.getElementById('aix-shared-input');
+    var data = {blocks:d.blocks, fields:Object.assign({}, d.fields, {'共用背景':sh ? sh.value.trim() : getAixShared()})};
+    el.textContent = aixFillTpl(ta.value, data);
+  }catch(e){ el.textContent = '預覽失敗：' + e.message; }
+}
+function aixTplSave(){
+  var ta = document.getElementById('aix-tpl-input'); if(!ta) return;
+  var id = _aixEditTpl, before = getAixTplText(id);
+  if(ta.value === before) return;
+  setAixTplText(id, ta.value);
+  save();
+  showToast('✅ 「' + aixTpl(id).name + '」模板已儲存', 'green');
+  rAIXTplPane();
+}
+function aixTplInsert(key){
+  var ta = document.getElementById('aix-tpl-input'); if(!ta) return;
+  var ins = '{{' + key + '}}', s = ta.selectionStart, e = ta.selectionEnd;
+  ta.value = ta.value.slice(0, s) + ins + ta.value.slice(e);
+  ta.focus(); ta.selectionStart = ta.selectionEnd = s + ins.length;
+  aixTplPreview(); aixTplSave();
+}
+function aixTplReset(){
+  var id = _aixEditTpl;
+  if(!aixIsCustom(id)){ showToast('這個模板目前就是預設內容', 'blue'); return; }
+  openModal('恢復預設模板？', '「' + aixTpl(id).name + '」模板的自訂內容會被預設內容取代，無法復原。', function(){
+    setAixTplText(id, ''); save();
+    var ta = document.getElementById('aix-tpl-input'); if(ta) ta.value = AIX_DEF[id];
+    rAIXTplPane();
+    showToast('↺ 已恢復預設模板', 'blue');
+  }, '恢復預設');
+}
+function aixSharedSave(){
+  var el = document.getElementById('aix-shared-input'); if(!el) return;
+  var v = el.value.trim();
+  if(v === getAixShared()) return;
+  if(v) localStorage.setItem('ft_aix_shared', v); else localStorage.removeItem('ft_aix_shared');
+  save();
+  showToast(v ? '✅ 共用背景已儲存' : '共用背景已清空', 'green');
 }
 
 /* ===== 單任務／單群組分析匯出 =====
@@ -7435,8 +8069,7 @@ function setAIXTab(tab){
   if(tab === 'tpl') xpTplPreview();
 }
 function rAIExportCfg(){
-  var note = document.getElementById('cfg-ai-note');
-  if(note && document.activeElement !== note) note.value = localStorage.getItem('ft_ai_note') || '';
+  rAIXTplPane(true);
   var ta = document.getElementById('xp-tpl-input');
   if(ta && document.activeElement !== ta) ta.value = getXpTpl();
   var chips = document.getElementById('cfg-xp-chips');
@@ -7486,23 +8119,17 @@ function xpTplReset(){
   ta.value = XP_TPL_DEFAULT; xpTplPreview(); saveXpTplCfg(true);
   showToast('↺ 已恢復預設模板', 'blue');
 }
-function saveAINoteCfg(){
-  var el = document.getElementById('cfg-ai-note'); if(!el) return;
-  var v = el.value.trim();
-  if(v) localStorage.setItem('ft_ai_note', v); else localStorage.removeItem('ft_ai_note');
-  save();
-  showToast(v ? '✅ 分析備註已儲存，下次複製分析時會一併帶入' : '分析備註已清空', 'green');
-}
 // 儀表板 ⚙ 捷徑：跳到設定頁的 AI 匯出區塊，並把游標放進分析備註
 function goAIExportCfg(){
   _aixTab = 'note';
+  _aixEditTpl = aixGetSel(); // 直接開到目前選的模板
   goTab('cfg');
   setTimeout(function(){
     var box = document.getElementById('cfg-ai-export'); if(!box) return;
     try{ box.scrollIntoView({behavior:'smooth', block:'start'}); }catch(e){ box.scrollIntoView(); }
     box.classList.add('ring-1', 'ring-blue-500/50');
     setTimeout(function(){ box.classList.remove('ring-1', 'ring-blue-500/50'); }, 1600);
-    var note = document.getElementById('cfg-ai-note'); if(note) note.focus({preventScroll:true});
+    var ta = document.getElementById('aix-tpl-input'); if(ta) ta.focus({preventScroll:true});
   }, 350);
 }
 
