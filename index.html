@@ -1012,7 +1012,7 @@ tbody tr[onclick]:hover td{background:#131f2e;}
   </div>
 
 <div id="v-dash" class="hidden">
-    <div class="hint-bar">綜覽接案產值、工時分佈與金流狀況。頂部顯示本週即時配速，下方可依<strong>月份篩選</strong>聚焦單月數據。「現金流與獲利」面板可點擊<strong>當月總支出</strong>填入該月生活開銷，系統會自動算出「淨結餘（實收−支出）」判斷賺得夠不夠。「📋 複製 AI 分析」可先選模板：<strong>通用</strong>看近 3 個月總體概況，或挑專題（收支、工時、估時、獲利、排程）只整理那一面的數據，方便貼給 AI 助理深入分析。各模板的內文可按旁邊的 ⚙ 到設定頁修改。</div>
+    <div class="hint-bar">綜覽接案產值、工時分佈與金流狀況。頂部顯示本週即時配速，下方可依<strong>月份篩選</strong>聚焦單月數據。「現金流與獲利」面板可點擊<strong>當月總支出</strong>填入該月消費（房租、保險、訂閱等<strong>固定支出</strong>在設定頁設定一次即自動帶入），系統會自動算出「淨結餘（實收−支出）」判斷賺得夠不夠。「📋 複製 AI 分析」可先選模板：<strong>通用</strong>看近 3 個月總體概況，或挑專題（收支、工時、估時、獲利、排程）只整理那一面的數據，方便貼給 AI 助理深入分析。各模板的內文可按旁邊的 ⚙ 到設定頁修改。</div>
     <!-- 置頂：即時配速區 (不受下方月份篩選影響) -->
     <div class="bg-slate-900 rounded-xl border border-slate-800 p-5 mb-8 relative overflow-hidden shadow-lg shadow-blue-900/5">
       <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-indigo-500"></div>
@@ -1227,6 +1227,20 @@ tbody tr[onclick]:hover td{background:#131f2e;}
               <span class="text-xs text-slate-500">點後換日</span>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div id="cfg-fexp" class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-5">
+        <div class="flex items-center justify-between gap-3 mb-1">
+          <h3 class="text-sm font-semibold text-white">固定支出</h3>
+          <span id="fexp-sum" class="text-xs text-slate-400 font-mono"></span>
+        </div>
+        <p class="text-xs text-slate-500 mb-4">設定一次，每個月自動計入儀表板的「當月總支出」，你每月只需要填固定支出以外的消費。年繳項目自動除以 12 分攤。調整金額時可指定生效月份，之前的月份維持原金額；不再支付的項目在編輯裡設定截止月份即可。</p>
+        <div id="fexp-list" class="mb-3"></div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <button class="btn btn-sm" onclick="addFixedExp()">+ 新增固定支出</button>
+          <button class="btn btn-sm bg-transparent border-slate-700 text-slate-500 hover:text-amber-400 hover:bg-amber-950/20 hover:border-amber-900/50 transition-colors" onclick="flattenFixedExp()" title="把過去月份的固定支出寫成每月定額，清掉已結束的項目與調整紀錄">🗜️ 壓平過去月份</button>
+          <span id="fexp-flat-info" class="text-[10px] text-slate-600"></span>
         </div>
       </div>
 
@@ -1488,7 +1502,7 @@ tbody tr[onclick]:hover td{background:#131f2e;}
 </div> 
 
 <script>
-var L=[],P=[],PJ=[],CATS=[],TAGS=[],GRPS=[],DLOGS=[],VENDORS=[],CH={},VACS=[],WORKDAYS=[],MEXP={},REM=[],MCB=null,syncTimer=null;
+var L=[],P=[],PJ=[],CATS=[],TAGS=[],GRPS=[],DLOGS=[],VENDORS=[],CH={},VACS=[],WORKDAYS=[],MEXP={},FEXP=[],MFIX={},REM=[],MCB=null,syncTimer=null;
 var hasUnsynced=false;
 
 // ID 產生器：避免 Date.now() 在同一毫秒被連按時撞號
@@ -2172,7 +2186,7 @@ function cloudSave(){
   };
   
   // 2. 加入 VACS (休假) 與 CFG (設定) 到上傳名單
-  var p={version:8,at:new Date().toISOString(),P:P,PJ:PJ,CATS:CATS,TAGS:TAGS,GRPS:GRPS,DLOGS:DLOGS,VENDORS:VENDORS,VACS:VACS,WORKDAYS:WORKDAYS,MEXP:MEXP,REM:REM,CFG:cfg};
+  var p={version:8,at:new Date().toISOString(),P:P,PJ:PJ,CATS:CATS,TAGS:TAGS,GRPS:GRPS,DLOGS:DLOGS,VENDORS:VENDORS,VACS:VACS,WORKDAYS:WORKDAYS,MEXP:MEXP,FEXP:FEXP,MFIX:MFIX,REM:REM,CFG:cfg};
   
   fetch(getAuthUrl(url), {method:'POST', body:JSON.stringify(p)})
     .then(r=>r.json()).then(d=>{
@@ -2202,6 +2216,8 @@ function cloudLoad(){
         VACS=cd.VACS||[]; 
         WORKDAYS=cd.WORKDAYS||[];
         MEXP=cd.MEXP||{};
+        FEXP=cd.FEXP||[];
+        MFIX=cd.MFIX||{};
         REM=cd.REM||[];
         
         // 2. 讀取並覆寫本地端設定檔
@@ -2246,12 +2262,14 @@ function loadLocal() {
   VENDORS = safeJSONParse(localStorage.getItem('ft_VENDORS') || '[]', []);
   VACS = safeJSONParse(localStorage.getItem('ft_VACS') || '[]', []); // 新增載入休假資料
   WORKDAYS = safeJSONParse(localStorage.getItem('ft_WORKDAYS') || '[]', []); // 被取消休假的週末(排工日)
-  MEXP = safeJSONParse(localStorage.getItem('ft_MEXP') || '{}', {}); // 載入每月總支出
+  MEXP = safeJSONParse(localStorage.getItem('ft_MEXP') || '{}', {}); // 載入每月消費（手填）
+  FEXP = safeJSONParse(localStorage.getItem('ft_FEXP') || '[]', []); // 載入固定支出
+  MFIX = safeJSONParse(localStorage.getItem('ft_MFIX') || '{}', {}); // 載入已壓平的固定支出（每月定額）
   REM = safeJSONParse(localStorage.getItem('ft_REM') || '[]', []); // 載入日曆小提醒
   if (!CATS) CATS = JSON.parse(JSON.stringify(DCATS));
 }
 
-function saveLocal(){try{localStorage.setItem('ft_P',JSON.stringify(P));localStorage.setItem('ft_PJ',JSON.stringify(PJ));localStorage.setItem('ft_CATS',JSON.stringify(CATS));localStorage.setItem('ft_TAGS',JSON.stringify(TAGS));localStorage.setItem('ft_GRPS',JSON.stringify(GRPS));localStorage.setItem('ft_DLOGS',JSON.stringify(DLOGS));localStorage.setItem('ft_VENDORS',JSON.stringify(VENDORS));localStorage.setItem('ft_VACS',JSON.stringify(VACS));localStorage.setItem('ft_WORKDAYS',JSON.stringify(WORKDAYS));localStorage.setItem('ft_MEXP',JSON.stringify(MEXP));localStorage.setItem('ft_REM',JSON.stringify(REM));}catch(e){}}
+function saveLocal(){try{localStorage.setItem('ft_P',JSON.stringify(P));localStorage.setItem('ft_PJ',JSON.stringify(PJ));localStorage.setItem('ft_CATS',JSON.stringify(CATS));localStorage.setItem('ft_TAGS',JSON.stringify(TAGS));localStorage.setItem('ft_GRPS',JSON.stringify(GRPS));localStorage.setItem('ft_DLOGS',JSON.stringify(DLOGS));localStorage.setItem('ft_VENDORS',JSON.stringify(VENDORS));localStorage.setItem('ft_VACS',JSON.stringify(VACS));localStorage.setItem('ft_WORKDAYS',JSON.stringify(WORKDAYS));localStorage.setItem('ft_MEXP',JSON.stringify(MEXP));localStorage.setItem('ft_FEXP',JSON.stringify(FEXP));localStorage.setItem('ft_MFIX',JSON.stringify(MFIX));localStorage.setItem('ft_REM',JSON.stringify(REM));}catch(e){}}
 // 判斷某日是否「休假(不排工)」：
 //  - 在 VACS 內 → 休假
 //  - 週末(六/日) 且 未被 WORKDAYS 取消 → 預設休假
@@ -2317,7 +2335,7 @@ function cloudSaveBeacon(){
   };
   var payload = {version:8, at:new Date().toISOString(),
     P:P, PJ:PJ, CATS:CATS, TAGS:TAGS, GRPS:GRPS,
-    DLOGS:DLOGS, VENDORS:VENDORS, VACS:VACS, WORKDAYS:WORKDAYS, MEXP:MEXP, REM:REM, CFG:cfg};
+    DLOGS:DLOGS, VENDORS:VENDORS, VACS:VACS, WORKDAYS:WORKDAYS, MEXP:MEXP, FEXP:FEXP, MFIX:MFIX, REM:REM, CFG:cfg};
   try {
     var blob = new Blob([JSON.stringify(payload)], {type:'application/json'});
     // GAS doPost 從 e.postData.contents 拿 body、從 e.parameter.token 拿 token
@@ -2362,7 +2380,7 @@ document.addEventListener('visibilitychange', function() {
 });
 function exportJSON(){
   var cfg={wmode:localStorage.getItem('ft_wmode'),trate:localStorage.getItem('ft_trate'),dl_crit:localStorage.getItem('ft_dl_crit'),wtarget:localStorage.getItem('ft_wtarget'),track_limit:localStorage.getItem('ft_track_limit'),show_tracks:localStorage.getItem('ft_show_tracks'),show_hints:localStorage.getItem('ft_show_hints'),dash_cfg:localStorage.getItem('ft_dash_cfg'),phases:localStorage.getItem('ft_phases'),phase_hidden:localStorage.getItem('ft_phase_hidden'),estacc_hide_phases:localStorage.getItem('ft_estacc_hide_phases'),xp_tpl:localStorage.getItem('ft_xp_tpl'),ai_note:localStorage.getItem('ft_ai_note'),aix_tpls:localStorage.getItem('ft_aix_tpls'),aix_shared:localStorage.getItem('ft_aix_shared')};
-  var d={version:8,at:new Date().toISOString(),P:P,PJ:PJ,CATS:CATS,TAGS:TAGS,GRPS:GRPS,DLOGS:DLOGS,VENDORS:VENDORS,VACS:VACS,WORKDAYS:WORKDAYS,MEXP:MEXP,REM:REM,CFG:cfg};
+  var d={version:8,at:new Date().toISOString(),P:P,PJ:PJ,CATS:CATS,TAGS:TAGS,GRPS:GRPS,DLOGS:DLOGS,VENDORS:VENDORS,VACS:VACS,WORKDAYS:WORKDAYS,MEXP:MEXP,FEXP:FEXP,MFIX:MFIX,REM:REM,CFG:cfg};
   var a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'}));
   a.download='freelance_'+toLocalDate()+'.json';
@@ -2380,7 +2398,9 @@ function importJSON(e){
         P=d.P;PJ=d.PJ;CATS=d.CATS||JSON.parse(JSON.stringify(DCATS));
         TAGS=d.TAGS||[];GRPS=d.GRPS||[];DLOGS=d.DLOGS||[];VENDORS=d.VENDORS||[];
         VACS=d.VACS||[]; WORKDAYS=d.WORKDAYS||[]; // 匯入休假日與排工週末
-        MEXP=d.MEXP||{}; // 匯入每月總支出
+        MEXP=d.MEXP||{}; // 匯入每月消費
+        FEXP=d.FEXP||[]; // 匯入固定支出（舊版檔案沒有此欄 → 空清單）
+        MFIX=d.MFIX||{}; // 匯入已壓平的固定支出
         REM=d.REM||[]; // 匯入日曆小提醒
         if(d.CFG){ // 匯入設定
           ['wmode','trate','dl_crit','wtarget','track_limit','show_tracks','show_hints','dash_cfg','phases','phase_hidden','estacc_hide_phases','xp_tpl','ai_note','aix_tpls','aix_shared'].forEach(k=>{
@@ -2962,7 +2982,7 @@ function openModal(t,b,cb,okLabel,infoOnly){
   document.getElementById('modal').classList.remove('hidden');
 }
 function closeModal(){document.getElementById('modal').classList.add('hidden');MCB=null;}
-function modalConfirm(){if(MCB)MCB();closeModal();}
+function modalConfirm(){if(MCB && MCB()===false)return;closeModal();} // 回呼回傳 false 時保留視窗（表單驗證失敗）
 
 function catBy(id){return CATS.find(c=>c.id===id)||{name:'未知',color:'gray'};}
 function pBy(id){return PJ.find(p=>p.id===id);}
@@ -5974,10 +5994,28 @@ function sc(l,v){return `<div><p class=\"text-xs text-slate-500 mb-1\">${l}</p><
 function editMonthExpense(mon){
   if(!mon) return;
   var cur=(typeof MEXP[mon]==='number')?MEXP[mon]:'';
-  var body='<div>'+
-    '<p class="text-xs text-slate-500 mb-2">填入 <span class="text-slate-300 font-semibold">'+mon+'</span> 的生活/個人總支出（僅記 TWD，純總額）。留空或填 0 可清除。</p>'+
+  var fx=fixedForMonth(mon);
+  var fxHtml;
+  if(fx.items.length){
+    fxHtml='<div class="rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2 mb-4">'+
+      '<div class="flex items-center justify-between mb-1"><span class="text-xs text-slate-400">固定支出（自動帶入）</span>'+
+      '<button type="button" class="text-[11px] text-slate-500 hover:text-blue-400" onclick="gotoFixedExpCfg()">管理固定支出 →</button></div>'+
+      fx.items.map(function(it){
+        return '<div class="flex justify-between text-xs py-0.5"><span class="text-slate-400">'+esc(it.name)+(it.cycle==='y'?' <span class="text-slate-600">（年繳攤提）</span>':'')+'</span>'+
+          '<span class="text-slate-300 font-mono">NT$ '+Math.round(it.monthly).toLocaleString()+'</span></div>';
+      }).join('')+
+      '<div class="flex justify-between text-xs pt-1 mt-1 border-t border-slate-800"><span class="text-slate-500">小計</span><span class="text-white font-mono">NT$ '+fx.total.toLocaleString()+'</span></div>'+
+      '</div>';
+  } else {
+    fxHtml='<div class="rounded-lg border border-dashed border-slate-800 px-3 py-2 mb-4 flex items-center justify-between gap-2">'+
+      '<span class="text-xs text-slate-500">這個月沒有固定支出。房租、保險、訂閱可以設定一次、每月自動帶入。</span>'+
+      '<button type="button" class="text-[11px] text-slate-500 hover:text-blue-400 shrink-0" onclick="gotoFixedExpCfg()">設定 →</button></div>';
+  }
+  var body='<div>'+fxHtml+
+    '<label class="text-xs text-slate-400 block mb-1">當月消費</label>'+
+    '<p class="text-[10px] text-slate-600 mb-2">固定支出以外的日常開銷總額（僅記 TWD）。留空或填 0 可清除。</p>'+
     '<div class="flex items-center gap-2"><span class="text-slate-400 text-sm">NT$</span>'+
-    '<input id="mexp-input" type="number" inputmode="numeric" class="inp flex-1" value="'+cur+'" placeholder="例如 35000"></div>'+
+    '<input id="mexp-input" type="number" inputmode="numeric" class="inp flex-1" value="'+cur+'" placeholder="例如 20000"></div>'+
     '</div>';
   openModal('✏️ 當月總支出（'+mon+'）', body, function(){
     var v=document.getElementById('mexp-input').value;
@@ -5987,6 +6025,185 @@ function editMonthExpense(mon){
     save(); renderDash();
   }, '儲存');
   setTimeout(function(){var el=document.getElementById('mexp-input');if(el){el.focus();el.select();}},50);
+}
+
+/* ===== 💸 固定支出（FEXP）=====
+   每項固定支出設定一次，之後每個月自動套入「當月總支出」。
+   當月總支出 ＝ 固定支出（自動）＋ 當月消費（MEXP，手填）。
+   資料結構：FEXP = [{id, gid, name, amt, cycle:'m'|'y', from:'YYYY-MM', to:'YYYY-MM'|null}]
+   - 年繳（cycle 'y'）一律攤提為每月 amt/12。
+   - 同一項目調整金額時，舊版本 to 設為生效月前一個月、另開新版本（同 gid），歷史月份不受影響。
+   - 壓平：把某月以前的固定支出寫成每月定額 MFIX[月份]，並裁掉已過去的版本，避免清單越積越長。 */
+function fexpMonthly(it){ return it.cycle==='y' ? (it.amt||0)/12 : (it.amt||0); }
+function fexpPrevMon(m){ var y=+m.slice(0,4), mo=+m.slice(5,7)-1; if(mo<1){mo=12;y--;} return y+'-'+String(mo).padStart(2,'0'); }
+function fexpNextMon(m){ var y=+m.slice(0,4), mo=+m.slice(5,7)+1; if(mo>12){mo=1;y++;} return y+'-'+String(mo).padStart(2,'0'); }
+function fexpValidMon(m){ return /^\d{4}-(0[1-9]|1[0-2])$/.test(m||''); }
+// 已壓平到哪個月（沒有則 null）
+function fexpLastFlat(){ var ks=Object.keys(MFIX||{}).filter(fexpValidMon).sort(); return ks.length?ks[ks.length-1]:null; }
+// 某月套用的固定支出：{total, items:[{name, monthly, cycle, amt, flat}]}
+function fixedForMonth(m){
+  var items=[], total=0;
+  if(MFIX && typeof MFIX[m]==='number' && MFIX[m]>0){
+    total+=MFIX[m];
+    items.push({name:'已壓平的固定支出', monthly:MFIX[m], cycle:'m', amt:MFIX[m], flat:true});
+  }
+  (FEXP||[]).forEach(function(it){
+    if(it.from && it.from>m) return;
+    if(it.to && it.to<m) return;
+    var v=fexpMonthly(it); total+=v;
+    items.push({name:it.name, monthly:v, cycle:it.cycle, amt:it.amt});
+  });
+  return {total:Math.round(total), items:items};
+}
+// 新增固定支出時的預設起始月：有資料的最早月份；若已壓平過，則從壓平的下個月開始
+function fexpEarliestMon(){
+  var cands=[];
+  P.forEach(function(x){ if(x.date) cands.push(x.date.slice(0,7)); });
+  DLOGS.forEach(function(l){ if(l.date) cands.push(l.date.slice(0,7)); });
+  Object.keys(MEXP||{}).forEach(function(k){ cands.push(k); });
+  cands=cands.filter(fexpValidMon).sort();
+  var m=cands[0] || toLocalDate().slice(0,7);
+  var lf=fexpLastFlat();
+  if(lf && m<=lf) m=fexpNextMon(lf);
+  return m;
+}
+// 依 gid 分組，回傳每項的最新版本與版本數
+function fexpGroups(){
+  var g={};
+  (FEXP||[]).forEach(function(it){ (g[it.gid]=g[it.gid]||[]).push(it); });
+  var curMon=toLocalDate().slice(0,7);
+  return Object.keys(g).map(function(k){
+    var vs=g[k].sort(function(a,b){ return (a.from||'').localeCompare(b.from||''); });
+    return {gid:k, latest:vs[vs.length-1], first:vs[0], versions:vs};
+  }).sort(function(a,b){
+    var aOff=!!(a.latest.to && a.latest.to<curMon), bOff=!!(b.latest.to && b.latest.to<curMon);
+    if(aOff!==bOff) return aOff?1:-1;
+    return fexpMonthly(b.latest)-fexpMonthly(a.latest);
+  });
+}
+function fexpAmtLabel(it){
+  var s='NT$ '+Math.round(it.amt).toLocaleString()+(it.cycle==='y'?' / 年':' / 月');
+  if(it.cycle==='y') s+=' <span class="text-slate-600">（攤 NT$ '+Math.round(it.amt/12).toLocaleString()+' / 月）</span>';
+  return s;
+}
+function rFixedExp(){
+  var box=document.getElementById('fexp-list'); if(!box) return;
+  var groups=fexpGroups(), curMon=toLocalDate().slice(0,7);
+  if(!groups.length){
+    box.innerHTML='<p class="text-xs text-slate-600 py-2">尚未設定固定支出。常見的有房租、保險、勞健保、手機網路、軟體訂閱。</p>';
+  } else {
+    box.innerHTML=groups.map(function(g){
+      var it=g.latest, ended=!!(it.to && it.to<curMon);
+      var meta='自 '+g.first.from+' 起'+(it.to?('，'+(ended?'已於 '+it.to+' 結束':'至 '+it.to+' 止')):'')+(g.versions.length>1?'，曾調整 '+(g.versions.length-1)+' 次':'');
+      return '<div class="flex items-center justify-between gap-3 py-2 border-b border-slate-800/60 last:border-0'+(ended?' opacity-50':'')+'">'+
+        '<div class="min-w-0"><div class="text-sm text-slate-200 truncate">'+esc(it.name)+'</div>'+
+        '<div class="text-[10px] text-slate-500">'+meta+'</div></div>'+
+        '<div class="flex items-center gap-3 shrink-0">'+
+          '<span class="text-xs text-slate-300 font-mono text-right">'+fexpAmtLabel(it)+'</span>'+
+          '<button type="button" class="text-[11px] text-slate-500 hover:text-blue-400" onclick="editFixedExp(\''+g.gid+'\')">編輯</button>'+
+          '<button type="button" class="text-[11px] text-slate-600 hover:text-red-400" onclick="delFixedExp(\''+g.gid+'\')">刪除</button>'+
+        '</div></div>';
+    }).join('');
+  }
+  var sumEl=document.getElementById('fexp-sum');
+  if(sumEl){
+    var t=fixedForMonth(curMon).total;
+    sumEl.textContent=t>0?('本月合計 NT$ '+t.toLocaleString()+' / 月'):'';
+  }
+  var flEl=document.getElementById('fexp-flat-info');
+  if(flEl){ var lf=fexpLastFlat(); flEl.textContent=lf?('已壓平至 '+lf):''; }
+}
+function fexpFormHtml(it, isNew){
+  var fromLabel=isNew?'起始月份':'新金額從哪個月開始生效';
+  var fromHint=isNew?'預設為你有資料的最早月份，過去月份也會一起補上這筆固定支出。'
+                    :'只有改了金額或週期時才會用到；生效月之前的月份維持舊金額。';
+  return '<div class="space-y-3">'+
+    '<div><label class="text-xs text-slate-500 block mb-1">名稱</label><input id="fx-name" type="text" class="inp" value="'+(it?esc(it.name):'')+'" placeholder="例如：房租、健保、Adobe 訂閱"></div>'+
+    '<div class="flex gap-2 items-end"><div class="flex-1"><label class="text-xs text-slate-500 block mb-1">金額（NT$）</label><input id="fx-amt" type="number" inputmode="numeric" class="inp" value="'+(it?it.amt:'')+'" placeholder="例如 15000"></div>'+
+    '<div><label class="text-xs text-slate-500 block mb-1">週期</label><select id="fx-cycle" class="inp"><option value="m"'+(it&&it.cycle==='y'?'':' selected')+'>每月</option><option value="y"'+(it&&it.cycle==='y'?' selected':'')+'>每年（攤提）</option></select></div></div>'+
+    '<div class="flex gap-2">'+
+      '<div class="flex-1"><label class="text-xs text-slate-500 block mb-1">'+fromLabel+'</label><input id="fx-from" type="month" class="inp" value="'+(isNew?fexpEarliestMon():toLocalDate().slice(0,7))+'" placeholder="YYYY-MM"></div>'+
+      '<div class="flex-1"><label class="text-xs text-slate-500 block mb-1">截止月份（選填）</label><input id="fx-to" type="month" class="inp" value="'+(it&&it.to?it.to:'')+'" placeholder="留空表示持續"></div>'+
+    '</div>'+
+    '<p class="text-[10px] text-slate-600">'+fromHint+'截止月份是最後一個計入的月份，留空表示持續；清空即可恢復。年繳項目會自動除以 12 分攤到每個月。</p>'+
+    '</div>';
+}
+function fexpReadForm(){
+  var name=(document.getElementById('fx-name').value||'').trim();
+  var amt=parseFloat(document.getElementById('fx-amt').value);
+  var cycle=document.getElementById('fx-cycle').value==='y'?'y':'m';
+  var from=(document.getElementById('fx-from').value||'').trim();
+  var to=(document.getElementById('fx-to').value||'').trim();
+  if(!name){ alert('請填寫名稱'); return null; }
+  if(isNaN(amt)||amt<=0){ alert('請填寫大於 0 的金額'); return null; }
+  if(!fexpValidMon(from)){ alert('月份格式請用 YYYY-MM'); return null; }
+  if(to && !fexpValidMon(to)){ alert('截止月份格式請用 YYYY-MM，或留空'); return null; }
+  return {name:name, amt:Math.round(amt), cycle:cycle, from:from, to:to||null};
+}
+function addFixedExp(){
+  openModal('＋ 新增固定支出', fexpFormHtml(null, true), function(){
+    var f=fexpReadForm(); if(!f) return false;
+    if(f.to && f.to<f.from){ alert('截止月份不能早於起始月份'); return false; }
+    var id=Date.now();
+    FEXP.push({id:id, gid:'fx'+id, name:f.name, amt:f.amt, cycle:f.cycle, from:f.from, to:f.to});
+    save(); rFixedExp(); renderDash();
+  }, '新增');
+  setTimeout(function(){ var el=document.getElementById('fx-name'); if(el) el.focus(); },50);
+}
+function editFixedExp(gid){
+  var g=fexpGroups().filter(function(x){ return x.gid===gid; })[0]; if(!g) return;
+  var it=g.latest;
+  openModal('編輯固定支出', fexpFormHtml(it, false), function(){
+    var f=fexpReadForm(); if(!f) return false;
+    var amtChanged=(f.amt!==it.amt || f.cycle!==it.cycle);
+    var split=amtChanged && f.from>it.from;
+    var minFrom=split?f.from:it.from;
+    if(f.to && f.to<minFrom){ alert('截止月份不能早於 '+minFrom); return false; }
+    // 名稱：全部版本一起改
+    g.versions.forEach(function(v){ v.name=f.name; });
+    if(split){
+      it.to=fexpPrevMon(f.from);
+      var id=Date.now();
+      FEXP.push({id:id, gid:gid, name:f.name, amt:f.amt, cycle:f.cycle, from:f.from, to:f.to});
+    } else {
+      // 沒改金額，或生效月不晚於此版本起始（視為更正）→ 直接改此版本
+      it.amt=f.amt; it.cycle=f.cycle; it.to=f.to;
+    }
+    save(); rFixedExp(); renderDash();
+  }, '儲存');
+}
+function delFixedExp(gid){
+  var g=fexpGroups().filter(function(x){ return x.gid===gid; })[0]; if(!g) return;
+  openModal('刪除固定支出', '確定刪除「'+esc(g.latest.name)+'」？所有尚未壓平的月份都會移除這筆支出，歷史結餘會跟著改變。<br><span class="text-slate-500 text-xs">若只是之後不再支付，請改用「編輯」設定截止月份。</span>', function(){
+    FEXP=FEXP.filter(function(x){ return x.gid!==gid; });
+    save(); rFixedExp(); renderDash();
+  }, '刪除');
+}
+// 🗜️ 壓平：把截止月以前的固定支出寫成每月定額（MFIX），並裁掉已過去的版本
+function flattenFixedExp(){
+  var def=fexpPrevMon(toLocalDate().slice(0,7));
+  var body='<div class="space-y-2"><p class="text-xs text-slate-500">壓平到哪個月（含）：</p>'+
+    '<input id="fx-flat" type="month" class="inp" value="'+def+'" placeholder="YYYY-MM">'+
+    '<p class="text-[10px] text-slate-600 leading-relaxed">這個月以前每個月的固定支出，會各自寫成一筆「已壓平的固定支出」總額，金額與結餘都不會改變。已結束的項目會從清單移除，還在持續的項目改從下個月起算。壓平後就看不到那些月份的逐項明細，也無法再逐項修改，建議只壓平已經確定不會再動的月份。</p></div>';
+  openModal('🗜️ 壓平固定支出', body, function(){
+    var cut=(document.getElementById('fx-flat').value||'').trim();
+    if(!fexpValidMon(cut)){ alert('月份格式請用 YYYY-MM'); return false; }
+    if(cut>=toLocalDate().slice(0,7)){ alert('只能壓平到上個月以前，本月還在進行中'); return false; }
+    var olds=(FEXP||[]).filter(function(x){ return x.from && x.from<=cut; });
+    if(!olds.length){ alert(cut+' 以前沒有需要壓平的固定支出'); return false; }
+    var start=olds.map(function(x){ return x.from; }).sort()[0];
+    for(var m=start; m<=cut; m=fexpNextMon(m)){
+      var t=fixedForMonth(m).total;
+      if(t>0) MFIX[m]=t; else delete MFIX[m];
+    }
+    FEXP=FEXP.filter(function(x){ return !(x.to && x.to<=cut); });
+    FEXP.forEach(function(x){ if(x.from<=cut) x.from=fexpNextMon(cut); });
+    save(); rFixedExp(); renderDash();
+  }, '壓平');
+}
+function gotoFixedExpCfg(){
+  closeModal(); goTab('cfg');
+  setTimeout(function(){ var el=document.getElementById('cfg-fexp'); if(el) el.scrollIntoView({behavior:'smooth', block:'start'}); },80);
 }
 
 /* ===== 估時準確度報表 =====
@@ -6498,27 +6715,49 @@ function renderDash(){
   // 實收（換算 TWD）
   var recvTWD=Object.keys(rMap).reduce(function(s,k){return s+toTWD(rMap[k],k);},0);
   var hasForeignRecv=['USD','CNY','JPY'].some(function(k){return rMap[k]>0;});
-  // 支出：選了月份取該月；未選取所有已填月份加總
-  var expVal, expCard;
+  // 支出 ＝ 固定支出（FEXP 自動帶入）＋ 當月消費（MEXP 手填）
+  // 選了月份：取該月；未選：月均支出（以有填消費的月份為準）＋ 累計淨結餘
+  var expVal, expCard, netCard;
+  var expSub=function(fx,vr){
+    return '<p class="text-[10px] text-slate-500 mt-0.5 leading-tight">固定 NT$ '+Math.round(fx).toLocaleString()+' ＋ 消費 '+(vr===null?'<span class="text-slate-600">未填</span>':'NT$ '+Math.round(vr).toLocaleString())+'</p>';
+  };
   if(mon){
-    expVal=(typeof MEXP[mon]==='number')?MEXP[mon]:null;
-    if(expVal===null){
+    var fxM=fixedForMonth(mon).total;
+    var varM=(typeof MEXP[mon]==='number')?MEXP[mon]:null;
+    if(varM===null && fxM===0){
+      expVal=null;
       expCard='<div onclick="editMonthExpense(\''+mon+'\')" class="cursor-pointer group"><p class="text-xs text-slate-500 mb-1">當月總支出 ✏️</p><div class="text-lg font-semibold text-slate-500 group-hover:text-blue-400 leading-tight">— 點擊填入</div></div>';
+      netCard=sc('當月淨結餘','<span class="text-slate-500">-</span>');
     } else {
-      expCard='<div onclick="editMonthExpense(\''+mon+'\')" class="cursor-pointer group"><p class="text-xs text-slate-500 mb-1">當月總支出 ✏️</p><div class="text-lg font-semibold text-white group-hover:text-blue-400 leading-tight">NT$ '+Math.round(expVal).toLocaleString()+'</div></div>';
+      expVal=fxM+(varM||0);
+      expCard='<div onclick="editMonthExpense(\''+mon+'\')" class="cursor-pointer group"><p class="text-xs text-slate-500 mb-1">當月總支出 ✏️</p><div class="text-lg font-semibold text-white group-hover:text-blue-400 leading-tight">NT$ '+Math.round(expVal).toLocaleString()+'</div>'+expSub(fxM,varM)+'</div>';
+      var netM=recvTWD-expVal;
+      var netTag=varM===null?' <span class="text-xs text-slate-500 font-normal">(僅含固定支出)</span>':' <span class="text-xs text-slate-500 font-normal">(外幣已換算)</span>';
+      netCard=sc('當月淨結餘'+netTag,'<span class="'+(netM>=0?'text-emerald-400':'text-red-400')+'">NT$ '+Math.round(netM).toLocaleString()+'</span>');
     }
   } else {
-    expVal=Object.keys(MEXP).reduce(function(s,k){return s+(MEXP[k]||0);},0);
-    var filledMonths=Object.keys(MEXP).filter(function(k){return typeof MEXP[k]==='number';}).length;
-    expCard=sc('已填月份支出加總'+(filledMonths>0?' <span class="text-xs text-slate-500 font-normal">('+filledMonths+'個月)</span>':''),filledMonths>0?'NT$ '+Math.round(expVal).toLocaleString():'<span class="text-slate-500">-</span>');
-  }
-  // 淨結餘
-  var netCard;
-  if(mon && expVal===null){
-    netCard=sc('當月淨結餘','<span class="text-slate-500">-</span>');
-  } else {
-    var netBalance=recvTWD-(expVal||0);
-    netCard=sc('當月淨結餘 <span class="text-xs text-slate-500 font-normal">(外幣已換算)</span>','<span class="'+(netBalance>=0?'text-emerald-400':'text-red-400')+'">NT$ '+Math.round(netBalance).toLocaleString()+'</span>');
+    // 從最早的支出資料月份列到本月
+    var curMonD=toLocalDate().slice(0,7);
+    var startCands=Object.keys(MEXP).concat(Object.keys(MFIX||{})).concat((FEXP||[]).map(function(x){return x.from;})).filter(fexpValidMon).filter(function(m){return m<=curMonD;}).sort();
+    var expMons=[];
+    if(startCands.length){ for(var mm=curMonD; mm>=startCands[0]; mm=fexpPrevMon(mm)) expMons.push(mm); }
+    var sumAll=0, filledFx=[], filledVar=[];
+    expMons.forEach(function(m){
+      var f=fixedForMonth(m).total, v=(typeof MEXP[m]==='number')?MEXP[m]:null;
+      sumAll+=f+(v||0);
+      if(v!==null){ filledFx.push(f); filledVar.push(v); }
+    });
+    var avgF=filledFx.length?filledFx.reduce(function(a,b){return a+b;},0)/filledFx.length:0;
+    var avgV=filledVar.length?filledVar.reduce(function(a,b){return a+b;},0)/filledVar.length:0;
+    if(filledVar.length){
+      expCard='<div><p class="text-xs text-slate-500 mb-1">月均支出 <span class="text-xs text-slate-500 font-normal">('+filledVar.length+'個月有填消費)</span></p><div class="text-lg font-semibold text-white leading-tight">NT$ '+Math.round(avgF+avgV).toLocaleString()+'</div>'+expSub(avgF,avgV)+'</div>';
+    } else {
+      var fxNow=fixedForMonth(curMonD).total;
+      expCard=sc('月均支出',fxNow>0?'NT$ '+fxNow.toLocaleString()+' <span class="text-xs text-slate-500 font-normal">(僅固定，消費未填)</span>':'<span class="text-slate-500">-</span>');
+    }
+    expVal=sumAll;
+    var netAll=recvTWD-sumAll;
+    netCard=sc('累計淨結餘 <span class="text-xs text-slate-500 font-normal">(歷史實收−已計支出)</span>','<span class="'+(netAll>=0?'text-emerald-400':'text-red-400')+'">NT$ '+Math.round(netAll).toLocaleString()+'</span>');
   }
 
   document.getElementById('dash-cf').innerHTML=sc(mon?'當月實收合計':'歷史實收合計',formatMultiCurMap(rMap))+expCard+netCard+sc('目前總待收帳款',formatMultiCurMap(arMap))+vendorCostHtml;
@@ -6993,7 +7232,7 @@ var AIX_FIELDS = [
 ];
 var AIX_BLOCKS = {
   general:[['整體產出與金流','計費／不計酬工時、期間實收、發包支出'], ['每週工時','逐週工時與上班／休假天數'], ['休假與作息','上班日、請假、加班週末、工時結構'], ['活躍專案數','期間有活動的專案件數（數值）'], ['活躍專案明細','每個專案的進度、工時、應收與已收']],
-  cash:[['本月','進行中的月份（數值）'], ['每月現金流','12 個月的實收／支出／淨結餘／產值表'], ['現金流摘要','合計、月均、負結餘月份、外幣原幣'], ['已結案待收','結案未收款與帳齡'], ['預計收入','未結案任務的預計未收'], ['應付外包','尚未付給外包的款項']],
+  cash:[['本月','進行中的月份（數值）'], ['每月現金流','12 個月的實收／固定與消費支出／淨結餘／產值表'], ['現金流摘要','合計、月均、負結餘月份、外幣原幣'], ['已結案待收','結案未收款與帳齡'], ['預計收入','未結案任務的預計未收'], ['應付外包','尚未付給外包的款項']],
   hrs:[['工時總覽','總工時、上班日均、超時天數、連續工作天數'], ['每週工時','逐週工時、達成週目標、加班週末'], ['星期分佈','每個星期幾的平均工時'], ['超時日','超過每日上限的日子'], ['類型佔比','依業務類型的工時佔比'], ['階段佔比','依階段的工時佔比'], ['任務排行','投入最多的任務（前 8）'], ['休假','請假與加班週末天數']],
   est:[['整體偏差','樣本數、預估與實際合計、整體偏差'], ['依案型','各案型的預估／實際／偏差'], ['依階段','各階段估時回測（與分析頁同源）'], ['低估個案','實際超出預估最多的個案（前 8）'], ['提早完成個案','比預估快完成的個案（前 3）'], ['進行中風險','進行中已用掉 80% 以上預估的任務']],
   profit:[['獲利總覽','件數、總工時、淨產值、整體時薪'], ['依類型','各業務類型的實際時薪'], ['依標籤','各標籤的實際時薪'], ['時薪最低','時薪最低的個案（前 5）'], ['時薪最高','時薪最高的個案（前 5）'], ['外包毛利','外包／轉包的毛利與毛利率']],
@@ -7032,8 +7271,8 @@ cash: [
 '> 分析須知：',
 '> 1. 金額一律依工具內目前匯率換算為 TWD；外幣實收另列原幣總額。',
 '> 2. 「實收」是到帳時間，多對應更早完成的案子；「當月產值」是當月工時對應的工作價值（含進行中任務的估算）。兩者的差距就是應收或預收的時間差。',
-'> 3. 「生活支出」是手動填寫的月總額，標示「未填」的月份不代表零支出，請勿計入平均。',
-'> 4. 「淨結餘」與儀表板同口徑（實收−生活支出）；「扣發包後」再減去當月付給外包的款項。',
+'> 3. 「總支出」＝「固定支出」（房租、保險、訂閱等，年繳已攤提為月額，每月自動計入）＋「消費」（手動填寫的其他開銷月總額）。消費標示「未填」的月份不代表零消費，該月的總支出與淨結餘不完整，請勿計入平均。',
+'> 4. 「淨結餘」與儀表板同口徑（實收−總支出），僅在消費有填的月份計算；「扣發包後」再減去當月付給外包的款項。',
 '> 5. 本模板刻意不含工時資料，請勿推算時薪。',
 '> 6. {{本月}} 為進行中月份，數字尚未完整。',
 '',
@@ -7057,7 +7296,8 @@ cash: [
 '1. 依過去的收入節奏、目前待收與預計收入，未來 1～2 個月有沒有現金缺口？',
 '2. 哪幾筆待收應該優先催款？',
 '3. 收入是否過度集中在少數月份或少數案子？',
-'4. 以目前的生活支出，建議保留多少個月的緩衝金？'
+'4. 以目前的總支出，建議保留多少個月的緩衝金？',
+'5. 固定支出佔總支出的比例是否偏高？有哪些可以調整？'
 ].join('\n'),
 hrs: [
 '# 工時與作息：近 3 個月負荷分析（{{期間}}）',
@@ -7384,20 +7624,23 @@ aixCollect.cash = function(){
       if(x.cur && x.cur !== 'TWD') fxRecv[x.cur] = (fxRecv[x.cur] || 0) + (x.amt || 0);
     } else out[m] = (out[m] || 0) + v;
   });
-  var rows = [], sumInc = 0, sumOut = 0, lifeArr = [], incFull = [], negMons = [];
+  var rows = [], sumInc = 0, sumOut = 0, lifeArr = [], fixArr = [], varArr = [], incFull = [], negMons = [];
   mons.forEach(function(m){
     var vr = calcValRec(m).recMap;
     var val = Object.keys(vr).reduce(function(t, k){ return t + toTWD(vr[k], k); }, 0);
-    var i = inc[m] || 0, o = out[m] || 0, life = (typeof MEXP[m] === 'number') ? MEXP[m] : null;
+    var i = inc[m] || 0, o = out[m] || 0, fx = fixedForMonth(m).total, vr = (typeof MEXP[m] === 'number') ? MEXP[m] : null;
+    var life = vr === null ? null : fx + vr;
     var net = life === null ? null : i - life;
     sumInc += i; sumOut += o;
-    if(m !== curMon){ incFull.push(i); if(life !== null) lifeArr.push(life); if(net !== null && net < 0) negMons.push(m); }
-    rows.push([m + (m === curMon ? '（進行中）' : ''), aixTWD(i), o ? aixTWD(o) : '—', life === null ? '未填' : aixTWD(life),
-      net === null ? '—' : aixTWD(net), net === null ? '—' : aixTWD(net - o), aixTWD(val)]);
+    if(m !== curMon){ incFull.push(i); if(life !== null){ lifeArr.push(life); fixArr.push(fx); varArr.push(vr); } if(net !== null && net < 0) negMons.push(m); }
+    rows.push([m + (m === curMon ? '（進行中）' : ''), aixTWD(i), o ? aixTWD(o) : '—', fx ? aixTWD(fx) : '—', vr === null ? '未填' : aixTWD(vr),
+      life === null ? (fx ? '不完整' : '未填') : aixTWD(life), net === null ? '—' : aixTWD(net), net === null ? '—' : aixTWD(net - o), aixTWD(val)]);
   });
   var sum = '- 12 個月實收合計：' + aixTWD(sumInc) + '；發包支出合計：' + aixTWD(sumOut) + '\n';
   sum += '- 已完整月份的月均實收：' + aixTWD(aixAvg(incFull)) + '（' + incFull.length + ' 個月）\n';
-  sum += lifeArr.length ? '- 已填月份的月均生活支出：' + aixTWD(aixAvg(lifeArr)) + '（' + lifeArr.length + ' 個月有填）\n' : '- 生活支出：近 12 個月都未填\n';
+  sum += lifeArr.length ? '- 已填消費月份的月均總支出：' + aixTWD(aixAvg(lifeArr)) + '（固定 ' + aixTWD(aixAvg(fixArr)) + ' ＋ 消費 ' + aixTWD(aixAvg(varArr)) + '；' + lifeArr.length + ' 個月有填）\n' : '- 消費：近 12 個月的完整月份都未填\n';
+  var fxNow = fixedForMonth(curMon);
+  sum += fxNow.items.length ? '- 目前固定支出（每月 ' + aixTWD(fxNow.total) + '）：' + fxNow.items.map(function(it){ return it.name + ' ' + (it.cycle === 'y' ? aixTWD(it.amt) + '／年（攤 ' + aixTWD(it.monthly) + '／月）' : aixTWD(it.monthly) + '／月'); }).join('、') + '\n' : '- 固定支出：尚未設定\n';
   if(negMons.length) sum += '- 淨結餘為負的月份：' + negMons.join('、') + '\n';
   var fxK = Object.keys(fxRecv);
   if(fxK.length) sum += '- 外幣實收原幣合計：' + fxK.map(function(k){ return fmtMoney(fxRecv[k], k); }).join('、') + '\n';
@@ -7430,7 +7673,7 @@ aixCollect.cash = function(){
     return [p.name + '（' + aixMode(p) + '）', fmtMoney(p.vendorCost, p.vendorCostCur || 'TWD'), aixTWD(toTWD(p.vendorCost, p.vendorCostCur || 'TWD')), XP_ST[p.st] || p.st];
   }));
   return {fields:Object.assign(aixCommonFields(start + ' ~ ' + now), {'本月':curMon}),
-          blocks:{'每月現金流':aixTable(['月份', '實收', '發包支出', '生活支出', '淨結餘', '扣發包後', '當月產值'], rows),
+          blocks:{'每月現金流':aixTable(['月份', '實收', '發包支出', '固定支出', '消費', '總支出', '淨結餘', '扣發包後', '當月產值'], rows),
                   '現金流摘要':sum, '已結案待收':bAR, '預計收入':bPipe, '應付外包':bPay}};
 };
 
@@ -9806,7 +10049,7 @@ function go(id,btn){
   document.querySelectorAll('.tab-main,.tab-sub').forEach(el=>el.classList.remove('active'));
   document.getElementById(VIEWS[id]).classList.remove('hidden');
   btn.classList.add('active');
-  if(id==='dash')renderDash(); if(id==='tag')rTagStats(); if(id==='grp')rGrp(); if(id==='cal'){syncCalModeBtns();renderCal();} if(id==='vendor')rVendors(); if(id==='cat')rTagStats(); if(id==='pay')rPay(); if(id==='cfg')rAIExportCfg();
+  if(id==='dash')renderDash(); if(id==='tag')rTagStats(); if(id==='grp')rGrp(); if(id==='cal'){syncCalModeBtns();renderCal();} if(id==='vendor')rVendors(); if(id==='cat')rTagStats(); if(id==='pay')rPay(); if(id==='cfg'){rAIExportCfg();rFixedExp();}
 }
 // 程式化跳分頁（給面板上的快捷鈕用）：自動找到對應的導覽按鈕來套用 active 狀態。
 // 若指定 calMode（'sched'|'cal'|'hist'），切到排程日曆後再切換子模式。
