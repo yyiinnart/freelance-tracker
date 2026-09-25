@@ -3084,12 +3084,19 @@ function pmToMisc(norm){
 
 function startTimer(id){
   // 暫停後繼續同一個任務：記下暫停時寫入的那一筆，之後停止時把時數併回去（ft_merge_log，僅本機）
+  // 同時帶著暫停前累計的毫秒數，讓畫面上的計時接著往上加，而不是從 00:00 重來
   var pz = safeJSONParse(localStorage.getItem('ft_paused') || 'null', null);
   try{
-    if(pz && pz.pid === id && pz.logId) localStorage.setItem('ft_merge_log', JSON.stringify({pid:id, logId:pz.logId}));
+    if(pz && pz.pid === id) localStorage.setItem('ft_merge_log', JSON.stringify({pid:id, logId:pz.logId || null, accMs:pz.accMs || 0}));
     else localStorage.removeItem('ft_merge_log');
   }catch(e){}
   activeTimers[id]=Date.now();localStorage.setItem('ft_timers',JSON.stringify(activeTimers));try{localStorage.setItem('ft_timer_seen',String(Date.now()));}catch(e){}rProj();if(typeof focusOnTimerStart==='function')focusOnTimerStart(id);}
+// 畫面顯示用：這段計時連同暫停前累計的時間（毫秒）；工時紀錄仍以實際時間為準
+function timerAccMs(id){
+  var mg = safeJSONParse(localStorage.getItem('ft_merge_log') || 'null', null);
+  return (mg && mg.pid === id && mg.accMs > 0) ? mg.accMs : 0;
+}
+function timerShownMs(id){ return activeTimers[id] ? (Date.now() - activeTimers[id]) + timerAccMs(id) : 0; }
 // 把一段計時依「本地午夜」切成每天一段；分鐘用累計四捨五入分配，各段加總與整段四捨五入的結果一致
 function splitTimerByDay(st, end){
   var segs = [], cur = st, doneMins = 0;
@@ -5208,7 +5215,7 @@ function rProj(){
         var timerBtn = '';
         if(!isDoneCard){
           if(activeTimers[p.id]){
-            var elapsedMin = Math.floor((Date.now()-activeTimers[p.id])/60000);
+            var elapsedMin = Math.floor(timerShownMs(p.id)/60000);
             timerBtn = '<button class=\"btn btn-sm btn-danger px-2 py-0.5 text-[10px]\" onclick=\"stopTimer('+p.id+');event.stopPropagation()\"><span class=\"sync-dot sync-saving mr-1\" style=\"background:#fca5a5;width:5px;height:5px\"></span>停止 ('+elapsedMin+'m)</button>';
           } else if(p.st==='active'){
             timerBtn = '<button class=\"btn btn-sm px-2 py-0.5 text-[10px] bg-slate-800 text-blue-400 border-slate-700\" onclick=\"startTimer('+p.id+');event.stopPropagation()\">▶</button>';
@@ -5391,7 +5398,7 @@ function renderRows(list, isDone, scores, bucketKey, currentTopId) {
             // 進行中 — 計時器在上方，主操作（結案）+ ✎ + 🗑 在下方同行
             var timerBtn = '';
             if (activeTimers[p.id]) {
-                timerBtn = `<button class="btn btn-sm btn-danger px-2 py-1 w-full justify-center text-[11px] shadow-md shadow-red-900/20" onclick="stopTimer(${p.id})"><span class="sync-dot sync-saving mr-1" style="background:#fca5a5"></span> 停止 (${Math.floor((Date.now()-activeTimers[p.id])/60000)}m)</button>`;
+                timerBtn = `<button class="btn btn-sm btn-danger px-2 py-1 w-full justify-center text-[11px] shadow-md shadow-red-900/20" onclick="stopTimer(${p.id})"><span class="sync-dot sync-saving mr-1" style="background:#fca5a5"></span> 停止 (${Math.floor(timerShownMs(p.id)/60000)}m)</button>`;
             } else if (isTop && p.st === 'active') {
                 timerBtn = `<button class="btn btn-sm bg-slate-800 text-blue-400 border-slate-700 hover:border-blue-500 hover:bg-slate-700 shadow-sm px-2 py-1 w-full justify-center text-[11px]" onclick="startTimer(${p.id})">▶ 開始計時</button>`;
             }
@@ -10512,12 +10519,18 @@ function saveFocusCfg(){
 function focusOnTimerStart(id){
   var c = getFocusCfg(); if(!c.on) return;
   fxPrimeAudio();
-  var now = Date.now(), s = fxPomoFresh(fxState(), now);
-  var recent = s && (now - (s.lastSeen || 0)) < 30 * 60000;
-  var resuming = !!fxPausedGet();
+  var now = Date.now();
+  // 從暫停鍵繼續同一個任務：不管暫停多久都接著算，只有跨過午夜才重新開始
+  var pz = fxPausedGet();
+  var resuming = !!(pz && pz.pid === id);
   fxPausedSet(null);
+  var raw = fxState(), s;
+  if(resuming && raw && raw.v === 2 && raw.phaseStart){
+    s = raw.day === fxToday() ? raw : fxPomoNew(now, raw, 0);   // 跨過午夜 → 新的一天從頭開始
+  } else s = fxPomoFresh(raw, now);
+  var recent = resuming || (s && (now - (s.lastSeen || 0)) < 30 * 60000);
   if(recent && s.phase === 'work'){
-    // 30 分鐘內換任務或暫停後繼續：延續同一顆番茄，並從停下時的剩餘時間接著倒數
+    // 暫停後繼續、或 30 分鐘內換任務：延續同一顆番茄，並從停下時的剩餘時間接著倒數
     // （停下的這段時間不會被算進番茄鐘）
     if(s.pausedLeft != null) s.phaseStart = now - Math.max(0, c.work * 60000 - s.pausedLeft);
     delete s.pausedLeft;
@@ -10561,11 +10574,12 @@ function fxPausedSet(v){
 function fxPause(){
   var pid = fxActivePid(); if(pid == null) return;
   var mins = Math.round((Date.now() - activeTimers[pid]) / 60000);
+  var accMs = timerShownMs(pid);
   var prev = safeJSONParse(localStorage.getItem('ft_merge_log') || 'null', null);
   var res = stopTimer(pid);
   // 記下這次暫停寫入（或併入）的那一筆；連續暫停好幾次都會併到同一筆
   var logId = (res && res.lastLogId) || (prev && prev.pid === pid ? prev.logId : null);
-  fxPausedSet({pid:pid, at:Date.now(), logId:logId});
+  fxPausedSet({pid:pid, at:Date.now(), logId:logId, accMs:accMs});
   fx.ended = null;
   var tot = logId ? (DLOGS.find(function(l){ return l.id === logId; }) || {}).hrs : 0;
   showToast(mins < 1 ? '已暫停（不足 1 分鐘，未記錄工時）'
@@ -10901,12 +10915,12 @@ function fxUpdate(w, d){
   r.classList.toggle('is-break', !!(d.pomo && d.pomo.phase === 'break'));
   ['ok','warn','bad','mute'].forEach(function(t){ r.classList.toggle('fx-tone-' + t, d.info.tone === t); });
   fxSetText(w.name, d.p.name || '');
-  fxSetText(w.time, d.paused ? (w.variant === 'pill' ? '已暫停' : fxClock(d.pausedMs)) : fxClock(d.elMs));
+  fxSetText(w.time, (d.paused && w.variant === 'pill') ? '⏸ ' + fxClock(d.elMs) : fxClock(d.elMs));
   fxSetText(w.rateV, d.info.v);
   fxSetText(w.rateU, d.info.u);
   if(w.meta){
     var bits = [], gn = grpName(d.p.gid), ph = currentPhaseName(d.p);
-    if(d.paused) bits.push('已暫停');
+    if(d.paused) bits.push('已暫停 ' + fxClock(d.pausedMs));
     if(gn) bits.push(gn); if(ph) bits.push(ph);
     fxSetText(w.meta, bits.join(' · '));
   }
@@ -10923,7 +10937,10 @@ function fxUpdate(w, d){
     fxSetText(w.pomoLab, brk ? (d.pomo.long ? '長休息' : '休息') : '專注');
     fxSetText(w.today, '今日 ' + d.pomo.done);
     if(w.pomoL) w.pomoL.title = brk ? '計時仍在進行，休息不想計入工時請停止計時' : '';
-    fxSetText(w.pomoR, (d.paused ? '停在 ' : '剩 ') + fxClock(d.pomo.left));
+    // 休息中暫停：按繼續代表回來工作，會直接開始下一輪，所以不顯示休息剩餘時間
+    fxSetText(w.pomoR, d.paused
+      ? (brk ? '繼續後開始下一輪專注' : '停在 ' + fxClock(d.pomo.left))
+      : '剩 ' + fxClock(d.pomo.left));
   }
   if(w.pauseBtn) fxSetText(w.pauseBtn, d.paused ? '繼續' : '暫停');
   if(w.stopBtn) fxSetText(w.stopBtn, d.paused ? '結束' : '停止計時');
@@ -11016,10 +11033,11 @@ function fxTick(){
   if(!fx.pip && !fx.pipOpening && fx.mode === 'hidden') fx.mode = 'pill';
 
   var startTs = activeTimers[pid];
-  var elMs = now - startTs;
+  var segMs = now - startTs;
+  var elMs = segMs + timerAccMs(pid);   // 暫停前的時間接著算
   var data = {
     p:p, elMs:elMs,
-    info:focusRateInfo(p, elMs / 3600000),
+    info:focusRateInfo(p, segMs / 3600000),
     pomo:c.pomo ? fxPomoStep(c, now, p, startTs) : null
   };
   if(fx.pipW) fxUpdate(fx.pipW, data);
@@ -11049,14 +11067,14 @@ function fxTickPaused(c, pz, now){
               done:(s.day === fxToday() ? s.done || 0 : 0), left:s.pausedLeft, len:fxPomoLen(c, s)};
     }
   }
-  var data = {p:p, elMs:0, paused:true, pausedMs:now - pz.at, info:focusRateInfo(p, 0), pomo:pomo};
+  var data = {p:p, elMs:pz.accMs || 0, paused:true, pausedMs:now - pz.at, info:focusRateInfo(p, 0), pomo:pomo};
   if(fx.pipW) fxUpdate(fx.pipW, data);
   var pageMode = fx.pip ? 'hidden' : fx.mode;
   fxShowPage(pageMode);
   if(pageMode === 'card') fxUpdate(fx.cardW, data);
   else if(pageMode === 'pill') fxUpdate(fx.pillW, data);
   if(c.title){
-    var t = '⏸ 已暫停 ' + fxClock(now - pz.at) + ' · ' + p.name;
+    var t = '⏸ ' + fxClock(pz.accMs || 0) + ' 已暫停 · ' + p.name;
     if(document.title !== t) document.title = t;
     fx.titleSet = true;
   } else fxRestoreTitle();
