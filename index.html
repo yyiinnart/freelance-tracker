@@ -3082,19 +3082,64 @@ function pmToMisc(norm){
   }, '確認歸入');
 }
 
-function startTimer(id){activeTimers[id]=Date.now();localStorage.setItem('ft_timers',JSON.stringify(activeTimers));rProj();if(typeof focusOnTimerStart==='function')focusOnTimerStart(id);}
-function stopTimer(id){
-  if(!activeTimers[id])return;
-  var elMins=Math.round((Date.now()-activeTimers[id])/60000);
+function startTimer(id){
+  // 暫停後繼續同一個任務：記下暫停時寫入的那一筆，之後停止時把時數併回去（ft_merge_log，僅本機）
+  var pz = safeJSONParse(localStorage.getItem('ft_paused') || 'null', null);
+  try{
+    if(pz && pz.pid === id && pz.logId) localStorage.setItem('ft_merge_log', JSON.stringify({pid:id, logId:pz.logId}));
+    else localStorage.removeItem('ft_merge_log');
+  }catch(e){}
+  activeTimers[id]=Date.now();localStorage.setItem('ft_timers',JSON.stringify(activeTimers));try{localStorage.setItem('ft_timer_seen',String(Date.now()));}catch(e){}rProj();if(typeof focusOnTimerStart==='function')focusOnTimerStart(id);}
+// 把一段計時依「本地午夜」切成每天一段；分鐘用累計四捨五入分配，各段加總與整段四捨五入的結果一致
+function splitTimerByDay(st, end){
+  var segs = [], cur = st, doneMins = 0;
+  while(cur < end){
+    var d = new Date(cur);
+    var next = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime();
+    var e = Math.min(next, end);
+    var cumMins = Math.round((e - st) / 60000);
+    var mins = cumMins - doneMins; doneMins = cumMins;
+    if(mins > 0) segs.push({date: toLocalDate(d), mins: mins});
+    cur = e;
+  }
+  return segs;
+}
+// endTs 省略＝記到現在；回傳 {hrs 總時數, n 寫入幾筆}
+function stopTimer(id, endTs, note){
+  if(!activeTimers[id])return null;
+  var st = activeTimers[id];
+  var end = Math.max(st, endTs || Date.now());
+  var elMins=Math.round((end-st)/60000);
   if(typeof focusOnTimerStop==='function') focusOnTimerStop(id, elMins);
   delete activeTimers[id];localStorage.setItem('ft_timers',JSON.stringify(activeTimers));
+  var res = {hrs:0, n:0, merged:false, lastLogId:null};
+  // 暫停後繼續的計時：同一天、同一階段的時數併回暫停時那一筆，不另外新增
+  var mg = safeJSONParse(localStorage.getItem('ft_merge_log') || 'null', null);
+  try{ localStorage.removeItem('ft_merge_log'); }catch(e){}
   var p=pBy(id);
   if(p){
-    var addedHrs = Math.round((elMins/60)*100)/100;
-    if(addedHrs > 0) {
-      DLOGS.push({id:nextNumId(),date:toLocalDate(),pid:id,hrs:addedHrs,note:'計時器自動記錄',ms:currentPhaseName(p)});
+    var segs = splitTimerByDay(st, end);
+    var phase = currentPhaseName(p);
+    var target = (mg && mg.pid === id) ? DLOGS.find(function(l){ return l.id === mg.logId && l.pid === id; }) : null;
+    var baseNote = note || '計時器自動記錄';
+    segs.forEach(function(sg){
+      var h = Math.round((sg.mins/60)*100)/100;
+      if(h <= 0) return;
+      if(target && target.date === sg.date && (target.ms || '') === (phase || '')){
+        target.hrs = Math.round((target.hrs + h)*100)/100;
+        res.lastLogId = target.id; res.merged = true;
+        target = null;
+      } else {
+        var nid = nextNumId();
+        DLOGS.push({id:nid,date:sg.date,pid:id,hrs:h,note: segs.length > 1 ? baseNote + '（跨日自動拆分）' : baseNote,ms:phase});
+        res.lastLogId = nid;
+      }
+      res.hrs += h; res.n++;
+    });
+    res.hrs = Math.round(res.hrs*100)/100;
+    if(res.n > 0) {
       syncProjectHrs(id);
-      showToast('已記錄 ' + formatHrs(addedHrs), 'green');
+      showToast('已記錄 ' + formatHrs(res.hrs) + (res.merged ? '，已併入暫停前那一筆' : '') + (res.n > 1 ? '，跨 ' + res.n + ' 天已分開記錄' : ''), 'green');
     } else {
       // 不足 1 分鐘 — 給明確回饋，避免使用者誤以為按鈕沒反應
       showToast('計時不足 1 分鐘，未記錄工時', 'amber');
@@ -3102,6 +3147,7 @@ function stopTimer(id){
     save();rProj(); 
     if(!document.getElementById('v-dash').classList.contains('hidden')) renderDash();
   }
+  return res;
 }
 setInterval(function(){if(Object.keys(activeTimers).length>0&&!document.getElementById('v-proj').classList.contains('hidden'))rProj();},60000);
 
@@ -10468,8 +10514,13 @@ function focusOnTimerStart(id){
   fxPrimeAudio();
   var now = Date.now(), s = fxPomoFresh(fxState(), now);
   var recent = s && (now - (s.lastSeen || 0)) < 30 * 60000;
+  var resuming = !!fxPausedGet();
+  fxPausedSet(null);
   if(recent && s.phase === 'work'){
-    // 30 分鐘內換任務繼續做：延續同一顆番茄，不重算
+    // 30 分鐘內換任務或暫停後繼續：延續同一顆番茄，並從停下時的剩餘時間接著倒數
+    // （停下的這段時間不會被算進番茄鐘）
+    if(s.pausedLeft != null) s.phaseStart = now - Math.max(0, c.work * 60000 - s.pausedLeft);
+    delete s.pausedLeft;
     s.lastSeen = now;
   } else {
     // 休息中提早回來、或隔太久才開始：開新的一顆；長休息過後週期歸零
@@ -10482,15 +10533,58 @@ function focusOnTimerStart(id){
     fx.mode = 'hidden';
     fxOpenPip().catch(function(){ fx.mode = 'card'; fxTick(); });
   } else if(!fx.pip){
-    fx.mode = 'card';
+    fx.mode = (resuming && fx.mode === 'pill') ? 'pill' : 'card';
   }
   fxTick();
 }
 function focusOnTimerStop(id, mins){
   var p = pBy(id);
   fx.ended = {mins:mins, name:p ? p.name : '', at:Date.now()};
-  var s = fxState(); if(s && s.v === 2){ s.lastSeen = Date.now(); fxSaveState(s); }
+  var s = fxState(), now = Date.now();
+  if(s && s.v === 2){
+    s.lastSeen = now;
+    s.pausedLeft = Math.max(0, fxPomoLen(getFocusCfg(), s) - (now - s.phaseStart));
+    fxSaveState(s);
+  }
   setTimeout(fxTick, 0);
+}
+/* ---------- 暫停／繼續 ----------
+   暫停＝先把已經過的時間寫成工時紀錄，再記住是哪個任務（ft_paused，僅本機）。
+   繼續＝同一個任務重新開始計時；番茄鐘從暫停時的剩餘時間接著倒數。 */
+function fxPausedGet(){
+  var v = safeJSONParse(localStorage.getItem('ft_paused') || 'null', null);
+  return (v && v.pid != null && pBy(v.pid)) ? v : null;
+}
+function fxPausedSet(v){
+  try{ if(v) localStorage.setItem('ft_paused', JSON.stringify(v)); else localStorage.removeItem('ft_paused'); }catch(e){}
+}
+function fxPause(){
+  var pid = fxActivePid(); if(pid == null) return;
+  var mins = Math.round((Date.now() - activeTimers[pid]) / 60000);
+  var prev = safeJSONParse(localStorage.getItem('ft_merge_log') || 'null', null);
+  var res = stopTimer(pid);
+  // 記下這次暫停寫入（或併入）的那一筆；連續暫停好幾次都會併到同一筆
+  var logId = (res && res.lastLogId) || (prev && prev.pid === pid ? prev.logId : null);
+  fxPausedSet({pid:pid, at:Date.now(), logId:logId});
+  fx.ended = null;
+  var tot = logId ? (DLOGS.find(function(l){ return l.id === logId; }) || {}).hrs : 0;
+  showToast(mins < 1 ? '已暫停（不足 1 分鐘，未記錄工時）'
+    : (res && res.merged ? '已暫停，這一筆累計 ' + formatHrs(tot) : '已暫停，先記錄 ' + formatHrs(Math.round(mins/60*100)/100)), 'blue');
+  fxTick();
+}
+function fxResume(){
+  var pz = fxPausedGet(); if(!pz){ fxPausedSet(null); fxTick(); return; }
+  startTimer(pz.pid);
+}
+function fxEndPaused(){
+  fxPausedSet(null);
+  fx.ended = null;
+  fxClosePip();
+  fxTick();
+}
+// 讓番茄鐘下次從頭開始（計時中斷確認後使用）
+function fxPomoInvalidate(){
+  var s = fxState(); if(s && s.v === 2){ s.lastSeen = 0; delete s.pausedLeft; fxSaveState(s); }
 }
 
 /* ---------- 番茄鐘 ----------
@@ -10683,9 +10777,17 @@ var FX_CSS = [
 '.fx-w.is-break .fx-pd.f{background:var(--fx-brk);border-color:var(--fx-brk)}',
 '.fx-pd.l{box-shadow:0 0 0 2px rgba(148,163,184,.22)}',
 '.fx-today{color:#475569}',
+'.fx-w.is-paused .fx-dot{background:#64748b;animation:none}',
+'.fx-w.is-paused .fx-time{color:var(--fx-dim)}',
+'.fx-w.is-paused .fx-pomo-bar i{opacity:.45;transition:none}',
+'.fx-w.is-paused [data-act="pause"]{background:rgba(37,99,235,.22);border-color:#1d4ed8;color:#bfdbfe}',
 '.fx-pill .fx-dots{margin-left:2px}',
 '.fx-actions{display:flex;align-items:center;gap:6px;margin-top:12px}',
 '.fx-spacer{flex:1}',
+'.fx-tools{margin-left:auto;display:flex;gap:2px;flex:none}',
+'.fx-icon{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;color:var(--fx-mute);cursor:pointer}',
+'.fx-icon:hover{color:var(--fx-text);background:#1e293b}',
+'.fx-icon:focus-visible{outline:2px solid #60a5fa;outline-offset:1px}',
 '.fx-btn{font:inherit;font-size:11px;line-height:1.2;border:1px solid #334155;background:#1e293b;color:#cbd5e1;border-radius:6px;padding:5px 9px;cursor:pointer;white-space:nowrap}',
 '.fx-btn:hover{border-color:#475569;color:#fff}',
 '.fx-btn:focus-visible,.fx-pill-body:focus-visible{outline:2px solid #60a5fa;outline-offset:1px}',
@@ -10731,19 +10833,24 @@ function fxBuild(doc, variant){
       '<div class="fx-pomo-bar"><i></i></div>';
   } else {
     root.innerHTML =
-      '<div class="fx-head"><span class="fx-dot"></span><span class="fx-name"></span></div>' +
+      '<div class="fx-head"><span class="fx-dot"></span><span class="fx-name"></span>' +
+        (variant === 'card'
+          ? '<span class="fx-tools">' +
+              '<button type="button" class="fx-icon" data-act="pip" title="開啟永遠置頂的浮動小窗" aria-label="浮動小窗">' +
+                '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1.5" y="2.5" width="13" height="10" rx="1.5"/><rect x="8" y="7.5" width="5" height="3.5" rx=".6" fill="currentColor" stroke="none"/></svg></button>' +
+              '<button type="button" class="fx-icon" data-act="min" title="縮到右下角，回到完整頁面（Esc）" aria-label="縮到右下角">' +
+                '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 6.5 14 2M9.5 6.5V3.5M9.5 6.5h3M6.5 9.5 2 14M6.5 9.5v3M6.5 9.5h-3"/></svg></button>' +
+            '</span>'
+          : '') +
+      '</div>' +
       '<div class="fx-meta"></div>' +
       '<div class="fx-main"><div class="fx-time"></div><div class="fx-rate"><span class="fx-rate-v"></span><span class="fx-rate-u"></span></div></div>' +
       '<div class="fx-sub"></div>' +
       '<div class="fx-pomo"><div class="fx-pomo-bar"><i></i></div><div class="fx-pomo-txt"><span class="fx-pomo-l"><span class="fx-pomo-lab"></span><span class="fx-dots"></span><span class="fx-today"></span></span><span class="fx-pomo-r"></span></div></div>' +
       '<div class="fx-actions">' +
         '<button type="button" class="fx-btn fx-btn-stop" data-act="stop">停止計時</button>' +
+        '<button type="button" class="fx-btn" data-act="pause">暫停</button>' +
         '<button type="button" class="fx-btn" data-act="skip"></button>' +
-        '<span class="fx-spacer"></span>' +
-        (variant === 'card'
-          ? '<button type="button" class="fx-btn" data-act="pip" title="開啟永遠置頂的浮動小窗">浮動小窗</button>' +
-            '<button type="button" class="fx-btn" data-act="min" title="縮到右下角，回到完整頁面（Esc）">完整頁面</button>'
-          : '') +
       '</div>' +
       '<div class="fx-end"></div>';
   }
@@ -10754,12 +10861,17 @@ function fxBuild(doc, variant){
     rateV:q('.fx-rate-v'), rateU:q('.fx-rate-u'), sub:q('.fx-sub'),
     pomo:q('.fx-pomo'), bar:q('.fx-pomo-bar'), barFill:q('.fx-pomo-bar i'),
     pomoL:q('.fx-pomo-l'), pomoLab:q('.fx-pomo-lab'), dots:q('.fx-dots'), today:q('.fx-today'), pomoR:q('.fx-pomo-r'),
-    skip:q('[data-act="skip"]'), pipBtn:q('[data-act="pip"]'), end:q('.fx-end')
+    skip:q('[data-act="skip"]'), pipBtn:q('[data-act="pip"]'), end:q('.fx-end'),
+    stopBtn:q('[data-act="stop"]'), pauseBtn:q('[data-act="pause"]')
   };
   root.addEventListener('click', function(e){
     var b = e.target.closest('[data-act]'); if(!b) return;
     var act = b.getAttribute('data-act');
-    if(act === 'stop'){ var pid = fxActivePid(); if(pid != null) stopTimer(pid); }
+    if(act === 'stop'){
+      if(fxPausedGet() && fxActivePid() == null) fxEndPaused();
+      else { var pid = fxActivePid(); if(pid != null) stopTimer(pid); }
+    }
+    else if(act === 'pause'){ if(fxActivePid() != null) fxPause(); else fxResume(); }
     else if(act === 'skip'){ fxPomoSkip(); }
     else if(act === 'pip'){ fxOpenPip().catch(function(){ showToast('無法開啟浮動小窗', 'amber'); }); }
     else if(act === 'min'){ fx.mode = 'pill'; fxTick(); }
@@ -10785,18 +10897,22 @@ function fxSetDots(el, pm){
 function fxUpdate(w, d){
   var r = w.root;
   r.classList.remove('is-ended');
+  r.classList.toggle('is-paused', !!d.paused);
   r.classList.toggle('is-break', !!(d.pomo && d.pomo.phase === 'break'));
   ['ok','warn','bad','mute'].forEach(function(t){ r.classList.toggle('fx-tone-' + t, d.info.tone === t); });
   fxSetText(w.name, d.p.name || '');
-  fxSetText(w.time, fxClock(d.elMs));
+  fxSetText(w.time, d.paused ? (w.variant === 'pill' ? '已暫停' : fxClock(d.pausedMs)) : fxClock(d.elMs));
   fxSetText(w.rateV, d.info.v);
   fxSetText(w.rateU, d.info.u);
   if(w.meta){
     var bits = [], gn = grpName(d.p.gid), ph = currentPhaseName(d.p);
+    if(d.paused) bits.push('已暫停');
     if(gn) bits.push(gn); if(ph) bits.push(ph);
     fxSetText(w.meta, bits.join(' · '));
   }
-  fxSetText(w.sub, d.info.sub);
+  var tgWait = (typeof tg !== 'undefined' && tg.open);
+  fxSetText(w.sub, tgWait ? '計時中斷過一段時間，請回主頁面確認' : d.info.sub);
+  if(w.sub) w.sub.style.color = tgWait ? 'var(--fx-warn)' : '';
   if(w.bar) w.bar.style.display = d.pomo ? '' : 'none';
   if(w.pomo) w.pomo.style.display = d.pomo ? '' : 'none';
   if(w.dots){ w.dots.style.display = d.pomo ? '' : 'none'; if(d.pomo) fxSetDots(w.dots, d.pomo); }
@@ -10807,10 +10923,12 @@ function fxUpdate(w, d){
     fxSetText(w.pomoLab, brk ? (d.pomo.long ? '長休息' : '休息') : '專注');
     fxSetText(w.today, '今日 ' + d.pomo.done);
     if(w.pomoL) w.pomoL.title = brk ? '計時仍在進行，休息不想計入工時請停止計時' : '';
-    fxSetText(w.pomoR, '剩 ' + fxClock(d.pomo.left));
+    fxSetText(w.pomoR, (d.paused ? '停在 ' : '剩 ') + fxClock(d.pomo.left));
   }
+  if(w.pauseBtn) fxSetText(w.pauseBtn, d.paused ? '繼續' : '暫停');
+  if(w.stopBtn) fxSetText(w.stopBtn, d.paused ? '結束' : '停止計時');
   if(w.skip){
-    w.skip.style.display = d.pomo ? '' : 'none';
+    w.skip.style.display = (d.pomo && !d.paused) ? '' : 'none';
     fxSetText(w.skip, d.pomo && d.pomo.phase === 'break' ? '結束休息' : '提早休息');
   }
   if(w.pipBtn) w.pipBtn.style.display = (fxPipSupported() && !fx.pip) ? '' : 'none';
@@ -10856,6 +10974,7 @@ async function fxOpenPip(){
   d.body.appendChild(fx.pipW.root);
   // 浮動小窗本身是可見視窗，用它的計時器不會被瀏覽器降頻（主分頁在背景時仍準時提醒）
   w.setInterval(fxTick, 1000);
+  w.setInterval(function(){ if(typeof tgCheck === 'function') tgCheck(); }, 30000);
   w.addEventListener('pagehide', function(){
     fx.pip = null; fx.pipW = null;
     if(fxActivePid() != null && getFocusCfg().on) fx.mode = 'pill';
@@ -10878,6 +10997,10 @@ function fxTick(){
   var pid = fxActivePid();
   var p = pid != null ? pBy(pid) : null;
   var now = Date.now();
+
+  var paused = fxPausedGet();
+  if(p && paused){ fxPausedSet(null); paused = null; }   // 已經開始別的計時 → 暫停狀態作廢
+  if(c.on && !p && paused){ fxTickPaused(c, paused, now); return; }
 
   if(!c.on || !p){
     fxRestoreTitle();
@@ -10914,8 +11037,33 @@ function fxTick(){
   } else fxRestoreTitle();
 }
 
+function fxTickPaused(c, pz, now){
+  var p = pBy(pz.pid);
+  if(!fx.pip && !fx.pipOpening && fx.mode === 'hidden') fx.mode = 'pill';
+  var pomo = null;
+  if(c.pomo){
+    var s = fxState();
+    if(s && s.v === 2 && s.pausedLeft != null){
+      var every = Math.max(2, c.longEvery | 0);
+      pomo = {phase:s.phase, pos:Math.min(s.pos || 0, every), every:every, long:!!s.long,
+              done:(s.day === fxToday() ? s.done || 0 : 0), left:s.pausedLeft, len:fxPomoLen(c, s)};
+    }
+  }
+  var data = {p:p, elMs:0, paused:true, pausedMs:now - pz.at, info:focusRateInfo(p, 0), pomo:pomo};
+  if(fx.pipW) fxUpdate(fx.pipW, data);
+  var pageMode = fx.pip ? 'hidden' : fx.mode;
+  fxShowPage(pageMode);
+  if(pageMode === 'card') fxUpdate(fx.cardW, data);
+  else if(pageMode === 'pill') fxUpdate(fx.pillW, data);
+  if(c.title){
+    var t = '⏸ 已暫停 ' + fxClock(now - pz.at) + ' · ' + p.name;
+    if(document.title !== t) document.title = t;
+    fx.titleSet = true;
+  } else fxRestoreTitle();
+}
+
 document.addEventListener('keydown', function(e){
-  if(e.key === 'Escape' && fx.mode === 'card' && !fx.pip && fxActivePid() != null && getFocusCfg().on){
+  if(e.key === 'Escape' && fx.mode === 'card' && !fx.pip && (fxActivePid() != null || fxPausedGet()) && getFocusCfg().on){
     fx.mode = 'pill'; fxTick();
   }
 });
@@ -10963,6 +11111,102 @@ function setCfgPane(name){
   });
 })();
 setCfgPane(localStorage.getItem('ft_cfg_pane') || 'general');
+</script>
+<script>
+/* ============================================================
+   計時中斷偵測
+   ・計時進行中每 30 秒在本機寫一次「最後在線時間」（ft_timer_seen）
+   ・重新打開頁面、切回分頁或電腦睡眠醒來時，若發現超過 15 分鐘的空白，
+     就請使用者決定這段空白要不要算進工時
+   ・背景分頁會被瀏覽器降頻到約每分鐘一次，仍遠小於 15 分鐘，不會誤判；
+     但分頁若被瀏覽器完全凍結或捨棄，也會被視為中斷，所以選項裡保留「全部記錄」
+   ============================================================ */
+var TG_GAP_MS = 15 * 60000;
+var tg = {open:false, pid:null, seen:0};
+function tgTouch(t){ try{ localStorage.setItem('ft_timer_seen', String(t || Date.now())); }catch(e){} }
+function tgModalOpen(){ var m = document.getElementById('modal'); return m && !m.classList.contains('hidden'); }
+function tgCheck(){
+  var now = Date.now();
+  if(tg.open){
+    // 使用者按了「取消」關掉視窗 → 視為整段保留
+    if(!tgModalOpen()){ tg.open = false; tgTouch(now); showToast('已保留整段計時', 'blue'); }
+    return;
+  }
+  var pid = fxActivePid();
+  if(pid == null) return;
+  var st = activeTimers[pid];
+  var raw = localStorage.getItem('ft_timer_seen');
+  var seen = +raw || 0;
+  // 功能上線前就在跑的計時沒有心跳紀錄 → 從現在開始追蹤，不追溯
+  if(!raw || seen < st){ tgTouch(now); return; }
+  if(now - seen > TG_GAP_MS){
+    if(tgModalOpen()) return; // 其他視窗開著，等它關掉再問；期間不更新心跳
+    tgPrompt(pid, st, seen, now);
+    return;
+  }
+  tgTouch(now);
+}
+function tgFmtTime(ts, withDate){
+  var d = new Date(ts), pad = function(n){ return (n < 10 ? '0' : '') + n; };
+  var hm = pad(d.getHours()) + ':' + pad(d.getMinutes());
+  return withDate ? (d.getMonth() + 1) + '/' + d.getDate() + ' ' + hm : hm;
+}
+function tgDTLocal(ts){
+  var d = new Date(ts), pad = function(n){ return (n < 10 ? '0' : '') + n; };
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+function tgPrompt(pid, st, seen, now){
+  var p = pBy(pid); if(!p){ tgTouch(now); return; }
+  tg.open = true; tg.pid = pid; tg.seen = seen;
+  if(typeof fx !== 'undefined' && fx.mode === 'card'){ fx.mode = 'pill'; fxTick(); } // 別讓專注卡片蓋住確認視窗
+  var sameDay = toLocalDate(new Date(st)) === toLocalDate(new Date(now));
+  var gapH = Math.round((now - seen) / 3600000 * 100) / 100;
+  var before = Math.round((seen - st) / 3600000 * 100) / 100;
+  var opt = function(v, title, desc, checked){
+    return '<label class="flex items-start gap-3 p-3 rounded-lg border border-slate-700 hover:border-slate-600 cursor-pointer has-[:checked]:border-blue-500 has-[:checked]:bg-blue-950/30">'
+      + '<input type="radio" name="tg-opt" value="' + v + '" class="mt-1 accent-blue-500"' + (checked ? ' checked' : '') + '>'
+      + '<span class="min-w-0"><span class="block text-sm text-slate-200">' + title + '</span>'
+      + (desc ? '<span class="block text-xs text-slate-500 mt-0.5">' + desc + '</span>' : '') + '</span></label>';
+  };
+  var html = '<div class="text-sm text-slate-300 leading-relaxed mb-2">「' + esc(p.name) + '」從 ' + tgFmtTime(st, !sameDay) + ' 開始計時，'
+    + '<b class="text-white">' + tgFmtTime(seen, !sameDay) + '</b> 之後頁面就沒有在運作，到現在空白了 <b class="text-amber-400">' + formatHrs(gapH) + '</b>。</div>'
+    + '<div class="text-xs text-slate-500 leading-relaxed mb-4">可能是關閉了頁面、電腦進入睡眠，或瀏覽器暫停了背景分頁。如果這段時間其實一直在工作，請選「全部記錄」。</div>'
+    + '<div class="flex flex-col gap-2">'
+    + opt('cut', '記到 ' + tgFmtTime(seen) + ' 並停止計時', '記錄 ' + formatHrs(before) + '，空白的時間不算', true)
+    + opt('restart', '記到 ' + tgFmtTime(seen) + '，從現在重新開始計時', '適合電腦睡眠醒來後要繼續工作', false)
+    + opt('all', '全部記錄，繼續計時', '空白的 ' + formatHrs(gapH) + ' 也算進工時', false)
+    + '<label class="flex items-start gap-3 p-3 rounded-lg border border-slate-700 hover:border-slate-600 cursor-pointer has-[:checked]:border-blue-500 has-[:checked]:bg-blue-950/30">'
+    +   '<input type="radio" name="tg-opt" value="custom" class="mt-1 accent-blue-500">'
+    +   '<span class="min-w-0 flex-1"><span class="block text-sm text-slate-200">自訂結束時間並停止計時</span>'
+    +   '<input type="datetime-local" id="tg-custom" class="inp mt-2 py-1.5 text-sm" value="' + tgDTLocal(seen) + '" min="' + tgDTLocal(st) + '" max="' + tgDTLocal(now) + '" onfocus="var r=document.querySelector(\'input[name=tg-opt][value=custom]\'); if(r) r.checked=true;">'
+    +   '<span id="tg-err" class="hidden block text-xs text-rose-400 mt-1"></span></span></label>'
+    + '</div>';
+  openModal('計時中斷了一段時間', html, function(){
+    var sel = document.querySelector('input[name="tg-opt"]:checked');
+    var v = sel ? sel.value : 'cut';
+    if(!activeTimers[pid]){ tg.open = false; return; } // 期間已從別處停止
+    var nowC = Date.now();
+    if(v === 'all'){ tg.open = false; tgTouch(nowC); showToast('已保留整段計時', 'blue'); return; }
+    var end = tg.seen, note;
+    if(v === 'custom'){
+      var inp = document.getElementById('tg-custom'), err = document.getElementById('tg-err');
+      var t = inp && inp.value ? new Date(inp.value).getTime() : NaN;
+      if(isNaN(t) || t < activeTimers[pid] || t > nowC){
+        if(err){ err.textContent = '請選 ' + tgFmtTime(activeTimers[pid], true) + ' 到現在之間的時間'; err.classList.remove('hidden'); }
+        return false;
+      }
+      end = t; note = '計時器自動記錄（手動指定結束時間）';
+    }
+    tg.open = false;
+    stopTimer(pid, end, note);
+    if(typeof fxPomoInvalidate === 'function') fxPomoInvalidate();
+    if(v === 'restart') startTimer(pid);
+  }, '確認');
+}
+setInterval(tgCheck, 30000);
+document.addEventListener('visibilitychange', function(){ if(document.visibilityState === 'visible') tgCheck(); });
+window.addEventListener('focus', tgCheck);
+setTimeout(tgCheck, 1500);
 </script>
 </body>
 </html>
