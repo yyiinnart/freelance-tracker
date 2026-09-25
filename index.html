@@ -373,6 +373,92 @@ tbody tr[onclick]:hover td{background:#131f2e;}
 .cal-mp-cell.cur{color:#60a5fa;font-weight:600;}
 .cal-mp-cell.sel{background:#3b82f6;color:#fff;font-weight:600;}
 .cal-mp-cell.sel:hover{background:#2563eb;}
+
+/* ===== 設定頁：左側分類＋單列設定 ===== */
+.cfg-shell{display:grid;grid-template-columns:148px minmax(0,1fr);gap:32px;max-width:920px;}
+.cfg-nav{position:sticky;top:16px;align-self:start;display:flex;flex-direction:column;gap:2px;}
+.cfg-nav-btn{text-align:left;font-size:13px;color:#94a3b8;padding:8px 12px;border-radius:0 8px 8px 0;border-left:2px solid transparent;background:transparent;cursor:pointer;transition:color .15s,background .15s;white-space:nowrap;}
+.cfg-nav-btn:hover{color:#e2e8f0;background:rgba(30,41,59,.45);}
+.cfg-nav-btn.active{color:#f1f5f9;background:rgba(30,41,59,.7);border-left-color:#3b82f6;font-weight:500;}
+.cfg-nav-btn.is-danger.active{border-left-color:#f43f5e;}
+.cfg-nav-btn:focus-visible{outline:2px solid #60a5fa;outline-offset:-2px;}
+.cfg-nav-sep{height:1px;background:#1e293b;margin:8px 12px;}
+.cfg-pane{display:none;}
+.cfg-pane.active{display:block;}
+.cfg-pane-title{font-size:16px;font-weight:600;color:#f1f5f9;margin:4px 0 16px;}
+.cfg-card{background:#0f172a;border:1px solid #1e293b;border-radius:12px;margin-bottom:20px;}
+.cfg-card.is-danger{border-color:rgba(244,63,94,.22);}
+.cfg-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:16px 18px 0;}
+.cfg-card-title{font-size:13px;font-weight:600;color:#e2e8f0;display:flex;align-items:center;gap:6px;}
+.cfg-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px 16px;padding:13px 18px;min-height:54px;border-top:1px solid rgba(30,41,59,.8);}
+.cfg-card > .cfg-row:first-child{border-top:0;}
+.cfg-row-stack{flex-direction:column;align-items:stretch;}
+.cfg-row-stack .cfg-row-label{flex:none;}
+.cfg-row-label{flex:1 1 0;min-width:0;}
+.cfg-row-wide .cfg-row-label{flex-basis:200px;}
+.cfg-row-name{font-size:13px;color:#e2e8f0;display:flex;align-items:center;gap:6px;}
+.cfg-row-name-strong{font-weight:600;}
+.cfg-row-desc{font-size:11px;color:#64748b;margin-top:2px;line-height:1.5;}
+.cfg-row-warn{color:rgba(251,191,36,.85);}
+.cfg-row-ctl{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.cfg-block{padding:14px 18px 16px;}
+.cfg-unit{font-size:12px;color:#64748b;white-space:nowrap;min-width:42px;}
+.cfg-unit-inline{min-width:0;}
+.inp.cfg-num{width:72px;padding:6px 8px;text-align:center;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+.inp.cfg-num-sm{width:52px;}
+.inp.cfg-sel{width:auto;padding:6px 10px;font-size:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+#unify-cur-sel:disabled{display:none;}
+/* 子選項：縮排＋淡底，看得出從屬於上一列 */
+.cfg-sub{background:rgba(2,6,23,.35);}
+.cfg-sub .cfg-row{padding-left:36px;min-height:48px;}
+.cfg-sub .cfg-row-name{color:#cbd5e1;}
+/* 卡片標題列帶總開關：標題在卡片底色上，選項放進較深的內嵌區，一眼分出層級 */
+.cfg-card-head-toggle{align-items:center;padding:15px 18px;}
+.cfg-card-head-toggle .cfg-card-title{font-size:14px;color:#f8fafc;}
+.cfg-inset{background:rgba(2,6,23,.45);border-top:1px solid #1e293b;}
+.cfg-inset > .cfg-row:first-child{border-top:0;}
+/* 從屬選項：整列縮排，分隔線也從縮排處開始，左側導引線連回上層開關 */
+.cfg-sub-rail{position:relative;background:transparent;}
+.cfg-sub-rail::before{content:'';position:absolute;left:27px;top:0;bottom:20px;width:1px;background:#334155;}
+.cfg-sub-rail .cfg-row{margin-left:44px;padding-left:0;min-height:46px;}
+.cfg-sub-rail .cfg-row-name{color:#94a3b8;font-size:12.5px;}
+.cfg-card > :last-child, .cfg-card > :last-child > :last-child{border-bottom-left-radius:12px;border-bottom-right-radius:12px;}
+/* 工作模式選項 */
+.cfg-mode{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.cfg-mode-opt{border:1px solid #334155;border-radius:10px;padding:10px 14px;transition:border-color .15s,background .15s;height:100%;}
+.cfg-mode-opt:hover{border-color:#475569;}
+.cfg-mode-name{font-size:13px;font-weight:500;color:#e2e8f0;}
+.cfg-mode-desc{font-size:11px;color:#64748b;margin-top:2px;}
+/* 開關 */
+.cfg-switch{appearance:none;-webkit-appearance:none;width:34px;height:20px;border-radius:999px;background:#334155;position:relative;cursor:pointer;flex-shrink:0;margin:0;transition:background .15s;}
+.cfg-switch::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#e2e8f0;transition:transform .15s;}
+.cfg-switch:checked{background:#3b82f6;}
+.cfg-switch:checked::after{transform:translateX(14px);}
+.cfg-switch:focus-visible{outline:2px solid #60a5fa;outline-offset:2px;}
+/* ⓘ 說明提示 */
+.cfg-info{position:relative;display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;border:1px solid #475569;color:#64748b;font-size:9px;font-weight:700;font-style:italic;font-family:Georgia,serif;cursor:help;flex-shrink:0;line-height:1;}
+.cfg-info:hover,.cfg-info:focus{color:#cbd5e1;border-color:#94a3b8;outline:none;}
+.cfg-info::after{content:attr(data-tip);position:absolute;left:-6px;top:calc(100% + 8px);z-index:40;width:max-content;max-width:min(280px,72vw);padding:8px 11px;border-radius:8px;background:#1e293b;border:1px solid #334155;box-shadow:0 10px 24px rgba(0,0,0,.45);color:#cbd5e1;font:400 11px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI','PingFang TC',sans-serif;white-space:normal;opacity:0;visibility:hidden;transform:translateY(-2px);transition:opacity .12s,transform .12s,visibility .12s;pointer-events:none;}
+.cfg-info:hover::after,.cfg-info:focus::after{opacity:1;visibility:visible;transform:none;}
+/* 已儲存回饋 */
+.cfg-saved{font-size:11px;color:#34d399;opacity:0;transition:opacity .2s;white-space:nowrap;}
+.cfg-saved.show{opacity:1;}
+@media (prefers-reduced-motion:reduce){.cfg-switch,.cfg-switch::after,.cfg-info::after,.cfg-saved{transition:none;}}
+/* 窄螢幕：分類改成頂部橫向標籤 */
+@media (max-width:767px){
+  .cfg-shell{grid-template-columns:1fr;gap:18px;}
+  .cfg-nav{position:static;flex-direction:row;overflow-x:auto;gap:4px;border-bottom:1px solid #1e293b;padding-bottom:0;scrollbar-width:none;}
+  .cfg-nav::-webkit-scrollbar{display:none;}
+  .cfg-nav-btn{border-left:0;border-bottom:2px solid transparent;border-radius:6px 6px 0 0;padding:8px 12px;}
+  .cfg-nav-btn.active{border-bottom-color:#3b82f6;background:transparent;}
+  .cfg-nav-btn.is-danger.active{border-bottom-color:#f43f5e;}
+  .cfg-nav-sep{display:none;}
+  .cfg-pane-title{display:none;}
+  .cfg-mode{grid-template-columns:1fr;}
+  .cfg-sub .cfg-row{padding-left:28px;}
+  .cfg-sub-rail .cfg-row{margin-left:36px;padding-left:0;}
+  .cfg-sub-rail::before{left:21px;}
+}
 </style>
 </head>
 <body class="bg-slate-950 min-h-screen text-slate-100 pb-20">
@@ -1169,188 +1255,297 @@ tbody tr[onclick]:hover td{background:#131f2e;}
   </div>
 
   <div id="v-cfg" class="hidden">
-    <div class="hint-bar"><strong>工作模式</strong>決定介面功能範圍；<strong>目標時薪</strong>是虧損預警的計算基準，任務工時換算後低於此值會亮起警示條；<strong>緊急門檻</strong>決定截止日多近時觸發橘色警示。參數設定一次即可，之後不需頻繁調整。</div>
-    <div class="max-w-2xl">
-      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-5">
-        <h3 class="text-sm font-semibold text-white mb-1">工作模式</h3>
-        <p class="text-xs text-slate-500 mb-4">選擇您的接案形態。「專案管理」模式可建立委外任務，追蹤外包/轉包的成本與交件。</p>
-        <div class="flex gap-3">
-          <label class="flex-1 cursor-pointer">
-            <input type="radio" name="work-mode" value="solo" class="hidden peer" onchange="saveWorkMode()">
-            <div class="peer-checked:border-blue-500 peer-checked:bg-blue-950/30 border border-slate-700 rounded-xl p-4 transition-all hover:border-slate-600">
-              <div class="font-medium text-slate-200 mb-1">🎨 個人接案</div>
-              <div class="text-xs text-slate-500">所有任務自己執行，簡潔的工時與收益追蹤。</div>
-            </div>
-          </label>
-          <label class="flex-1 cursor-pointer">
-            <input type="radio" name="work-mode" value="manager" class="hidden peer" onchange="saveWorkMode()">
-            <div class="peer-checked:border-purple-500 peer-checked:bg-purple-950/30 border border-slate-700 rounded-xl p-4 transition-all hover:border-slate-600">
-              <div class="font-medium text-slate-200 mb-1">📋 專案管理</div>
-              <div class="text-xs text-slate-500">可建立外包/轉包任務，追蹤委外成本、交件狀態與淨利。</div>
-            </div>
-          </label>
-        </div>
-        <div class="mt-4 pt-3 border-t border-slate-800/60">
-          <label class="flex items-center gap-2 cursor-pointer select-none">
-            <input type="checkbox" id="toggle-hints" class="w-3.5 h-3.5 accent-blue-500" onchange="saveHintVisibility()">
-            <span class="text-xs text-slate-500">顯示各分頁說明文字</span>
-          </label>
-        </div>
-      </div>
+    <div class="cfg-shell">
+      <nav class="cfg-nav" role="tablist" aria-label="設定分類">
+        <button type="button" class="cfg-nav-btn" role="tab" data-cfg="general" onclick="setCfgPane('general')">一般</button>
+        <button type="button" class="cfg-nav-btn" role="tab" data-cfg="finance" onclick="setCfgPane('finance')">財務</button>
+        <button type="button" class="cfg-nav-btn" role="tab" data-cfg="time" onclick="setCfgPane('time')">時間</button>
+        <button type="button" class="cfg-nav-btn" role="tab" data-cfg="analysis" onclick="setCfgPane('analysis')">分析</button>
+        <span class="cfg-nav-sep" aria-hidden="true"></span>
+        <button type="button" class="cfg-nav-btn is-danger" role="tab" data-cfg="maint" onclick="setCfgPane('maint')">資料維護</button>
+      </nav>
 
-      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-5">
-        <h3 class="text-sm font-semibold text-white mb-4">計時與預警</h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          <div>
-            <label class="text-xs font-medium text-slate-400 block mb-1.5">目標時薪 (NT$)</label>
-            <p class="text-[10px] text-slate-600 mb-2">用於計算安全工時上限（合約總額 ÷ 目標時薪），以及開工前的「計畫時薪」預警。<span class="text-slate-500">計時制不適用</span>——計時制多做一小時就多賺一小時，不存在虧損水位。</p>
-            <input type="number" id="global-rate" class="inp w-32 py-1.5 text-center font-mono" value="500" onchange="saveGlobalRate()">
-          </div>
-          <div>
-            <label class="text-xs font-medium text-slate-400 block mb-1.5">截止日緊急門檻</label>
-            <p class="text-[10px] text-slate-600 mb-2">剩餘天數 ≤ 此值時，任務卡片與日曆會亮起警示。</p>
-            <div class="flex items-center gap-2">
-              <input type="number" id="dl-crit-inp" class="inp w-20 py-1.5 text-center font-mono" value="3" min="1" onchange="saveDLThresh()">
-              <span class="text-xs text-slate-500">天內</span>
-            </div>
-          </div>
-          <div>
-            <label class="text-xs font-medium text-slate-400 block mb-1.5">每週目標工時 (h)</label>
-            <p class="text-[10px] text-slate-600 mb-2">排休假時可下修此目標，避免系統觸發落後警報。</p>
-            <input type="number" id="weekly-target" class="inp w-32 py-1.5 text-center font-mono" value="40" onchange="saveWeeklyTarget()">
-          </div>
-          <div>
-            <label class="text-xs font-medium text-slate-400 block mb-1.5">下班時間（點）</label>
-            <p class="text-[10px] text-slate-600 mb-2">過了此鐘點，排程試算改從「明天」起算、今天不再排，避免誤導隔天工作量。</p>
-            <div class="flex items-center gap-2">
-              <input type="number" id="cfg-off-hour" class="inp w-20 py-1.5 text-center font-mono" value="19" min="0" max="23" step="1" onchange="saveOffHour(this.value)">
-              <span class="text-xs text-slate-500">點後換日</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <div class="cfg-body">
 
-      <div id="cfg-fexp" class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-5">
-        <div class="flex items-center justify-between gap-3 mb-1">
-          <h3 class="text-sm font-semibold text-white">固定支出</h3>
-          <span id="fexp-sum" class="text-xs text-slate-400 font-mono"></span>
-        </div>
-        <p class="text-xs text-slate-500 mb-4">設定一次，每個月自動計入儀表板的「當月總支出」，你每月只需要填固定支出以外的消費。年繳項目自動除以 12 分攤。調整金額時可指定生效月份，之前的月份維持原金額；不再支付的項目在編輯裡設定截止月份即可。</p>
-        <div id="fexp-list" class="mb-3"></div>
-        <div class="flex items-center gap-2 flex-wrap">
-          <button class="btn btn-sm" onclick="addFixedExp()">+ 新增固定支出</button>
-          <button class="btn btn-sm bg-transparent border-slate-700 text-slate-500 hover:text-amber-400 hover:bg-amber-950/20 hover:border-amber-900/50 transition-colors" onclick="flattenFixedExp()" title="把過去月份的固定支出寫成每月定額，清掉已結束的項目與調整紀錄">🗜️ 壓平過去月份</button>
-          <span id="fexp-flat-info" class="text-[10px] text-slate-600"></span>
-        </div>
-      </div>
-
-      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-5">
-        <h3 class="text-sm font-semibold text-white mb-1">正式階段名單</h3>
-        <p class="text-xs text-slate-500 mb-4">只有名單內的階段會在「各階段估時回測」各自成一列並做偏差分析；名單外的名稱一律折進「雜事」。個案細節寫在階段後面的<span class="text-slate-400">附註</span>，附註只做顯示、不進統計。</p>
-        <div id="phase-list-box" class="flex flex-wrap gap-2 mb-3"></div>
-        <div class="flex gap-2 flex-wrap">
-          <input id="phase-new" class="inp text-sm w-48 py-1.5" placeholder="新增階段名（如：分鏡）" onkeydown="if(event.key==='Enter')addPhaseName()">
-          <button class="btn btn-sm" onclick="addPhaseName()">+ 加入</button>
-          <button class="btn btn-sm text-slate-500" onclick="resetPhaseList()">還原預設</button>
-        </div>
-        <p class="text-[10px] text-slate-600 mt-3">移除名單項目<span class="text-slate-500">不會改動任何既有資料</span>，只是該階段之後在統計上會被歸進「雜事」。要真的改寫舊資料的階段名，請用任務詳情裡的 🏷️ 階段名總管。</p>
-      </div>
-
-      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-5">
-        <h3 class="text-sm font-semibold text-white mb-1">統一幣別顯示</h3>
-        <p class="text-xs text-slate-500 mb-4">勾選後，畫面上所有外幣金額都會依即時匯率換算成指定幣別顯示（不影響實際儲存的原始幣別與金額）。</p>
-        <div class="flex items-center gap-3 flex-wrap">
-          <label class="flex items-center gap-2 cursor-pointer select-none">
-            <input type="checkbox" id="unify-cur-toggle" class="w-3.5 h-3.5 accent-blue-500" onchange="saveUnifyCur()">
-            <span class="text-xs text-slate-400">啟用統一幣別</span>
-          </label>
-          <select id="unify-cur-sel" class="inp w-28 py-1.5 text-center text-xs font-mono" onchange="saveUnifyCur()" disabled>
-            <option value="TWD">TWD</option>
-            <option value="USD">USD</option>
-            <option value="CNY">CNY</option>
-            <option value="JPY">JPY</option>
-          </select>
-          <span class="text-[10px] text-slate-600">換算為近似值，僅供概覽參考</span>
-        </div>
-      </div>
-
-      <div id="cfg-ai-export" class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-5 transition-shadow">
-        <div class="flex items-center justify-between gap-3 mb-3 flex-wrap">
-          <h3 class="text-sm font-semibold text-white">AI 匯出</h3>
-          <span class="flex items-center gap-1 bg-slate-800/60 rounded-lg p-0.5" role="tablist">
-            <button type="button" id="aix-tab-note" class="pie-mode-btn active" role="tab" onclick="setAIXTab('note')">分析模板</button>
-            <button type="button" id="aix-tab-tpl" class="pie-mode-btn" role="tab" onclick="setAIXTab('tpl')">單任務模板</button>
-          </span>
-        </div>
-
-        <div id="aix-pane-note">
-          <span id="aix-tpl-pills" class="inline-flex flex-wrap items-center gap-1 bg-slate-800/60 rounded-lg p-0.5 mb-2" role="tablist" aria-label="分析模板"></span>
-          <div class="flex items-start justify-between gap-3 mb-2">
-            <p id="aix-tpl-hint" class="text-[10px] text-slate-600"></p>
-            <button type="button" class="text-[11px] text-slate-500 hover:text-amber-400 flex-shrink-0" onclick="aixTplReset()">恢復預設</button>
-          </div>
-          <div id="aix-tpl-chips" class="flex flex-wrap gap-1 mb-3"></div>
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
-            <textarea id="aix-tpl-input" class="inp w-full font-mono text-xs" rows="16" aria-label="分析模板內文" oninput="aixTplPreview()" onchange="aixTplSave()"></textarea>
-            <div class="min-w-0">
-              <div class="text-[11px] text-slate-500 mb-1.5">預覽（套用目前資料）</div>
-              <pre id="aix-tpl-preview" class="bg-slate-950/60 border border-slate-800 rounded-lg p-3 text-[11px] text-slate-400 whitespace-pre-wrap overflow-auto m-0" style="max-height:340px"></pre>
-            </div>
-          </div>
-          <div class="mt-4 pt-3 border-t border-slate-800">
-            <div class="flex items-baseline gap-2 mb-1.5 flex-wrap">
-              <span class="text-xs font-semibold text-slate-300">共用背景</span>
-              <span class="text-[10px] text-slate-600">內容只寫一次；在任何模板插入 {{共用背景}} 就會帶入，留空時那一行自動省略。</span>
-            </div>
-            <textarea id="aix-shared-input" class="inp w-full text-xs" rows="3" aria-label="共用背景" placeholder="例：2026 年 4 月轉全職接案，之前的資料偏少。" oninput="aixTplPreview()" onchange="aixSharedSave()"></textarea>
-          </div>
-        </div>
-
-        <div id="aix-pane-tpl" class="hidden">
-          <div class="flex items-start justify-between gap-3 mb-2">
-            <p class="text-[10px] text-slate-600">任務的「📋 複製分析」都套用這份模板。點欄位插入到游標位置，沒資料的欄位會自動留白。</p>
-            <button type="button" class="text-[11px] text-slate-500 hover:text-amber-400 flex-shrink-0" onclick="xpTplReset()">恢復預設</button>
-          </div>
-          <div id="cfg-xp-chips" class="flex flex-wrap gap-1 mb-3"></div>
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
-            <textarea id="xp-tpl-input" class="inp w-full font-mono text-xs" rows="12" aria-label="單任務匯出模板" oninput="xpTplPreview()" onchange="saveXpTplCfg()"></textarea>
-            <div class="min-w-0">
-              <div class="flex items-center gap-2 mb-1.5">
-                <span class="text-[11px] text-slate-500 flex-shrink-0">預覽任務</span>
-                <select id="xp-tpl-task" class="inp text-xs py-1 flex-1 min-w-0" onchange="xpTplPreview()"></select>
+        <!-- ===== 一般 ===== -->
+        <section class="cfg-pane" data-pane="general" role="tabpanel">
+          <h2 class="cfg-pane-title">一般</h2>
+          <div class="cfg-card">
+            <div class="cfg-row cfg-row-stack">
+              <div class="cfg-row-label"><div class="cfg-row-name">工作模式</div></div>
+              <div class="cfg-mode">
+                <label class="cursor-pointer">
+                  <input type="radio" name="work-mode" value="solo" class="hidden peer" onchange="saveWorkMode()">
+                  <div class="cfg-mode-opt peer-checked:border-blue-500 peer-checked:bg-blue-950/30">
+                    <div class="cfg-mode-name">個人接案</div>
+                    <div class="cfg-mode-desc">所有任務自己執行</div>
+                  </div>
+                </label>
+                <label class="cursor-pointer">
+                  <input type="radio" name="work-mode" value="manager" class="hidden peer" onchange="saveWorkMode()">
+                  <div class="cfg-mode-opt peer-checked:border-purple-500 peer-checked:bg-purple-950/30">
+                    <div class="cfg-mode-name">專案管理</div>
+                    <div class="cfg-mode-desc">可建立外包／轉包任務，追蹤委外成本與淨利</div>
+                  </div>
+                </label>
               </div>
-              <pre id="xp-tpl-preview" class="bg-slate-950/60 border border-slate-800 rounded-lg p-3 text-[11px] text-slate-400 whitespace-pre-wrap overflow-auto m-0" style="max-height:220px"></pre>
+            </div>
+            <div class="cfg-row">
+              <div class="cfg-row-label">
+                <div class="cfg-row-name">顯示說明文字</div>
+                <div class="cfg-row-desc">各分頁頂部的使用說明</div>
+              </div>
+              <div class="cfg-row-ctl"><input type="checkbox" id="toggle-hints" class="cfg-switch" aria-label="顯示說明文字" onchange="saveHintVisibility()"></div>
             </div>
           </div>
-        </div>
-      </div>
+        </section>
 
-      <div class="bg-slate-900/40 rounded-xl p-5 mb-5">
-        <div class="flex items-center justify-between mb-1.5">
-          <h3 class="text-sm font-semibold text-slate-500 flex items-center gap-2">🗜️ 批量壓平工時</h3>
-        </div>
-        <p class="text-[10px] text-slate-500 mb-4 leading-relaxed">
-          將<span class="text-slate-400">所有任務</span>同一天的零碎計時紀錄合併為單日總和，節省儲存空間。等同於對每個任務逐一執行「壓平」，但一鍵完成。同日階段標記一致者會保留，混合者清空。
-        </p>
-        <button class="btn btn-sm bg-transparent border-slate-700 text-slate-500 hover:text-amber-400 hover:bg-amber-950/20 hover:border-amber-900/50 transition-colors" onclick="compressAllLogs()">壓平所有任務工時</button>
-      </div>
+        <!-- ===== 財務 ===== -->
+        <section class="cfg-pane" data-pane="finance" role="tabpanel">
+          <h2 class="cfg-pane-title">財務</h2>
+          <div class="cfg-card">
+            <div class="cfg-row">
+              <div class="cfg-row-label">
+                <div class="cfg-row-name">目標時薪<span class="cfg-info" tabindex="0" role="note" data-tip="用於計算安全工時上限（合約總額 ÷ 目標時薪），以及開工前的「計畫時薪」預警。計時制不適用：多做一小時就多賺一小時，不存在虧損水位。">i</span></div>
+                <div class="cfg-row-desc">計件／計價任務低於此值會亮起虧損預警</div>
+              </div>
+              <div class="cfg-row-ctl">
+                <input type="number" id="global-rate" class="inp cfg-num" value="500" min="0" onchange="saveGlobalRate()" aria-label="目標時薪">
+                <span class="cfg-unit">NT$/h</span>
+              </div>
+            </div>
+            <div class="cfg-row">
+              <div class="cfg-row-label">
+                <div class="cfg-row-name">統一幣別顯示<span class="cfg-info" tabindex="0" role="note" data-tip="不影響實際儲存的原始幣別與金額。換算為近似值，僅供概覽參考。">i</span></div>
+                <div class="cfg-row-desc">外幣金額依即時匯率換算成同一幣別顯示</div>
+              </div>
+              <div class="cfg-row-ctl">
+                <select id="unify-cur-sel" class="inp cfg-sel" onchange="saveUnifyCur()" aria-label="統一顯示的幣別" disabled>
+                  <option value="TWD">TWD</option>
+                  <option value="USD">USD</option>
+                  <option value="CNY">CNY</option>
+                  <option value="JPY">JPY</option>
+                </select>
+                <input type="checkbox" id="unify-cur-toggle" class="cfg-switch" aria-label="啟用統一幣別" onchange="saveUnifyCur()">
+              </div>
+            </div>
+          </div>
 
-      <div class="bg-slate-900/40 rounded-xl p-5 mb-5">
-        <div class="flex items-center justify-between mb-1.5">
-          <h3 class="text-sm font-semibold text-slate-500 flex items-center gap-2">📦 年度資料封存</h3>
-        </div>
-        <p class="text-[10px] text-slate-500 mb-4 leading-relaxed">
-          避免未來資料量突破容量限制。可將「指定年份（含）以前」的<span class="text-slate-400">已結案任務、工時與金流</span>打包為 JSON 備份檔，並從系統中清除。
-        </p>
-        <div class="flex items-center gap-3">
-          <select id="archive-year" class="inp w-28 py-1.5 text-xs text-center font-mono">
-            <option value="2024">2024 年</option>
-            <option value="2025" selected>2025 年</option>
-            <option value="2026">2026 年</option>
-            <option value="2027">2027 年</option>
-          </select>
-          <button class="btn btn-sm bg-transparent border-slate-700 text-slate-500 hover:text-rose-400 hover:bg-rose-950/20 hover:border-rose-900/50 transition-colors" onclick="preArchiveCheck()">封存並清理</button>
-        </div>
+          <div id="cfg-fexp" class="cfg-card">
+            <div class="cfg-card-head">
+              <div class="min-w-0">
+                <div class="cfg-card-title">固定支出<span class="cfg-info" tabindex="0" role="note" data-tip="年繳項目自動除以 12 分攤。調整金額時可指定生效月份，之前的月份維持原金額；不再支付的項目，在編輯裡設定截止月份即可。">i</span></div>
+                <div class="cfg-row-desc">每月自動計入儀表板的「當月總支出」</div>
+              </div>
+              <span id="fexp-sum" class="text-xs text-slate-400 font-mono flex-shrink-0"></span>
+            </div>
+            <div class="cfg-block">
+              <div id="fexp-list" class="mb-3"></div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <button class="btn btn-sm" onclick="addFixedExp()">+ 新增固定支出</button>
+                <button class="btn btn-sm bg-transparent border-slate-700 text-slate-500 hover:text-amber-400 hover:bg-amber-950/20 hover:border-amber-900/50 transition-colors" onclick="flattenFixedExp()" title="把過去月份的固定支出寫成每月定額，清掉已結束的項目與調整紀錄">壓平過去月份</button>
+                <span id="fexp-flat-info" class="text-[10px] text-slate-600"></span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== 時間 ===== -->
+        <section class="cfg-pane" data-pane="time" role="tabpanel">
+          <h2 class="cfg-pane-title">時間</h2>
+          <div class="cfg-card">
+            <div class="cfg-row">
+              <div class="cfg-row-label">
+                <div class="cfg-row-name">每週目標工時</div>
+                <div class="cfg-row-desc">排休假時可下修，避免觸發落後警報</div>
+              </div>
+              <div class="cfg-row-ctl">
+                <input type="number" id="weekly-target" class="inp cfg-num" value="40" min="0" onchange="saveWeeklyTarget()" aria-label="每週目標工時">
+                <span class="cfg-unit">小時</span>
+              </div>
+            </div>
+            <div class="cfg-row">
+              <div class="cfg-row-label">
+                <div class="cfg-row-name">下班時間</div>
+                <div class="cfg-row-desc">過了這個鐘點，排程試算改從明天起算</div>
+              </div>
+              <div class="cfg-row-ctl">
+                <input type="number" id="cfg-off-hour" class="inp cfg-num" value="19" min="0" max="23" step="1" onchange="saveOffHour(this.value)" aria-label="下班時間">
+                <span class="cfg-unit">點</span>
+              </div>
+            </div>
+            <div class="cfg-row">
+              <div class="cfg-row-label">
+                <div class="cfg-row-name">截止日緊急門檻</div>
+                <div class="cfg-row-desc">剩餘天數在此之內，任務卡片與日曆會亮起警示</div>
+              </div>
+              <div class="cfg-row-ctl">
+                <input type="number" id="dl-crit-inp" class="inp cfg-num" value="3" min="1" onchange="saveDLThresh()" aria-label="截止日緊急門檻">
+                <span class="cfg-unit">天內</span>
+              </div>
+            </div>
+          </div>
+
+          <div id="cfg-focus" class="cfg-card">
+            <div class="cfg-card-head cfg-card-head-toggle">
+              <div class="cfg-card-title">專注模式</div>
+              <input type="checkbox" id="fx-on" class="cfg-switch" aria-label="開啟專注模式" onchange="saveFocusCfg()">
+            </div>
+            <div id="fx-opts" class="cfg-inset">
+              <div class="cfg-row">
+                <div class="cfg-row-label">
+                  <div class="cfg-row-name">開始計時時開啟浮動小窗</div>
+                  <div id="fx-pip-note" class="cfg-row-desc"></div>
+                </div>
+                <div class="cfg-row-ctl"><input type="checkbox" id="fx-autopip" class="cfg-switch" aria-label="開始計時時開啟浮動小窗" onchange="saveFocusCfg()"></div>
+              </div>
+              <div class="cfg-row">
+                <div class="cfg-row-label"><div class="cfg-row-name">分頁標題顯示計時與時薪</div></div>
+                <div class="cfg-row-ctl"><input type="checkbox" id="fx-title" class="cfg-switch" aria-label="分頁標題顯示計時與時薪" onchange="saveFocusCfg()"></div>
+              </div>
+              <div class="cfg-row">
+                <div class="cfg-row-label"><div class="cfg-row-name">番茄鐘提醒</div></div>
+                <div class="cfg-row-ctl"><input type="checkbox" id="fx-pomo" class="cfg-switch" aria-label="番茄鐘提醒" onchange="saveFocusCfg()"></div>
+              </div>
+              <div id="fx-pomo-opts" class="cfg-sub cfg-sub-rail">
+                <div class="cfg-row">
+                  <div class="cfg-row-label"><div class="cfg-row-name">專注時間</div></div>
+                  <div class="cfg-row-ctl"><input type="number" id="fx-work" class="inp cfg-num" min="1" max="180" onchange="saveFocusCfg()" aria-label="專注時間"><span class="cfg-unit">分鐘</span></div>
+                </div>
+                <div class="cfg-row">
+                  <div class="cfg-row-label"><div class="cfg-row-name">短休息</div></div>
+                  <div class="cfg-row-ctl"><input type="number" id="fx-brk" class="inp cfg-num" min="1" max="60" onchange="saveFocusCfg()" aria-label="短休息"><span class="cfg-unit">分鐘</span></div>
+                </div>
+                <div class="cfg-row cfg-row-wide">
+                  <div class="cfg-row-label"><div class="cfg-row-name">長休息</div></div>
+                  <div class="cfg-row-ctl">
+                    <span class="cfg-unit cfg-unit-inline">每</span><input type="number" id="fx-longevery" class="inp cfg-num cfg-num-sm" min="2" max="12" onchange="saveFocusCfg()" aria-label="每幾輪長休息"><span class="cfg-unit cfg-unit-inline">輪休息</span>
+                    <input type="number" id="fx-longbrk" class="inp cfg-num" min="1" max="90" onchange="saveFocusCfg()" aria-label="長休息時間"><span class="cfg-unit">分鐘</span>
+                  </div>
+                </div>
+                <div class="cfg-row">
+                  <div class="cfg-row-label"><div class="cfg-row-name">提示音</div></div>
+                  <div class="cfg-row-ctl">
+                    <button type="button" class="btn btn-sm px-2 py-1 text-[11px]" onclick="fxChime('down')">試聽</button>
+                    <input type="checkbox" id="fx-sound" class="cfg-switch" aria-label="提示音" onchange="saveFocusCfg()">
+                  </div>
+                </div>
+                <div class="cfg-row">
+                  <div class="cfg-row-label">
+                    <div class="cfg-row-name">系統通知</div>
+                    <p id="fx-notify-note" class="cfg-row-desc cfg-row-warn hidden"></p>
+                  </div>
+                  <div class="cfg-row-ctl"><input type="checkbox" id="fx-notify" class="cfg-switch" aria-label="系統通知" onchange="saveFocusCfg()"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== 分析 ===== -->
+        <section class="cfg-pane" data-pane="analysis" role="tabpanel">
+          <h2 class="cfg-pane-title">分析</h2>
+          <div class="cfg-card">
+            <div class="cfg-card-head">
+              <div class="min-w-0">
+                <div class="cfg-card-title">正式階段名單<span class="cfg-info" tabindex="0" role="note" data-tip="名單外的名稱一律折進「雜事」。個案細節寫在階段後面的附註，附註只做顯示、不進統計。移除名單項目不會改動既有資料；要改寫舊資料的階段名，請用任務詳情裡的階段名總管。">i</span></div>
+                <div class="cfg-row-desc">名單內的階段才會在「各階段估時回測」中各自統計</div>
+              </div>
+            </div>
+            <div class="cfg-block">
+              <div id="phase-list-box" class="flex flex-wrap gap-2 mb-3"></div>
+              <div class="flex gap-2 flex-wrap">
+                <input id="phase-new" class="inp text-sm w-48 py-1.5" placeholder="新增階段名（如：分鏡）" onkeydown="if(event.key==='Enter')addPhaseName()">
+                <button class="btn btn-sm" onclick="addPhaseName()">+ 加入</button>
+                <button class="btn btn-sm text-slate-500" onclick="resetPhaseList()">還原預設</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="cfg-ai-export" class="cfg-card transition-shadow">
+            <div class="cfg-card-head">
+              <div class="cfg-card-title">AI 匯出</div>
+              <span class="flex items-center gap-1 bg-slate-800/60 rounded-lg p-0.5" role="tablist">
+                <button type="button" id="aix-tab-note" class="pie-mode-btn active" role="tab" onclick="setAIXTab('note')">分析模板</button>
+                <button type="button" id="aix-tab-tpl" class="pie-mode-btn" role="tab" onclick="setAIXTab('tpl')">單任務模板</button>
+              </span>
+            </div>
+            <div class="cfg-block">
+              <div id="aix-pane-note">
+                <span id="aix-tpl-pills" class="inline-flex flex-wrap items-center gap-1 bg-slate-800/60 rounded-lg p-0.5 mb-2" role="tablist" aria-label="分析模板"></span>
+                <div class="flex items-start justify-between gap-3 mb-2">
+                  <p id="aix-tpl-hint" class="text-[10px] text-slate-600"></p>
+                  <button type="button" class="text-[11px] text-slate-500 hover:text-amber-400 flex-shrink-0" onclick="aixTplReset()">恢復預設</button>
+                </div>
+                <div id="aix-tpl-chips" class="flex flex-wrap gap-1 mb-3"></div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  <textarea id="aix-tpl-input" class="inp w-full font-mono text-xs" rows="16" aria-label="分析模板內文" oninput="aixTplPreview()" onchange="aixTplSave()"></textarea>
+                  <div class="min-w-0">
+                    <div class="text-[11px] text-slate-500 mb-1.5">預覽（套用目前資料）</div>
+                    <pre id="aix-tpl-preview" class="bg-slate-950/60 border border-slate-800 rounded-lg p-3 text-[11px] text-slate-400 whitespace-pre-wrap overflow-auto m-0" style="max-height:340px"></pre>
+                  </div>
+                </div>
+                <div class="mt-4 pt-3 border-t border-slate-800">
+                  <div class="flex items-baseline gap-2 mb-1.5 flex-wrap">
+                    <span class="text-xs font-semibold text-slate-300">共用背景</span>
+                    <span class="text-[10px] text-slate-600">內容只寫一次；在任何模板插入 {{共用背景}} 就會帶入，留空時那一行自動省略。</span>
+                  </div>
+                  <textarea id="aix-shared-input" class="inp w-full text-xs" rows="3" aria-label="共用背景" placeholder="例：2026 年 4 月轉全職接案，之前的資料偏少。" oninput="aixTplPreview()" onchange="aixSharedSave()"></textarea>
+                </div>
+              </div>
+
+              <div id="aix-pane-tpl" class="hidden">
+                <div class="flex items-start justify-between gap-3 mb-2">
+                  <p class="text-[10px] text-slate-600">任務的「📋 複製分析」都套用這份模板。點欄位插入到游標位置，沒資料的欄位會自動留白。</p>
+                  <button type="button" class="text-[11px] text-slate-500 hover:text-amber-400 flex-shrink-0" onclick="xpTplReset()">恢復預設</button>
+                </div>
+                <div id="cfg-xp-chips" class="flex flex-wrap gap-1 mb-3"></div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  <textarea id="xp-tpl-input" class="inp w-full font-mono text-xs" rows="12" aria-label="單任務匯出模板" oninput="xpTplPreview()" onchange="saveXpTplCfg()"></textarea>
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-2 mb-1.5">
+                      <span class="text-[11px] text-slate-500 flex-shrink-0">預覽任務</span>
+                      <select id="xp-tpl-task" class="inp text-xs py-1 flex-1 min-w-0" onchange="xpTplPreview()"></select>
+                    </div>
+                    <pre id="xp-tpl-preview" class="bg-slate-950/60 border border-slate-800 rounded-lg p-3 text-[11px] text-slate-400 whitespace-pre-wrap overflow-auto m-0" style="max-height:220px"></pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== 資料維護 ===== -->
+        <section class="cfg-pane" data-pane="maint" role="tabpanel">
+          <h2 class="cfg-pane-title">資料維護</h2>
+          <div class="cfg-card is-danger">
+            <div class="cfg-row">
+              <div class="cfg-row-label">
+                <div class="cfg-row-name">批量壓平工時<span class="cfg-info" tabindex="0" role="note" data-tip="節省儲存空間，等同對每個任務逐一執行「壓平」。同日階段標記一致者會保留，混合者清空。">i</span></div>
+                <div class="cfg-row-desc">把所有任務同一天的零碎計時合併成單日總和</div>
+              </div>
+              <div class="cfg-row-ctl">
+                <button class="btn btn-sm bg-transparent border-slate-700 text-slate-400 hover:text-amber-400 hover:bg-amber-950/20 hover:border-amber-900/50 transition-colors" onclick="compressAllLogs()">壓平所有工時</button>
+              </div>
+            </div>
+            <div class="cfg-row cfg-row-wide">
+              <div class="cfg-row-label">
+                <div class="cfg-row-name">年度資料封存<span class="cfg-info" tabindex="0" role="note" data-tip="避免資料量超出容量限制。執行前會先列出要封存的內容讓你確認。">i</span></div>
+                <div class="cfg-row-desc">把指定年份（含）以前的已結案任務、工時與金流打包成 JSON，並從系統清除</div>
+              </div>
+              <div class="cfg-row-ctl">
+                <select id="archive-year" class="inp cfg-sel" data-nosave aria-label="封存年份">
+                  <option value="2024">2024 年</option>
+                  <option value="2025" selected>2025 年</option>
+                  <option value="2026">2026 年</option>
+                  <option value="2027">2027 年</option>
+                </select>
+                <button class="btn btn-sm bg-transparent border-slate-700 text-slate-400 hover:text-rose-400 hover:bg-rose-950/20 hover:border-rose-900/50 transition-colors" onclick="preArchiveCheck()">封存並清理</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
       </div>
     </div>
   </div>
@@ -2182,7 +2377,8 @@ function cloudSave(){
     phases: localStorage.getItem('ft_phases'),
     phase_hidden: localStorage.getItem('ft_phase_hidden'),
     estacc_hide_phases: localStorage.getItem('ft_estacc_hide_phases'),
-    xp_tpl: localStorage.getItem('ft_xp_tpl')
+    xp_tpl: localStorage.getItem('ft_xp_tpl'),
+    focus_cfg: localStorage.getItem('ft_focus_cfg')
   };
   
   // 2. 加入 VACS (休假) 與 CFG (設定) 到上傳名單
@@ -2222,7 +2418,7 @@ function cloudLoad(){
         
         // 2. 讀取並覆寫本地端設定檔
         if(cd.CFG) {
-          ['wmode','trate','dl_crit','wtarget','track_limit','show_tracks','show_hints','dash_cfg','unify_cur','ai_note','aix_tpls','aix_shared','phases','phase_hidden','estacc_hide_phases','xp_tpl'].forEach(k=>{
+          ['wmode','trate','dl_crit','wtarget','track_limit','show_tracks','show_hints','dash_cfg','unify_cur','ai_note','aix_tpls','aix_shared','phases','phase_hidden','estacc_hide_phases','xp_tpl','focus_cfg'].forEach(k=>{
             if(cd.CFG[k]) localStorage.setItem('ft_'+k, cd.CFG[k]);
           });
         }
@@ -2231,6 +2427,7 @@ function cloudLoad(){
         
         // 3. 強制更新 UI 畫面上的設定值
         document.getElementById('global-rate').value = getGlobalRate();
+        if(typeof applyFocusCfgUI==='function') applyFocusCfgUI();
         var wtEl = document.getElementById('weekly-target'); if(wtEl) wtEl.value = getWeeklyTarget();
         var trkLim = document.getElementById('cal-track-limit'); if(trkLim) trkLim.value = parseInt(localStorage.getItem('ft_track_limit')) || 21;
         var trkToggle = document.getElementById('cal-toggle-tracks'); if(trkToggle) trkToggle.checked = localStorage.getItem('ft_show_tracks') !== '0';
@@ -2331,7 +2528,8 @@ function cloudSaveBeacon(){
     phases: localStorage.getItem('ft_phases'),
     phase_hidden: localStorage.getItem('ft_phase_hidden'),
     estacc_hide_phases: localStorage.getItem('ft_estacc_hide_phases'),
-    xp_tpl: localStorage.getItem('ft_xp_tpl')
+    xp_tpl: localStorage.getItem('ft_xp_tpl'),
+    focus_cfg: localStorage.getItem('ft_focus_cfg')
   };
   var payload = {version:8, at:new Date().toISOString(),
     P:P, PJ:PJ, CATS:CATS, TAGS:TAGS, GRPS:GRPS,
@@ -2379,7 +2577,7 @@ document.addEventListener('visibilitychange', function() {
   }
 });
 function exportJSON(){
-  var cfg={wmode:localStorage.getItem('ft_wmode'),trate:localStorage.getItem('ft_trate'),dl_crit:localStorage.getItem('ft_dl_crit'),wtarget:localStorage.getItem('ft_wtarget'),track_limit:localStorage.getItem('ft_track_limit'),show_tracks:localStorage.getItem('ft_show_tracks'),show_hints:localStorage.getItem('ft_show_hints'),dash_cfg:localStorage.getItem('ft_dash_cfg'),phases:localStorage.getItem('ft_phases'),phase_hidden:localStorage.getItem('ft_phase_hidden'),estacc_hide_phases:localStorage.getItem('ft_estacc_hide_phases'),xp_tpl:localStorage.getItem('ft_xp_tpl'),ai_note:localStorage.getItem('ft_ai_note'),aix_tpls:localStorage.getItem('ft_aix_tpls'),aix_shared:localStorage.getItem('ft_aix_shared')};
+  var cfg={wmode:localStorage.getItem('ft_wmode'),trate:localStorage.getItem('ft_trate'),dl_crit:localStorage.getItem('ft_dl_crit'),wtarget:localStorage.getItem('ft_wtarget'),track_limit:localStorage.getItem('ft_track_limit'),show_tracks:localStorage.getItem('ft_show_tracks'),show_hints:localStorage.getItem('ft_show_hints'),dash_cfg:localStorage.getItem('ft_dash_cfg'),phases:localStorage.getItem('ft_phases'),phase_hidden:localStorage.getItem('ft_phase_hidden'),estacc_hide_phases:localStorage.getItem('ft_estacc_hide_phases'),xp_tpl:localStorage.getItem('ft_xp_tpl'),ai_note:localStorage.getItem('ft_ai_note'),aix_tpls:localStorage.getItem('ft_aix_tpls'),aix_shared:localStorage.getItem('ft_aix_shared'),focus_cfg:localStorage.getItem('ft_focus_cfg')};
   var d={version:8,at:new Date().toISOString(),P:P,PJ:PJ,CATS:CATS,TAGS:TAGS,GRPS:GRPS,DLOGS:DLOGS,VENDORS:VENDORS,VACS:VACS,WORKDAYS:WORKDAYS,MEXP:MEXP,FEXP:FEXP,MFIX:MFIX,REM:REM,CFG:cfg};
   var a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'}));
@@ -2403,7 +2601,7 @@ function importJSON(e){
         MFIX=d.MFIX||{}; // 匯入已壓平的固定支出
         REM=d.REM||[]; // 匯入日曆小提醒
         if(d.CFG){ // 匯入設定
-          ['wmode','trate','dl_crit','wtarget','track_limit','show_tracks','show_hints','dash_cfg','phases','phase_hidden','estacc_hide_phases','xp_tpl','ai_note','aix_tpls','aix_shared'].forEach(k=>{
+          ['wmode','trate','dl_crit','wtarget','track_limit','show_tracks','show_hints','dash_cfg','phases','phase_hidden','estacc_hide_phases','xp_tpl','ai_note','aix_tpls','aix_shared','focus_cfg'].forEach(k=>{
             if(d.CFG[k]) localStorage.setItem('ft_'+k, d.CFG[k]);
           });
         }
@@ -2413,6 +2611,7 @@ function importJSON(e){
         saveLocal();
         loadDLThresh();
         document.getElementById('global-rate').value = getGlobalRate();
+        if(typeof applyFocusCfgUI==='function') applyFocusCfgUI();
         var wtEl = document.getElementById('weekly-target'); if(wtEl) wtEl.value = getWeeklyTarget();
         var trkLim = document.getElementById('cal-track-limit'); if(trkLim) trkLim.value = parseInt(localStorage.getItem('ft_track_limit')) || 21;
         var trkToggle = document.getElementById('cal-toggle-tracks'); if(trkToggle) trkToggle.checked = localStorage.getItem('ft_show_tracks') !== '0';
@@ -2883,10 +3082,11 @@ function pmToMisc(norm){
   }, '確認歸入');
 }
 
-function startTimer(id){activeTimers[id]=Date.now();localStorage.setItem('ft_timers',JSON.stringify(activeTimers));rProj();}
+function startTimer(id){activeTimers[id]=Date.now();localStorage.setItem('ft_timers',JSON.stringify(activeTimers));rProj();if(typeof focusOnTimerStart==='function')focusOnTimerStart(id);}
 function stopTimer(id){
   if(!activeTimers[id])return;
   var elMins=Math.round((Date.now()-activeTimers[id])/60000);
+  if(typeof focusOnTimerStop==='function') focusOnTimerStop(id, elMins);
   delete activeTimers[id];localStorage.setItem('ft_timers',JSON.stringify(activeTimers));
   var p=pBy(id);
   if(p){
@@ -6202,7 +6402,7 @@ function flattenFixedExp(){
   }, '壓平');
 }
 function gotoFixedExpCfg(){
-  closeModal(); goTab('cfg');
+  closeModal(); goTab('cfg'); setCfgPane('finance');
   setTimeout(function(){ var el=document.getElementById('cfg-fexp'); if(el) el.scrollIntoView({behavior:'smooth', block:'start'}); },80);
 }
 
@@ -8366,7 +8566,7 @@ function xpTplReset(){
 function goAIExportCfg(){
   _aixTab = 'note';
   _aixEditTpl = aixGetSel(); // 直接開到目前選的模板
-  goTab('cfg');
+  goTab('cfg'); setCfgPane('analysis');
   setTimeout(function(){
     var box = document.getElementById('cfg-ai-export'); if(!box) return;
     try{ box.scrollIntoView({behavior:'smooth', block:'start'}); }catch(e){ box.scrollIntoView(); }
@@ -10166,6 +10366,603 @@ function showCloudMask(show){
   el.style.display = show ? 'flex' : 'none';
 }
 init();
+</script>
+<script>
+/* ============================================================
+   專注模式（精簡計時畫面＋番茄鐘提醒）
+   ・計時核心不變：仍以 activeTimers 的開始時間戳為準，這裡只負責「顯示」與「提醒」
+   ・顯示層依序退回：浮動小窗（Document PiP，Chrome/Edge）→ 頁內精簡卡片 → 分頁標題
+   ・番茄鐘只做提醒，不會停止或拆分工時紀錄
+   ・設定存 ft_focus_cfg（隨雲端同步）；番茄進度存 ft_focus_state（僅本機）
+   ・每秒輪詢 activeTimers 決定要不要顯示，所以不論從哪裡停止計時
+     （任務列、刪除任務、另一個分頁）小窗都會跟著收掉
+   ============================================================ */
+var FX_DEF = {on:false, autoPip:true, title:true, pomo:true, work:25, brk:5, longBrk:15, longEvery:4, notify:false, sound:true};
+var fx = {
+  cfgRaw:undefined, cfg:null,
+  mode:'hidden',            // 主頁面顯示：'card'（精簡卡片蓋住頁面）| 'pill'（右下角小膠囊）| 'hidden'
+  pip:null, pipW:null, pipOpening:false,
+  cardW:null, pillW:null,
+  ended:null,               // {mins, name, at} 停止後讓浮動小窗顯示幾秒結束訊息
+  audio:null, baseTitle:document.title, titleSet:false,
+  lastStateSave:0
+};
+
+function getFocusCfg(){
+  var raw = localStorage.getItem('ft_focus_cfg');
+  if(raw !== fx.cfgRaw){
+    fx.cfgRaw = raw;
+    var c = safeJSONParse(raw || '{}', {}) || {};
+    var o = {};
+    for(var k in FX_DEF) o[k] = (c[k] === undefined || c[k] === null) ? FX_DEF[k] : c[k];
+    fx.cfg = o;
+  }
+  return fx.cfg;
+}
+function setFocusCfg(c){
+  try{ localStorage.setItem('ft_focus_cfg', JSON.stringify(c)); }catch(e){}
+  save();
+}
+function fxPipSupported(){ return 'documentPictureInPicture' in window; }
+
+/* ---------- 設定頁 ---------- */
+function applyFocusCfgUI(){
+  var c = getFocusCfg();
+  var set = function(id, v){ var el = document.getElementById(id); if(!el) return; if(el.type === 'checkbox') el.checked = !!v; else el.value = v; };
+  set('fx-on', c.on); set('fx-autopip', c.autoPip); set('fx-title', c.title); set('fx-pomo', c.pomo);
+  set('fx-work', c.work); set('fx-brk', c.brk); set('fx-longbrk', c.longBrk); set('fx-longevery', c.longEvery);
+  set('fx-notify', c.notify); set('fx-sound', c.sound);
+  // 依賴的子選項在上層關閉時直接收起，不佔版面
+  var dim = function(id, off){ var el = document.getElementById(id); if(!el) return; el.style.display = off ? 'none' : ''; };
+  dim('fx-opts', !c.on);
+  dim('fx-pomo-opts', !c.pomo);
+  var pn = document.getElementById('fx-pip-note');
+  if(pn){
+    pn.textContent = fxPipSupported()
+      ? ''
+      : '這個瀏覽器不支援浮動小窗（需要 Chrome 或 Edge），會改用頁內精簡卡片。';
+    pn.style.display = pn.textContent ? '' : 'none';
+  }
+  var nn = document.getElementById('fx-notify-note');
+  if(nn){
+    var msg = '';
+    if(c.notify){
+      if(!('Notification' in window)) msg = '這個瀏覽器不支援系統通知。';
+      else if(Notification.permission === 'denied') msg = '瀏覽器已封鎖這個網頁的通知，請到網址列左側的網站設定中允許通知。';
+    }
+    nn.textContent = msg; nn.classList.toggle('hidden', !msg);
+  }
+}
+function saveFocusCfg(){
+  var prev = getFocusCfg();
+  var chk = function(id){ var el = document.getElementById(id); return !!(el && el.checked); };
+  var num = function(id, min, max, def){ var el = document.getElementById(id); var v = parseInt(el && el.value); if(isNaN(v)) v = def; return Math.min(max, Math.max(min, v)); };
+  var c = {
+    on: chk('fx-on'), autoPip: chk('fx-autopip'), title: chk('fx-title'), pomo: chk('fx-pomo'),
+    work: num('fx-work', 1, 180, FX_DEF.work), brk: num('fx-brk', 1, 60, FX_DEF.brk),
+    longEvery: num('fx-longevery', 2, 12, FX_DEF.longEvery), longBrk: num('fx-longbrk', 1, 90, FX_DEF.longBrk),
+    notify: chk('fx-notify'), sound: chk('fx-sound')
+  };
+  if(c.sound) fxPrimeAudio();
+  if(c.notify && !prev.notify && ('Notification' in window) && Notification.permission === 'default'){
+    Notification.requestPermission().then(function(r){
+      if(r !== 'granted'){
+        var cc = getFocusCfg(); cc = JSON.parse(JSON.stringify(cc)); cc.notify = false;
+        setFocusCfg(cc); applyFocusCfgUI();
+        showToast('未取得通知權限，系統通知維持關閉', 'amber');
+      } else {
+        showToast('已開啟系統通知', 'green');
+      }
+    });
+  }
+  // 計時中才打開專注模式 → 直接縮成右下角小膠囊，不突然蓋住畫面
+  if(c.on && !prev.on && fxActivePid() != null) fx.mode = 'pill';
+  setFocusCfg(c);
+  applyFocusCfgUI();
+  fxTick();
+}
+
+/* ---------- 計時器掛勾（由 startTimer / stopTimer 呼叫）---------- */
+function focusOnTimerStart(id){
+  var c = getFocusCfg(); if(!c.on) return;
+  fxPrimeAudio();
+  var now = Date.now(), s = fxPomoFresh(fxState(), now);
+  var recent = s && (now - (s.lastSeen || 0)) < 30 * 60000;
+  if(recent && s.phase === 'work'){
+    // 30 分鐘內換任務繼續做：延續同一顆番茄，不重算
+    s.lastSeen = now;
+  } else {
+    // 休息中提早回來、或隔太久才開始：開新的一顆；長休息過後週期歸零
+    var keepPos = recent && !s.long;
+    s = fxPomoNew(now, s, keepPos ? s.pos : 0);
+  }
+  fxSaveState(s);
+  fx.ended = null;
+  if(c.autoPip && fxPipSupported() && !fx.pip){
+    fx.mode = 'hidden';
+    fxOpenPip().catch(function(){ fx.mode = 'card'; fxTick(); });
+  } else if(!fx.pip){
+    fx.mode = 'card';
+  }
+  fxTick();
+}
+function focusOnTimerStop(id, mins){
+  var p = pBy(id);
+  fx.ended = {mins:mins, name:p ? p.name : '', at:Date.now()};
+  var s = fxState(); if(s && s.v === 2){ s.lastSeen = Date.now(); fxSaveState(s); }
+  setTimeout(fxTick, 0);
+}
+
+/* ---------- 番茄鐘 ----------
+   狀態（ft_focus_state，僅本機）：
+     phase      'work' | 'break'
+     phaseStart 這一段開始的時間戳
+     pos        這個週期已完成幾輪（0～每幾輪長休息）；長休息結束後歸零
+     long       目前這段休息是否為長休息
+     day, done  今日日期與今日完成輪數，跨日自動歸零
+     lastSeen   最後一次有在追蹤的時間；超過 30 分鐘沒追蹤就視為過期，從現在重新開始
+   「提早休息」也算完成一輪。
+   ------------------------------------------------------------ */
+var FX_STALE_MS = 30 * 60000;
+function fxState(){ return safeJSONParse(localStorage.getItem('ft_focus_state') || 'null', null); }
+function fxSaveState(s){ try{ localStorage.setItem('ft_focus_state', JSON.stringify(s)); }catch(e){} fx.lastStateSave = Date.now(); }
+function fxToday(){ return toLocalDate(); }
+function fxPomoNew(now, prev, pos){
+  var today = fxToday();
+  var done = (prev && prev.v === 2 && prev.day === today) ? (prev.done || 0) : 0;
+  return {v:2, phase:'work', phaseStart:now, pos:pos || 0, long:false, day:today, done:done, lastSeen:now};
+}
+// 舊版格式或過期的狀態一律從現在重新開始，避免一次補算幾千輪
+function fxPomoFresh(s, now, startTs){
+  if(!s || s.v !== 2 || !s.phaseStart || now - (s.lastSeen || 0) > FX_STALE_MS){
+    // 計時才剛開始不久（例如計時中途才打開番茄鐘）→ 從這次計時的起點算
+    var from = (startTs && now - startTs < FX_STALE_MS) ? startTs : now;
+    return fxPomoNew(from, s, 0);
+  }
+  if(s.day !== fxToday()){ s.day = fxToday(); s.done = 0; }
+  return s;
+}
+function fxPomoLen(c, s){
+  var m = s.phase === 'work' ? c.work : (s.long ? c.longBrk : c.brk);
+  return m * 60000;
+}
+// 專注 → 休息：完成一輪
+function fxPomoToBreak(c, s, at){
+  s.pos = (s.pos || 0) + 1;
+  if(s.day !== fxToday()){ s.day = fxToday(); s.done = 0; }
+  s.done = (s.done || 0) + 1;
+  s.long = s.pos >= c.longEvery;
+  s.phase = 'break'; s.phaseStart = at;
+}
+// 休息 → 專注：長休息結束才歸零週期
+function fxPomoToWork(c, s, at){
+  if(s.long || s.pos >= c.longEvery) s.pos = 0;
+  s.long = false;
+  s.phase = 'work'; s.phaseStart = at;
+}
+function fxPomoStep(c, now, p, startTs){
+  var raw = fxState();
+  var s = fxPomoFresh(raw, now, startTs);
+  var last = null, guard = 0;
+  while(now - s.phaseStart >= fxPomoLen(c, s) && guard++ < 20){
+    var at = s.phaseStart + fxPomoLen(c, s);
+    if(s.phase === 'work'){ fxPomoToBreak(c, s, at); last = 'toBreak'; }
+    else { fxPomoToWork(c, s, at); last = 'toWork'; }
+  }
+  if(guard >= 20) s = fxPomoNew(now, s, 0); // 理論上不會發生，保險起見直接重來
+  s.lastSeen = now;
+  if(last || s !== raw || now - fx.lastStateSave > 15000) fxSaveState(s);
+  // 只有「剛剛」發生的切換才提醒
+  if(last && now - s.phaseStart < 90000) fxAlert(last, c, s, p);
+  var len = fxPomoLen(c, s);
+  var every = Math.max(2, c.longEvery | 0);
+  return {phase:s.phase, pos:Math.min(s.pos || 0, every), every:every, long:!!s.long, done:s.done || 0,
+          left:Math.max(0, len - (now - s.phaseStart)), len:len};
+}
+function fxPomoSkip(){
+  var c = getFocusCfg(), now = Date.now(), s = fxPomoFresh(fxState(), now);
+  if(s.phase === 'work') fxPomoToBreak(c, s, now);
+  else fxPomoToWork(c, s, now);
+  s.lastSeen = now;
+  fxSaveState(s); fxTick();
+}
+function fxAlert(kind, c, s, p){
+  var title, body;
+  if(kind === 'toBreak'){
+    var m = Math.round(fxPomoLen(c, s) / 60000);
+    title = s.long ? '完成 ' + s.pos + ' 輪，長休息 ' + m + ' 分鐘' : '完成一輪，休息 ' + m + ' 分鐘';
+    body = '今天已完成 ' + s.done + ' 輪。「' + p.name + '」仍在計時中，休息不想計入工時請按停止。';
+  } else {
+    title = '休息結束';
+    body = '回到「' + p.name + '」。';
+  }
+  if(c.sound) fxChime(kind === 'toBreak' ? 'down' : 'up');
+  if(c.notify && ('Notification' in window) && Notification.permission === 'granted'){
+    try{
+      var n = new Notification(title, {body:body, tag:'ft-focus', silent:!!c.sound});
+      n.onclick = function(){ try{ window.focus(); }catch(e){} n.close(); };
+    }catch(e){}
+  }
+  showToast(title, kind === 'toBreak' ? 'blue' : 'green');
+}
+function fxPrimeAudio(){
+  try{
+    if(!fx.audio){ var AC = window.AudioContext || window.webkitAudioContext; if(AC) fx.audio = new AC(); }
+    if(fx.audio && fx.audio.state === 'suspended') fx.audio.resume();
+  }catch(e){}
+}
+function fxChime(dir){
+  fxPrimeAudio();
+  var ac = fx.audio; if(!ac) return;
+  var notes = dir === 'down' ? [880, 659.25] : [659.25, 880];
+  notes.forEach(function(f, i){
+    var t = ac.currentTime + i * 0.22;
+    var o = ac.createOscillator(), g = ac.createGain();
+    o.type = 'sine'; o.frequency.value = f;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.16, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.7);
+    o.connect(g); g.connect(ac.destination);
+    o.start(t); o.stop(t + 0.75);
+  });
+}
+
+/* ---------- 即時時薪 ---------- */
+function focusRateInfo(p, elHrs){
+  var cur = p.budgetCur || 'TWD';
+  var tot = (p.hrs || 0) + elHrs;
+  if(p.execMode === 'outsource' || p.execMode === 'resell'){
+    return {v:'—', u:'', tone:'mute', sub:'委外任務 · 累計審查 ' + formatHrs(tot), t:''};
+  }
+  if(p.nonBillable) return {v:'—', u:'', tone:'mute', sub:'不計酬任務', t:''};
+  if(p.bill === 'hourly'){
+    if(!(+p.hrate > 0)) return {v:'—', u:'', tone:'mute', sub:'尚未填約定時薪', t:''};
+    var hr = +p.hrate;
+    var sess = Math.round(elHrs * hr);
+    var sub = '約定 ' + hr.toLocaleString() + '/h · 累計 ' + fmtMoney(Math.round(tot * hr), cur);
+    var tone = 'ok';
+    var cap = (+p.budget > 0) ? (+p.budget / hr) : 0;
+    if(cap > 0){
+      if(tot >= cap){ sub += ' · 超出封頂 ' + formatHrs(tot - cap); tone = 'bad'; }
+      else { sub += ' · 封頂剩 ' + formatHrs(cap - tot); if(tot >= cap * 0.8) tone = 'warn'; }
+    }
+    return {v:'+' + sess.toLocaleString(), u:cur + ' 本次', tone:tone, sub:sub, t:'+' + sess.toLocaleString()};
+  }
+  var budgetTWD = toTWD(+p.budget || 0, cur);
+  if(budgetTWD <= 0) return {v:'—', u:'', tone:'mute', sub:'尚未填報價，無法換算時薪', t:''};
+  if(tot < 0.05) return {v:'…', u:'/h', tone:'mute', sub:'累計不到 3 分鐘，時薪還不準', t:''};
+  var rate = Math.round(budgetTWD / tot);
+  var target = getEffectiveRate(p);
+  var maxHrs = target > 0 ? budgetTWD / target : 0;
+  var tone2 = 'ok', sub2 = '目標 ' + (+target).toLocaleString();
+  if(maxHrs > 0){
+    if(tot >= maxHrs){ tone2 = 'bad'; sub2 += ' · 已超出水位 ' + formatHrs(tot - maxHrs); }
+    else { if(tot >= maxHrs * 0.8) tone2 = 'warn'; sub2 += ' · 安全水位剩 ' + formatHrs(maxHrs - tot); }
+  }
+  return {v:rate.toLocaleString(), u:'/h', tone:tone2, sub:sub2, t:rate.toLocaleString() + '/h'};
+}
+function fxClock(ms){
+  var sec = Math.max(0, Math.floor(ms / 1000));
+  var h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60;
+  var pad = function(n){ return (n < 10 ? '0' : '') + n; };
+  return h > 0 ? h + ':' + pad(m) + ':' + pad(s) : pad(m) + ':' + pad(s);
+}
+
+/* ---------- 小卡片 DOM ---------- */
+var FX_CSS = [
+'.fx-w{--fx-bg:#0f172a;--fx-line:#1e293b;--fx-text:#e2e8f0;--fx-mute:#64748b;--fx-dim:#94a3b8;--fx-ok:#34d399;--fx-warn:#fbbf24;--fx-bad:#fb7185;--fx-work:#f87171;--fx-brk:#38bdf8;',
+' font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC",sans-serif;color:var(--fx-text);background:var(--fx-bg);box-sizing:border-box;text-align:left;}',
+'.fx-w *{box-sizing:border-box}',
+'.fx-head{display:flex;align-items:center;gap:8px;min-width:0}',
+'.fx-dot{width:7px;height:7px;border-radius:50%;background:var(--fx-work);flex:none;animation:fxpulse 2s ease-in-out infinite}',
+'.fx-w.is-break .fx-dot{background:var(--fx-brk)}',
+'@keyframes fxpulse{50%{opacity:.3}}',
+'@media (prefers-reduced-motion:reduce){.fx-dot{animation:none}.fx-pomo-bar i{transition:none}}',
+'.fx-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}',
+'.fx-meta{font-size:10px;color:var(--fx-mute);margin-top:2px;padding-left:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+'.fx-meta:empty{display:none}',
+'.fx-main{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-top:12px}',
+'.fx-time{font-size:32px;font-weight:300;letter-spacing:.01em;font-variant-numeric:tabular-nums;line-height:1}',
+'.fx-rate{line-height:1;white-space:nowrap;text-align:right}',
+'.fx-rate-v{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}',
+'.fx-rate-u{font-size:11px;color:var(--fx-dim);margin-left:3px}',
+'.fx-tone-ok .fx-rate-v{color:var(--fx-ok)}.fx-tone-warn .fx-rate-v{color:var(--fx-warn)}.fx-tone-bad .fx-rate-v{color:var(--fx-bad)}.fx-tone-mute .fx-rate-v{color:var(--fx-mute)}',
+'.fx-sub{font-size:11px;color:var(--fx-dim);margin-top:7px;text-align:right}',
+'.fx-tone-bad .fx-sub{color:var(--fx-bad)}',
+'.fx-pomo{margin-top:12px}',
+'.fx-pomo-bar{height:3px;background:var(--fx-line);border-radius:2px;overflow:hidden}',
+'.fx-pomo-bar i{display:block;height:100%;width:0;background:var(--fx-work);transition:width 1s linear}',
+'.fx-w.is-break .fx-pomo-bar i{background:var(--fx-brk)}',
+'.fx-pomo-txt{display:flex;justify-content:space-between;gap:8px;font-size:10px;color:var(--fx-mute);margin-top:4px;font-variant-numeric:tabular-nums}',
+'.fx-w.is-break .fx-pomo-lab{color:var(--fx-brk)}',
+'.fx-pomo-l{display:inline-flex;align-items:center;gap:8px;min-width:0}',
+'.fx-dots{display:inline-flex;align-items:center;gap:4px}',
+'.fx-pd{width:7px;height:7px;border-radius:50%;border:1px solid #475569;box-sizing:border-box;flex:none}',
+'.fx-pd.f{background:var(--fx-work);border-color:var(--fx-work)}',
+'.fx-pd.h{background:linear-gradient(90deg,var(--fx-work) 50%,transparent 50%);border-color:var(--fx-work)}',
+'.fx-w.is-break .fx-pd.f{background:var(--fx-brk);border-color:var(--fx-brk)}',
+'.fx-pd.l{box-shadow:0 0 0 2px rgba(148,163,184,.22)}',
+'.fx-today{color:#475569}',
+'.fx-pill .fx-dots{margin-left:2px}',
+'.fx-actions{display:flex;align-items:center;gap:6px;margin-top:12px}',
+'.fx-spacer{flex:1}',
+'.fx-btn{font:inherit;font-size:11px;line-height:1.2;border:1px solid #334155;background:#1e293b;color:#cbd5e1;border-radius:6px;padding:5px 9px;cursor:pointer;white-space:nowrap}',
+'.fx-btn:hover{border-color:#475569;color:#fff}',
+'.fx-btn:focus-visible,.fx-pill-body:focus-visible{outline:2px solid #60a5fa;outline-offset:1px}',
+'.fx-btn-stop{background:rgba(127,29,29,.25);border-color:#7f1d1d;color:#fca5a5}',
+'.fx-btn-stop:hover{background:rgba(127,29,29,.45);border-color:#991b1b;color:#fecaca}',
+'.fx-end{display:none;font-size:13px;color:var(--fx-dim);text-align:center;line-height:1.6}',
+'.fx-end b{display:block;font-size:20px;font-weight:600;color:var(--fx-ok);margin-bottom:2px}',
+'.fx-w.is-ended>*:not(.fx-end){display:none}',
+'.fx-w.is-ended .fx-end{display:block}',
+/* 右下角小膠囊 */
+'.fx-pill{border:1px solid #1e293b;border-radius:10px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.45)}',
+'.fx-pill-body{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;max-width:min(360px,calc(100vw - 32px))}',
+'.fx-pill .fx-name{font-size:12px;font-weight:500;color:var(--fx-dim);max-width:130px}',
+'.fx-pill .fx-time{font-size:15px;font-weight:500}',
+'.fx-pill .fx-rate-v{font-size:13px}',
+'.fx-pill .fx-rate-u{font-size:10px}',
+'.fx-pill .fx-pomo-bar{height:2px;border-radius:0}'
+].join('\n');
+
+var FX_PAGE_CSS = [
+'#fx-overlay{position:fixed;inset:0;z-index:9990;background:rgba(2,6,23,.88);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:16px}',
+'#fx-overlay .fx-w{width:100%;max-width:340px;border:1px solid #1e293b;border-radius:14px;padding:16px 18px;box-shadow:0 24px 60px rgba(0,0,0,.55)}',
+'#fx-pill{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:9989;display:none}'
+].join('\n');
+
+var FX_PIP_CSS = [
+'html,body{margin:0;height:100%;background:#0f172a}',
+'body>.fx-w{min-height:100%;padding:14px 16px;display:flex;flex-direction:column;justify-content:center}',
+'body>.fx-w.is-ended{align-items:center}'
+].join('\n');
+
+function fxBuild(doc, variant){
+  var root = doc.createElement('div');
+  root.className = 'fx-w fx-' + variant;
+  if(variant === 'pill'){
+    root.innerHTML =
+      '<button type="button" class="fx-pill-body" data-act="expand" title="展開專注卡片">' +
+        '<span class="fx-dot"></span><span class="fx-name"></span>' +
+        '<span class="fx-time"></span>' +
+        '<span class="fx-rate"><span class="fx-rate-v"></span><span class="fx-rate-u"></span></span>' +
+        '<span class="fx-dots"></span>' +
+      '</button>' +
+      '<div class="fx-pomo-bar"><i></i></div>';
+  } else {
+    root.innerHTML =
+      '<div class="fx-head"><span class="fx-dot"></span><span class="fx-name"></span></div>' +
+      '<div class="fx-meta"></div>' +
+      '<div class="fx-main"><div class="fx-time"></div><div class="fx-rate"><span class="fx-rate-v"></span><span class="fx-rate-u"></span></div></div>' +
+      '<div class="fx-sub"></div>' +
+      '<div class="fx-pomo"><div class="fx-pomo-bar"><i></i></div><div class="fx-pomo-txt"><span class="fx-pomo-l"><span class="fx-pomo-lab"></span><span class="fx-dots"></span><span class="fx-today"></span></span><span class="fx-pomo-r"></span></div></div>' +
+      '<div class="fx-actions">' +
+        '<button type="button" class="fx-btn fx-btn-stop" data-act="stop">停止計時</button>' +
+        '<button type="button" class="fx-btn" data-act="skip"></button>' +
+        '<span class="fx-spacer"></span>' +
+        (variant === 'card'
+          ? '<button type="button" class="fx-btn" data-act="pip" title="開啟永遠置頂的浮動小窗">浮動小窗</button>' +
+            '<button type="button" class="fx-btn" data-act="min" title="縮到右下角，回到完整頁面（Esc）">完整頁面</button>'
+          : '') +
+      '</div>' +
+      '<div class="fx-end"></div>';
+  }
+  var q = function(sel){ return root.querySelector(sel); };
+  var w = {
+    root:root, variant:variant,
+    name:q('.fx-name'), meta:q('.fx-meta'), time:q('.fx-time'),
+    rateV:q('.fx-rate-v'), rateU:q('.fx-rate-u'), sub:q('.fx-sub'),
+    pomo:q('.fx-pomo'), bar:q('.fx-pomo-bar'), barFill:q('.fx-pomo-bar i'),
+    pomoL:q('.fx-pomo-l'), pomoLab:q('.fx-pomo-lab'), dots:q('.fx-dots'), today:q('.fx-today'), pomoR:q('.fx-pomo-r'),
+    skip:q('[data-act="skip"]'), pipBtn:q('[data-act="pip"]'), end:q('.fx-end')
+  };
+  root.addEventListener('click', function(e){
+    var b = e.target.closest('[data-act]'); if(!b) return;
+    var act = b.getAttribute('data-act');
+    if(act === 'stop'){ var pid = fxActivePid(); if(pid != null) stopTimer(pid); }
+    else if(act === 'skip'){ fxPomoSkip(); }
+    else if(act === 'pip'){ fxOpenPip().catch(function(){ showToast('無法開啟浮動小窗', 'amber'); }); }
+    else if(act === 'min'){ fx.mode = 'pill'; fxTick(); }
+    else if(act === 'expand'){ fx.mode = 'card'; fxTick(); }
+  });
+  return w;
+}
+function fxSetText(el, v){ if(el && el.textContent !== v) el.textContent = v; }
+// 週期進度點：實心＝已完成、半圓＝進行中、空心＝未到；最後一點外圈代表之後是長休息
+function fxSetDots(el, pm){
+  var sig = pm.phase + '|' + pm.pos + '|' + pm.every;
+  if(el._sig === sig) return;
+  el._sig = sig;
+  var h = '';
+  for(var i = 0; i < pm.every; i++){
+    var cls = i < pm.pos ? 'f' : (pm.phase === 'work' && i === pm.pos ? 'h' : '');
+    if(i === pm.every - 1) cls += ' l';
+    h += '<i class="fx-pd ' + cls + '"></i>';
+  }
+  el.innerHTML = h;
+  el.setAttribute('aria-label', '本週期完成 ' + pm.pos + ' / ' + pm.every + ' 輪');
+}
+function fxUpdate(w, d){
+  var r = w.root;
+  r.classList.remove('is-ended');
+  r.classList.toggle('is-break', !!(d.pomo && d.pomo.phase === 'break'));
+  ['ok','warn','bad','mute'].forEach(function(t){ r.classList.toggle('fx-tone-' + t, d.info.tone === t); });
+  fxSetText(w.name, d.p.name || '');
+  fxSetText(w.time, fxClock(d.elMs));
+  fxSetText(w.rateV, d.info.v);
+  fxSetText(w.rateU, d.info.u);
+  if(w.meta){
+    var bits = [], gn = grpName(d.p.gid), ph = currentPhaseName(d.p);
+    if(gn) bits.push(gn); if(ph) bits.push(ph);
+    fxSetText(w.meta, bits.join(' · '));
+  }
+  fxSetText(w.sub, d.info.sub);
+  if(w.bar) w.bar.style.display = d.pomo ? '' : 'none';
+  if(w.pomo) w.pomo.style.display = d.pomo ? '' : 'none';
+  if(w.dots){ w.dots.style.display = d.pomo ? '' : 'none'; if(d.pomo) fxSetDots(w.dots, d.pomo); }
+  if(d.pomo){
+    var pct = Math.min(100, (1 - d.pomo.left / d.pomo.len) * 100);
+    if(w.barFill) w.barFill.style.width = pct.toFixed(2) + '%';
+    var brk = d.pomo.phase === 'break';
+    fxSetText(w.pomoLab, brk ? (d.pomo.long ? '長休息' : '休息') : '專注');
+    fxSetText(w.today, '今日 ' + d.pomo.done);
+    if(w.pomoL) w.pomoL.title = brk ? '計時仍在進行，休息不想計入工時請停止計時' : '';
+    fxSetText(w.pomoR, '剩 ' + fxClock(d.pomo.left));
+  }
+  if(w.skip){
+    w.skip.style.display = d.pomo ? '' : 'none';
+    fxSetText(w.skip, d.pomo && d.pomo.phase === 'break' ? '結束休息' : '提早休息');
+  }
+  if(w.pipBtn) w.pipBtn.style.display = (fxPipSupported() && !fx.pip) ? '' : 'none';
+}
+function fxRenderEnded(w){
+  var e = fx.ended; if(!w || !e) return;
+  w.root.classList.add('is-ended');
+  w.root.classList.remove('is-break');
+  w.end.innerHTML = e.mins >= 1
+    ? '<b>已記錄 ' + esc(formatHrs(Math.round(e.mins / 60 * 100) / 100)) + '</b>' + esc(e.name)
+    : '<b style="color:#fbbf24">計時不足 1 分鐘</b>未記錄工時';
+}
+
+/* ---------- 顯示層切換 ---------- */
+function fxEnsurePage(){
+  if(document.getElementById('fx-overlay')) return;
+  var st = document.createElement('style'); st.textContent = FX_CSS + '\n' + FX_PAGE_CSS; document.head.appendChild(st);
+  var ov = document.createElement('div'); ov.id = 'fx-overlay';
+  fx.cardW = fxBuild(document, 'card'); ov.appendChild(fx.cardW.root);
+  var pill = document.createElement('div'); pill.id = 'fx-pill';
+  fx.pillW = fxBuild(document, 'pill'); pill.appendChild(fx.pillW.root);
+  document.body.appendChild(ov); document.body.appendChild(pill);
+}
+function fxShowPage(mode){
+  if(mode === 'hidden' && !document.getElementById('fx-overlay')) return;
+  fxEnsurePage();
+  var ov = document.getElementById('fx-overlay'), pill = document.getElementById('fx-pill');
+  var ovOn = mode === 'card', pillOn = mode === 'pill';
+  if((ov.style.display === 'flex') !== ovOn) ov.style.display = ovOn ? 'flex' : 'none';
+  if((pill.style.display === 'block') !== pillOn) pill.style.display = pillOn ? 'block' : 'none';
+}
+async function fxOpenPip(){
+  if(fx.pip || fx.pipOpening || !fxPipSupported()) return;
+  fx.pipOpening = true;
+  var w;
+  try{ w = await documentPictureInPicture.requestWindow({width:330, height:200}); }
+  finally{ fx.pipOpening = false; }
+  fx.pip = w;
+  var d = w.document;
+  d.title = '專注計時';
+  var st = d.createElement('style'); st.textContent = FX_CSS + '\n' + FX_PIP_CSS; d.head.appendChild(st);
+  fx.pipW = fxBuild(d, 'pip');
+  d.body.appendChild(fx.pipW.root);
+  // 浮動小窗本身是可見視窗，用它的計時器不會被瀏覽器降頻（主分頁在背景時仍準時提醒）
+  w.setInterval(fxTick, 1000);
+  w.addEventListener('pagehide', function(){
+    fx.pip = null; fx.pipW = null;
+    if(fxActivePid() != null && getFocusCfg().on) fx.mode = 'pill';
+    fxTick();
+  });
+  fx.mode = 'hidden';
+  fxTick();
+}
+function fxClosePip(){ if(fx.pip){ try{ fx.pip.close(); }catch(e){} } }
+function fxActivePid(){
+  var ids = Object.keys(activeTimers || {});
+  if(!ids.length) return null;
+  ids.sort(function(a, b){ return activeTimers[b] - activeTimers[a]; });
+  return +ids[0];
+}
+function fxRestoreTitle(){ if(fx.titleSet){ document.title = fx.baseTitle; fx.titleSet = false; } }
+
+function fxTick(){
+  var c = getFocusCfg();
+  var pid = fxActivePid();
+  var p = pid != null ? pBy(pid) : null;
+  var now = Date.now();
+
+  if(!c.on || !p){
+    fxRestoreTitle();
+    fxShowPage('hidden');
+    if(fx.pip){
+      if(c.on && fx.ended && now - fx.ended.at < 3500) fxRenderEnded(fx.pipW);
+      else fxClosePip();
+    }
+    return;
+  }
+
+  // 有計時但沒有任何顯示（重新整理、或計時中途才打開專注模式）→ 右下角小膠囊
+  if(!fx.pip && !fx.pipOpening && fx.mode === 'hidden') fx.mode = 'pill';
+
+  var startTs = activeTimers[pid];
+  var elMs = now - startTs;
+  var data = {
+    p:p, elMs:elMs,
+    info:focusRateInfo(p, elMs / 3600000),
+    pomo:c.pomo ? fxPomoStep(c, now, p, startTs) : null
+  };
+  if(fx.pipW) fxUpdate(fx.pipW, data);
+  var pageMode = fx.pip ? 'hidden' : fx.mode;
+  fxShowPage(pageMode);
+  if(pageMode === 'card') fxUpdate(fx.cardW, data);
+  else if(pageMode === 'pill') fxUpdate(fx.pillW, data);
+
+  if(c.title){
+    var t = (data.pomo && data.pomo.phase === 'break')
+      ? '☕ 休息 ' + fxClock(data.pomo.left) + ' · ' + p.name
+      : '⏱ ' + fxClock(elMs) + (data.info.t ? ' · ' + data.info.t : '') + ' · ' + p.name;
+    if(document.title !== t) document.title = t;
+    fx.titleSet = true;
+  } else fxRestoreTitle();
+}
+
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape' && fx.mode === 'card' && !fx.pip && fxActivePid() != null && getFocusCfg().on){
+    fx.mode = 'pill'; fxTick();
+  }
+});
+// 重新整理後第一次點擊就先喚醒音效，避免背景提醒沒有聲音
+document.addEventListener('pointerdown', function once(){ if(getFocusCfg().on && getFocusCfg().sound) fxPrimeAudio(); document.removeEventListener('pointerdown', once); });
+applyFocusCfgUI();
+setInterval(fxTick, 1000);
+fxTick();
+</script>
+<script>
+/* ============================================================
+   設定頁：左側分類切換＋「已儲存」回饋
+   ・目前分類記在 ft_cfg_pane（僅本機，不同步）
+   ============================================================ */
+var CFG_PANES = ['general','finance','time','analysis','maint'];
+function setCfgPane(name){
+  if(CFG_PANES.indexOf(name) === -1) name = 'general';
+  document.querySelectorAll('#v-cfg .cfg-pane').forEach(function(el){ el.classList.toggle('active', el.getAttribute('data-pane') === name); });
+  document.querySelectorAll('#v-cfg .cfg-nav-btn').forEach(function(el){
+    var on = el.getAttribute('data-cfg') === name;
+    el.classList.toggle('active', on);
+    el.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  try{ localStorage.setItem('ft_cfg_pane', name); }catch(e){}
+  // 從頁面下方切換分類時，回到設定頁頂端
+  var v = document.getElementById('v-cfg');
+  if(v && !v.classList.contains('hidden')){
+    var top = v.getBoundingClientRect().top;
+    if(top < 0) window.scrollTo({top: window.scrollY + top - 12});
+  }
+}
+// 在設定列上改任何值後，右側短暫顯示「已儲存」
+(function(){
+  var v = document.getElementById('v-cfg'); if(!v) return;
+  v.addEventListener('change', function(e){
+    var t = e.target;
+    if(!t || t.hasAttribute('data-nosave')) return;
+    var row = t.closest('.cfg-row'); if(!row) return;
+    var ctl = row.querySelector('.cfg-row-ctl'); if(!ctl) return;
+    var tag = ctl.querySelector('.cfg-saved');
+    if(!tag){ tag = document.createElement('span'); tag.className = 'cfg-saved'; tag.textContent = '已儲存'; tag.setAttribute('aria-live', 'polite'); ctl.insertBefore(tag, ctl.firstChild); }
+    tag.classList.add('show');
+    clearTimeout(tag._t);
+    tag._t = setTimeout(function(){ tag.classList.remove('show'); }, 1400);
+  });
+})();
+setCfgPane(localStorage.getItem('ft_cfg_pane') || 'general');
 </script>
 </body>
 </html>
