@@ -11007,6 +11007,8 @@ var FX_CSS = [
 '.fx-btn:focus-visible,.fx-pill-body:focus-visible{outline:2px solid #60a5fa;outline-offset:1px}',
 '.fx-btn-stop{background:rgba(127,29,29,.25);border-color:#7f1d1d;color:#fca5a5}',
 '.fx-btn-stop:hover{background:rgba(127,29,29,.45);border-color:#991b1b;color:#fecaca}',
+'.fx-bi{display:none;line-height:0}',
+'.fx-bi svg{display:block}',
 '.fx-end{display:none;font-size:13px;color:var(--fx-dim);text-align:center;line-height:1.6}',
 '.fx-end b{display:block;font-size:20px;font-weight:600;color:var(--fx-ok);margin-bottom:2px}',
 '.fx-w.is-ended>*:not(.fx-end){display:none}',
@@ -11030,7 +11032,64 @@ var FX_PAGE_CSS = [
 var FX_PIP_CSS = [
 'html,body{margin:0;height:100%;background:#0f172a}',
 'body>.fx-w{min-height:100%;padding:14px 16px;display:flex;flex-direction:column;justify-content:center}',
-'body>.fx-w.is-ended{align-items:center}'
+'body>.fx-w.is-ended{align-items:center}',
+'.fx-w.is-alert .fx-dot{background:var(--fx-warn)}',
+/* 第 1 層（高度 < 200）：收掉分類／階段，間距收緊 */
+'@media (max-height:199px){',
+' body>.fx-w{padding:10px 14px}',
+' .fx-meta{display:none}',
+' .fx-main{margin-top:8px}',
+' .fx-sub{margin-top:5px}',
+' .fx-pomo,.fx-actions{margin-top:9px}',
+'}',
+/* 第 2 層（高度 < 164）：收掉目標／水位與番茄文字列；計時中斷的警告仍會顯示 */
+'@media (max-height:163px){',
+' .fx-sub{display:none}',
+' .fx-w.is-alert .fx-sub{display:block;margin-top:3px}',
+' .fx-w.is-alert .fx-main{margin-top:4px}',
+' .fx-w.is-alert .fx-pomo,.fx-w.is-alert .fx-actions{margin-top:6px}',
+' .fx-pomo-txt{display:none}',
+' .fx-time{font-size:28px}',
+' .fx-rate-v{font-size:19px}',
+'}',
+/* 第 3 層（高度 < 130）：兩列式，按鈕移到計時右側並改成圖示 */
+'@media (max-height:129px){',
+' body>.fx-w{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"head head" "main act" "pomo pomo";column-gap:10px;row-gap:6px;align-content:center;padding:8px 12px}',
+' .fx-head{grid-area:head}',
+' .fx-main{grid-area:main;margin:0;justify-content:flex-start;align-items:baseline;gap:10px;min-width:0}',
+' .fx-actions{grid-area:act;margin:0}',
+' .fx-pomo{grid-area:pomo;margin:0}',
+' .fx-sub,.fx-w.is-alert .fx-sub{display:none}',
+' .fx-w.is-alert .fx-main,.fx-w.is-alert .fx-pomo,.fx-w.is-alert .fx-actions{margin:0}',
+' .fx-time{font-size:24px}',
+' .fx-rate-v{font-size:15px}',
+' .fx-rate-u{font-size:10px}',
+' body>.fx-w.is-ended{display:flex;justify-content:center}',
+' .fx-end{font-size:11px;line-height:1.35}',
+' .fx-end b{font-size:15px;margin-bottom:0}',
+'}',
+/* 第 4 層（高度 < 76）：單行，底部一條番茄進度條 */
+'@media (max-height:75px){',
+' body>.fx-w{grid-template-columns:minmax(0,1fr) auto auto;grid-template-areas:"head main act" "pomo pomo pomo";row-gap:5px;padding:6px 10px}',
+' .fx-name{font-size:12px}',
+' .fx-time{font-size:17px;font-weight:400}',
+' .fx-rate{display:none}',
+' .fx-pomo-bar{height:2px}',
+' .fx-end b{display:inline;font-size:13px;margin-right:6px}',
+'}',
+'@media (max-height:75px) and (min-width:380px){ .fx-rate{display:block} }',
+/* 窄視窗：按鈕改圖示，再窄就收掉時薪單位 */
+'@media (max-width:260px){ .fx-rate-u{display:none} .fx-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis} }',
+'@media (max-width:210px){ .fx-rate,.fx-today{display:none} }',
+/* 圖示按鈕（第 3、4 層或寬度 < 280 時）：停止鍵放最右邊並拉開距離，避免誤按 */
+'@media (max-height:129px),(max-width:279px){',
+' .fx-actions{gap:4px}',
+' .fx-btn{display:inline-flex;align-items:center;justify-content:center;width:28px;height:26px;padding:0}',
+' .fx-bl{display:none}',
+' .fx-bi{display:block}',
+' .fx-actions [data-act="stop"]{order:3;margin-left:6px}',
+'}',
+'@media (max-height:75px){ .fx-btn{width:26px;height:24px} }'
 ].join('\n');
 
 function fxBuild(doc, variant){
@@ -11062,9 +11121,9 @@ function fxBuild(doc, variant){
       '<div class="fx-sub"></div>' +
       '<div class="fx-pomo"><div class="fx-pomo-bar"><i></i></div><div class="fx-pomo-txt"><span class="fx-pomo-l"><span class="fx-pomo-lab"></span><span class="fx-dots"></span><span class="fx-today"></span></span><span class="fx-pomo-r"></span></div></div>' +
       '<div class="fx-actions">' +
-        '<button type="button" class="fx-btn fx-btn-stop" data-act="stop">停止計時</button>' +
-        '<button type="button" class="fx-btn" data-act="pause">暫停</button>' +
-        '<button type="button" class="fx-btn" data-act="skip"></button>' +
+        '<button type="button" class="fx-btn fx-btn-stop" data-act="stop"><span class="fx-bi"></span><span class="fx-bl"></span></button>' +
+        '<button type="button" class="fx-btn" data-act="pause"><span class="fx-bi"></span><span class="fx-bl"></span></button>' +
+        '<button type="button" class="fx-btn" data-act="skip"><span class="fx-bi"></span><span class="fx-bl"></span></button>' +
       '</div>' +
       '<div class="fx-end"></div>';
   }
@@ -11094,6 +11153,21 @@ function fxBuild(doc, variant){
   return w;
 }
 function fxSetText(el, v){ if(el && el.textContent !== v) el.textContent = v; }
+// 小窗縮小時按鈕只剩圖示，所以文字同時寫進 title／aria-label
+var FX_ICON = {
+  stop:'<svg viewBox="0 0 16 16" width="12" height="12"><rect x="3.5" y="3.5" width="9" height="9" rx="1.5" fill="currentColor"/></svg>',
+  pause:'<svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor"><rect x="3.5" y="3" width="3" height="10" rx="1"/><rect x="9.5" y="3" width="3" height="10" rx="1"/></svg>',
+  play:'<svg viewBox="0 0 16 16" width="12" height="12"><path d="M5 3.2v9.6l7.6-4.8z" fill="currentColor"/></svg>',
+  brk:'<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6h8v3.2a3.3 3.3 0 0 1-3.3 3.3h-1.4a3.3 3.3 0 0 1-3.3-3.3z"/><path d="M10.5 7h1.2a1.7 1.7 0 0 1 0 3.4h-1.2"/></svg>',
+  work:'<svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor"><path d="M3.5 3.2v9.6l6.8-4.8z"/><rect x="11" y="3.2" width="1.8" height="9.6" rx=".6"/></svg>'
+};
+function fxSetBtn(btn, label, icon){
+  if(!btn) return;
+  fxSetText(btn.querySelector('.fx-bl'), label);
+  var i = btn.querySelector('.fx-bi');
+  if(i && i._k !== icon){ i._k = icon; i.innerHTML = FX_ICON[icon] || ''; }
+  if(btn.title !== label){ btn.title = label; btn.setAttribute('aria-label', label); }
+}
 // 週期進度點：實心＝已完成、半圓＝進行中、空心＝未到；最後一點外圈代表之後是長休息
 function fxSetDots(el, pm){
   var sig = pm.phase + '|' + pm.pos + '|' + pm.every;
@@ -11125,6 +11199,7 @@ function fxUpdate(w, d){
     fxSetText(w.meta, bits.join(' · '));
   }
   var tgWait = (typeof tg !== 'undefined' && tg.open);
+  r.classList.toggle('is-alert', !!tgWait);
   fxSetText(w.sub, tgWait ? '計時中斷過一段時間，請回主頁面確認' : d.info.sub);
   if(w.sub) w.sub.style.color = tgWait ? 'var(--fx-warn)' : '';
   if(w.bar) w.bar.style.display = d.pomo ? '' : 'none';
@@ -11142,11 +11217,12 @@ function fxUpdate(w, d){
       ? (brk ? '繼續後開始下一輪專注' : '停在 ' + fxClock(d.pomo.left))
       : '剩 ' + fxClock(d.pomo.left));
   }
-  if(w.pauseBtn) fxSetText(w.pauseBtn, d.paused ? '繼續' : '暫停');
-  if(w.stopBtn) fxSetText(w.stopBtn, d.paused ? '結束' : '停止計時');
+  fxSetBtn(w.pauseBtn, d.paused ? '繼續' : '暫停', d.paused ? 'play' : 'pause');
+  fxSetBtn(w.stopBtn, d.paused ? '結束' : '停止計時', 'stop');
   if(w.skip){
     w.skip.style.display = (d.pomo && !d.paused) ? '' : 'none';
-    fxSetText(w.skip, d.pomo && d.pomo.phase === 'break' ? '結束休息' : '提早休息');
+    var inBrk = !!(d.pomo && d.pomo.phase === 'break');
+    fxSetBtn(w.skip, inBrk ? '結束休息' : '提早休息', inBrk ? 'work' : 'brk');
   }
   if(w.pipBtn) w.pipBtn.style.display = (fxPipSupported() && !fx.pip) ? '' : 'none';
 }
@@ -11177,11 +11253,19 @@ function fxShowPage(mode){
   if((ov.style.display === 'flex') !== ovOn) ov.style.display = ovOn ? 'flex' : 'none';
   if((pill.style.display === 'block') !== pillOn) pill.style.display = pillOn ? 'block' : 'none';
 }
+// 浮動小窗大小：記在 ft_pip_size（僅本機，每台裝置螢幕不同）
+function fxPipSizeGet(){
+  var v = safeJSONParse(localStorage.getItem('ft_pip_size') || 'null', null);
+  var w = v ? +v.w : 0, h = v ? +v.h : 0;
+  if(!(w > 0 && h > 0)) return {w:330, h:200};
+  return {w:Math.min(600, Math.max(180, Math.round(w))), h:Math.min(400, Math.max(48, Math.round(h)))};
+}
 async function fxOpenPip(){
   if(fx.pip || fx.pipOpening || !fxPipSupported()) return;
   fx.pipOpening = true;
   var w;
-  try{ w = await documentPictureInPicture.requestWindow({width:330, height:200}); }
+  var sz = fxPipSizeGet();
+  try{ w = await documentPictureInPicture.requestWindow({width:sz.w, height:sz.h}); }
   finally{ fx.pipOpening = false; }
   fx.pip = w;
   var d = w.document;
@@ -11192,6 +11276,13 @@ async function fxOpenPip(){
   // 浮動小窗本身是可見視窗，用它的計時器不會被瀏覽器降頻（主分頁在背景時仍準時提醒）
   w.setInterval(fxTick, 1000);
   w.setInterval(function(){ if(typeof tgCheck === 'function') tgCheck(); }, 30000);
+  var szTimer = null;
+  w.addEventListener('resize', function(){
+    clearTimeout(szTimer);
+    szTimer = setTimeout(function(){
+      try{ localStorage.setItem('ft_pip_size', JSON.stringify({w:w.innerWidth, h:w.innerHeight})); }catch(e){}
+    }, 400);
+  });
   w.addEventListener('pagehide', function(){
     fx.pip = null; fx.pipW = null;
     if(fxActivePid() != null && getFocusCfg().on) fx.mode = 'pill';
