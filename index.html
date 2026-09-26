@@ -2262,10 +2262,12 @@ function applyModules(){
     var el = document.getElementById(VIEWS[v]);
     if(el && !el.classList.contains('hidden')){ var b = document.querySelector('.tab-main'); if(b) go('proj', b); }
   });
-  rProj(); rGrp();
+  // 設定頁的狀態先更新；各畫面重繪分開保護，某一處出錯也不會卡住其他地方
   if(typeof rModsUI === 'function') rModsUI();
+  var safe = function(fn, name){ try{ fn(); }catch(e){ console.error('[modules] ' + name + ' 重繪失敗', e); } };
+  safe(rProj, 'rProj'); safe(rGrp, 'rGrp');
   var dash = document.getElementById('v-dash');
-  if(dash && !dash.classList.contains('hidden')) renderDash();
+  if(dash && !dash.classList.contains('hidden')) safe(renderDash, 'renderDash');
 }
 /* ---- 設定頁 UI ---- */
 function modDataNote(k){
@@ -5680,6 +5682,8 @@ function renderRows(list, isDone, scores, bucketKey, currentTopId) {
         if(p.execMode&&p.execMode!=='self'&&!p.nonBillable){
           var vCostTWD=toTWD(p.vendorCost||0,p.vendorCostCur||'TWD');
           if(p.execMode==='resell'){
+            // 轉包淨利＝向客戶收的（已認列收入，沒有就用報價）－付給轉包方的成本
+            var earnedTWD=toTWD(r.earned||p.budget||0,cur);
             var netProfit=earnedTWD-vCostTWD;
             netProfitHtml='<div class=\"text-[10px] mt-1 '+(netProfit>=0?'text-emerald-400':'text-red-400')+'\">淨利 NT$ '+Math.round(netProfit).toLocaleString()+'</div>';
           } else {
