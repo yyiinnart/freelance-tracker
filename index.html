@@ -108,6 +108,15 @@ tbody tr:hover td{background:#131f2e;}
 .tag-dd-item{display:flex;align-items:center;gap:8px;padding:8px 14px;cursor:pointer;font-size:13px;color:#cbd5e1;}
 .tag-dd-item:hover{background:#273548;}
 .tag-dd-item input[type=checkbox]{accent-color:#3b82f6;}
+.pdd-list{min-width:250px;max-height:320px;}
+.pdd-list input[type=checkbox]{accent-color:#3b82f6;pointer-events:none;flex-shrink:0;}
+.pdd-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:3px 10px 3px 0;}
+.pdd-row:hover{background:#273548;}
+.pdd-year{display:flex;align-items:center;gap:8px;padding:6px 0 6px 14px;cursor:pointer;font-size:13px;color:#cbd5e1;flex:1;}
+.pdd-qs{display:flex;gap:3px;}
+.pdd-q{font-size:11px;color:#94a3b8;border:1px solid #334155;border-radius:6px;padding:2px 7px;background:transparent;}
+.pdd-q:hover{border-color:#64748b;color:#e2e8f0;}
+.pdd-q.on{background:rgba(59,130,246,.18);border-color:#3b82f6;color:#bfdbfe;}
 
 /* 專案時間分佈：模式切換按鈕 */
 .pie-mode-btn{font-size:11px;font-weight:400;line-height:1;padding:4px 10px;border-radius:6px;color:#64748b;transition:all .15s;}
@@ -1074,7 +1083,7 @@ html[data-mod-off~="thumb"] [data-mod="thumb"]{display:none !important;}
   </div>
 
   <div id="v-tag" class="hidden">
-    <div class="hint-bar">以表格或圖牆列出所有任務，支援多條件同時篩選。<strong>月份</strong>依工時紀錄日期過濾；<strong>業務類型</strong>與<strong>標籤</strong>皆可多選；<strong>關鍵字</strong>比對任務名稱。點擊任務名稱可開啟詳情面板。</div>
+    <div class="hint-bar">以表格或圖牆列出所有任務，支援多條件同時篩選。<strong>期間</strong>可選整年或單一季度（依工時紀錄與任務起訖日期判斷）；<strong>業務類型</strong>與<strong>標籤</strong>皆可多選；<strong>關鍵字</strong>比對任務名稱。點擊任務名稱可開啟詳情面板。</div>
     <div class="flex items-center justify-between gap-3 mb-4">
       <h3 class="text-sm font-semibold text-slate-300">篩選任務</h3>
       <div id="tag-view-toggle" class="tk-vtoggle" role="group" aria-label="顯示方式" data-mod="thumb">
@@ -1085,7 +1094,7 @@ html[data-mod-off~="thumb"] [data-mod="thumb"]{display:none !important;}
     <div class="flex flex-wrap gap-4 mb-6 items-end justify-between">
       <div class="flex flex-wrap gap-4 items-end">
         <div class="flex flex-col gap-1.5">
-          <label class="text-xs text-slate-500">月份</label>
+          <label class="text-xs text-slate-500">期間</label>
           <div id="tag-month-dd" class="tag-dd"></div>
         </div>
         <div class="flex flex-col gap-1.5">
@@ -1902,7 +1911,9 @@ function doGet(e){
     if(a === 'thumbList') return jsonRes({ok:true, keys:thumbList()});
     if(a === 'thumbGet') return jsonRes({ok:true, items:thumbGet(String(e.parameter.keys || '').split(',').slice(0, 30))});
     if(a) return errorRes('不支援的動作：' + a);
-    return jsonRes(loadData());
+    var t0 = Date.now(), r = loadData();
+    r.ms = Date.now() - t0;   // 伺服器端處理時間，方便判斷慢在哪裡
+    return jsonRes(r);
   } catch(err) { return errorRes(err.message); }
 }
 
@@ -1928,21 +1939,40 @@ function jsonRes(obj){
 function errorRes(msg){ return jsonRes({ok:false, error:msg}); }
 
 // ===== Drive 位置（含一次性搬家）=====
-// 同時進來的請求可能一起建立資料夾，用鎖避免建出兩個
+// 快路徑：用記住的 ID 直接開檔，不搜尋整個 Drive、也不用排隊等鎖
+// 慢路徑：第一次、或檔案被移到垃圾桶時才搜尋／搬家／建立，並把 ID 記下來
+var PROPS = PropertiesService.getScriptProperties();
+var _locked = false;
 function withLock(fn){
+  if(_locked) return fn();          // 已在鎖內（例如找資料檔時順便找根資料夾），直接執行
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
-  try { return fn(); } finally { lock.releaseLock(); }
+  _locked = true;
+  try { return fn(); } finally { _locked = false; lock.releaseLock(); }
 }
 function firstLive(it){
   while(it.hasNext()){ var x = it.next(); if(!x.isTrashed()) return x; }
   return null;
 }
+function byCachedId(prop, isFolder, locate){
+  var id = PROPS.getProperty(prop);
+  if(id){
+    try {
+      var x = isFolder ? DriveApp.getFolderById(id) : DriveApp.getFileById(id);
+      if(!x.isTrashed()) return x;
+    } catch(e) {}
+  }
+  var found = withLock(locate);
+  if(found) PROPS.setProperty(prop, found.getId());
+  return found;
+}
 function rootFolder(){
-  return firstLive(DriveApp.getFoldersByName(ROOT_FOLDER)) || DriveApp.createFolder(ROOT_FOLDER);
+  return byCachedId('rootFolderId', true, function(){
+    return firstLive(DriveApp.getFoldersByName(ROOT_FOLDER)) || DriveApp.createFolder(ROOT_FOLDER);
+  });
 }
 function dataFile(create){
-  return withLock(function(){
+  return byCachedId('dataFileId', false, function(){
     var root = rootFolder();
     var f = firstLive(root.getFilesByName(DATA_NAME));
     if(f) return f;
@@ -1952,7 +1982,7 @@ function dataFile(create){
   });
 }
 function thumbFolder(){
-  return withLock(function(){
+  return byCachedId('thumbFolderId', true, function(){
     var root = rootFolder();
     var fd = firstLive(root.getFoldersByName(THUMB_NAME));
     if(fd) return fd;
@@ -2714,8 +2744,11 @@ function looksLikeMainData(cd){
 function cloudLoad(){
   var url = getScriptUrl(); if(!url) return;
   setSyncStatus('saving','讀取雲端…');
+  var _t0 = Date.now();
   fetch(getAuthUrl(url), {method:'GET'})
     .then(r=>r.json()).then(d=>{
+      // 診斷用：總等待時間 vs. Apps Script 實際處理時間（舊版腳本沒有後者）
+      console.info('[雲端讀取] 總共 ' + (Date.now() - _t0) + ' ms' + (d && typeof d.ms === 'number' ? '，其中 Apps Script 處理 ' + d.ms + ' ms' : ''));
       if(d.ok && d.data && !looksLikeMainData(d.data)){
         // 雲端檔案不像主資料（例如被誤寫入其他內容）：拒絕覆寫，保留本機資料
         setSyncStatus('error','雲端資料格式異常');
@@ -6539,24 +6572,111 @@ function _mddRefreshBtn(cid,ddId){
   }
 }
 
+// ===== 期間篩選（任務一覽）：年份為主、季度為輔 =====
+// 狀態存成 'YYYY-Qn' 的集合；勾年份＝四季全勾，年份框依選取狀態顯示全選／半選／未選
+var _periodState = {};   // containerId → Set<'YYYY-Qn'>
+var _periodYears = {};   // containerId → ['2026','2025',…]
+var PERIOD_Q = [
+  {q:1, from:'01', to:'03', tip:'1–3 月'},
+  {q:2, from:'04', to:'06', tip:'4–6 月'},
+  {q:3, from:'07', to:'09', tip:'7–9 月'},
+  {q:4, from:'10', to:'12', tip:'10–12 月'}
+];
+function getPeriodValues(cid){ var s = _periodState[cid]; return s && s.size ? Array.from(s) : []; }
+function periodRange(key){   // 'YYYY-Qn' → {from:'YYYY-MM', to:'YYYY-MM'}
+  var y = key.slice(0, 4), q = PERIOD_Q[(+key.slice(-1)) - 1];
+  return { from: y + '-' + q.from, to: y + '-' + q.to };
+}
+function buildPeriodDD(cid, years, onChangeFn){
+  var wrap = document.getElementById(cid);
+  if(!wrap) return;
+  _periodYears[cid] = years;
+  if(!_periodState[cid]) _periodState[cid] = new Set();
+  var ddId = 'mdd_' + cid;
+  if(!document.getElementById(ddId)){
+    wrap.innerHTML =
+      '<div class="tag-dd" id="' + ddId + '" style="position:relative">' +
+        '<div class="tag-dd-btn" id="' + ddId + '_btn" style="min-width:130px;cursor:pointer">' +
+          '<span class="flex-1 text-left text-xs truncate mdd-btn-label" style="max-width:190px"></span>' +
+          '<span class="text-slate-600 text-[10px] ml-1 flex-shrink-0">▾</span>' +
+        '</div>' +
+        '<div class="tag-dd-list pdd-list" id="' + ddId + '_list"><div class="mdd-scroll" style="overflow-y:auto;flex:1"></div></div>' +
+      '</div>';
+    document.getElementById(ddId + '_btn').addEventListener('click', function(e){ e.stopPropagation(); _mddToggle(ddId); });
+    // 事件委派：列表內容重畫也不必重新綁定
+    wrap.querySelector('.mdd-scroll').addEventListener('click', function(e){
+      var t = e.target, s = _periodState[cid];
+      if(t.closest('.pdd-all')){ _periodState[cid] = new Set(); }
+      else if(t.closest('.pdd-q')){
+        var k = t.closest('.pdd-q').getAttribute('data-k');
+        if(s.has(k)) s.delete(k); else s.add(k);
+      }
+      else if(t.closest('.pdd-year')){
+        var y = t.closest('.pdd-year').getAttribute('data-y');
+        var keys = PERIOD_Q.map(function(x){ return y + '-Q' + x.q; });
+        var full = keys.every(function(k){ return s.has(k); });
+        keys.forEach(function(k){ if(full) s.delete(k); else s.add(k); });
+      }
+      else return;
+      e.preventDefault();
+      _periodRefresh(cid, ddId);
+      if(onChangeFn && window[onChangeFn]) window[onChangeFn]();
+    });
+  }
+  _periodRefresh(cid, ddId);
+}
+function _periodRefresh(cid, ddId){
+  var s = _periodState[cid] || new Set(), years = _periodYears[cid] || [];
+  var scroll = document.querySelector('#' + ddId + '_list .mdd-scroll');
+  if(scroll){
+    var rows = '<div class="tag-dd-item pdd-all" role="button"><input type="checkbox" tabindex="-1" ' + (s.size ? '' : 'checked') + '><span class="text-slate-400 text-xs">全部</span></div>';
+    years.forEach(function(y){
+      var n = PERIOD_Q.filter(function(x){ return s.has(y + '-Q' + x.q); }).length;
+      rows += '<div class="pdd-row">'
+        + '<div class="pdd-year" role="button" data-y="' + y + '" title="' + (n === 4 ? '取消整年' : '選取整年') + '">'
+        +   '<input type="checkbox" tabindex="-1" data-state="' + (n === 4 ? 'all' : (n ? 'some' : 'none')) + '"' + (n === 4 ? ' checked' : '') + '><span>' + y + '</span></div>'
+        + '<div class="pdd-qs">' + PERIOD_Q.map(function(x){
+            var k = y + '-Q' + x.q;
+            return '<button type="button" class="pdd-q' + (s.has(k) ? ' on' : '') + '" data-k="' + k + '" title="' + y + ' 年 ' + x.tip + '">Q' + x.q + '</button>';
+          }).join('') + '</div></div>';
+    });
+    if(!years.length) rows += '<div class="px-3 py-2 text-xs text-slate-600">還沒有任何紀錄</div>';
+    scroll.innerHTML = rows;
+    // 半選狀態只能用屬性設定
+    scroll.querySelectorAll('input[data-state="some"]').forEach(function(c){ c.indeterminate = true; });
+  }
+  var label = document.querySelector('#' + ddId + '_btn .mdd-btn-label');
+  if(label){
+    if(!s.size){ label.innerHTML = '<span class="text-slate-500">全部</span>'; return; }
+    var parts = years.map(function(y){
+      var qs = PERIOD_Q.filter(function(x){ return s.has(y + '-Q' + x.q); }).map(function(x){ return 'Q' + x.q; });
+      if(!qs.length) return '';
+      return y + (qs.length === 4 ? ' 全年' : ' ' + qs.join('、'));
+    }).filter(Boolean);
+    label.innerHTML = '<span class="text-blue-300">' + esc(parts.join('，')) + '</span>';
+  }
+}
+
 function rTagStats(){
   // 渲染 tag-list（在 v-cat 頁）
   var el=document.getElementById('tag-list');
   if(el) el.innerHTML=TAGS.map(t=>`<div class=\"flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-full\"><span class=\"w-2 h-2 rounded-full\" style=\"background:${(BC[t.color]||BC.gray).text}\"></span><span class=\"text-xs font-medium text-slate-300\">${esc(t.name)}</span><button class=\"text-slate-500 hover:text-red-400 text-[10px]\" onclick=\"TAGS=TAGS.filter(x=>x.id!=='${t.id}');save();rTagStats();syncSel()\">✕</button></div>`).join('');
   
   // 建立選項
-  var monthSet={};
-  DLOGS.forEach(function(l){if(l.date&&l.date.length>=7)monthSet[l.date.substring(0,7)]=true;});
-  PJ.forEach(function(p){if(p.sdate&&p.sdate.length>=7)monthSet[p.sdate.substring(0,7)]=true;});
-  var monthItems=Object.keys(monthSet).sort().reverse().map(function(m){return{val:m,label:m};});
+  var yearSet={};
+  DLOGS.forEach(function(l){if(l.date&&l.date.length>=4)yearSet[l.date.substring(0,4)]=true;});
+  PJ.forEach(function(p){
+    if(p.sdate&&p.sdate.length>=4)yearSet[p.sdate.substring(0,4)]=true;
+    if(p.edate&&p.edate.length>=4)yearSet[p.edate.substring(0,4)]=true;
+  });
+  var yearItems=Object.keys(yearSet).filter(function(y){return /^[0-9]{4}$/.test(y);}).sort().reverse();
   var tagItems=TAGS.map(function(t){return{val:t.id,label:t.name};});
   var grpItems=GRPS.map(function(g){return{val:g.id,label:g.name};});
   var catItems=CATS.map(function(c){return{val:c.id,label:c.name};});
 
   // 只在容器存在且尚未初始化時才 build（避免重建 DOM 關掉開著的下拉）
-  if(document.getElementById('tag-month-dd')&&!document.getElementById('mdd_tag-month-dd')){
-    buildMultiDD('tag-month-dd',monthItems,'全部月份','_applyTagFilter');
-  }
+  // 期間選單每次都刷新內容（新年份出現時才會跟著列出）；外框只建一次，開著也不會被關掉
+  buildPeriodDD('tag-month-dd',yearItems,'_applyTagFilter');
   if(document.getElementById('tag-cat-dd')&&!document.getElementById('mdd_tag-cat-dd')){
     buildMultiDD('tag-cat-dd',catItems,'全部類型','_applyTagFilter');
   }
@@ -6578,7 +6698,17 @@ function tagSearchInput(e){
 }
 
 function _applyTagFilter(){
-  var selMonths=getMultiDDValues('tag-month-dd');
+  var selPeriods=getPeriodValues('tag-month-dd');
+  // 先把每個任務「有工時紀錄的季度」整理出來，避免每個任務×每個季度都重掃一次工時紀錄
+  var logQ=null;
+  if(selPeriods.length){
+    logQ={};
+    DLOGS.forEach(function(l){
+      if(!l.date||l.date.length<7)return;
+      var k=l.date.substring(0,4)+'-Q'+Math.ceil((+l.date.substring(5,7))/3);
+      (logQ[l.pid]=logQ[l.pid]||{})[k]=1;
+    });
+  }
   var selTags=getMultiDDValues('tag-tag-dd');
   var selGrps=getMultiDDValues('tag-grp-dd');
   var selCats=getMultiDDValues('tag-cat-dd');
@@ -6595,12 +6725,12 @@ function _applyTagFilter(){
     if(selGrps.length>0&&selGrps.indexOf(p.gid)===-1)return false;
     // 關鍵字
     if(q&&p.name.toLowerCase().indexOf(q)===-1)return false;
-    // 月份複選：有任一選定月份的工時或涵蓋區間
-    if(selMonths.length>0){
-      var pass=selMonths.some(function(monF){
-        var hasLog=DLOGS.some(function(l){return l.pid===p.id&&l.date.indexOf(monF)===0;});
-        if(hasLog)return true;
-        return(p.sdate&&p.sdate.substring(0,7)<=monF&&(!p.edate||p.edate.substring(0,7)>=monF));
+    // 期間複選（年／季）：該季有工時紀錄，或任務起訖涵蓋到該季
+    if(selPeriods.length>0){
+      var pass=selPeriods.some(function(k){
+        if(logQ[p.id]&&logQ[p.id][k])return true;
+        var r=periodRange(k);
+        return(p.sdate&&p.sdate.substring(0,7)<=r.to&&(!p.edate||p.edate.substring(0,7)>=r.from));
       });
       if(!pass)return false;
     }
