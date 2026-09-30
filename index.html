@@ -135,7 +135,7 @@ tbody tr:hover td{background:#131f2e;}
 .task-card.dl-over{border-color:#ef4444;background:linear-gradient(135deg,#172032 50%,#7f1d1d);}
 .task-card.dl-over:hover{border-color:#f87171;}
 /* 卡片備註（點擊直接編輯） */
-.card-note{padding:5px 11px 7px;font-size:10px;color:#8fa3bd;line-height:1.45;cursor:text;word-break:break-all;white-space:pre-wrap;}
+.card-note{padding:6px 12px 8px;font-size:10px;color:#8fa3bd;line-height:1.45;cursor:text;word-break:break-all;white-space:pre-wrap;}
 .card-note:hover{color:#cbd5e1;}
 .card-note-empty{color:#2b3a55;}
 .card-note-empty:hover{color:#64748b;}
@@ -470,7 +470,8 @@ html[data-mod-off~="pay"] [data-mod="pay"],
 html[data-mod-off~="cal"] [data-mod="cal"],
 html[data-mod-off~="tag"] [data-mod="tag"],
 html[data-mod-off~="fexp"] [data-mod="fexp"],
-html[data-mod-off~="aix"] [data-mod="aix"]{display:none !important;}
+html[data-mod-off~="aix"] [data-mod="aix"],
+html[data-mod-off~="thumb"] [data-mod="thumb"]{display:none !important;}
 .cfg-mode-3{grid-template-columns:repeat(3,1fr);}
 .cfg-tpl{all:unset;box-sizing:border-box;display:block;cursor:pointer;border:1px solid #334155;border-radius:10px;padding:10px 14px;transition:border-color .15s,background .15s;}
 .cfg-tpl:hover{border-color:#475569;}
@@ -1073,8 +1074,14 @@ html[data-mod-off~="aix"] [data-mod="aix"]{display:none !important;}
   </div>
 
   <div id="v-tag" class="hidden">
-    <div class="hint-bar">以表格形式列出所有任務，支援多條件同時篩選。<strong>月份</strong>依工時紀錄日期過濾；<strong>業務類型</strong>與<strong>標籤</strong>皆可多選；<strong>關鍵字</strong>比對任務名稱。點擊任務名稱可開啟詳情面板。</div>
-    <h3 class="text-sm font-semibold text-slate-300 mb-4">篩選任務</h3>
+    <div class="hint-bar">以表格或圖牆列出所有任務，支援多條件同時篩選。<strong>月份</strong>依工時紀錄日期過濾；<strong>業務類型</strong>與<strong>標籤</strong>皆可多選；<strong>關鍵字</strong>比對任務名稱。點擊任務名稱可開啟詳情面板。</div>
+    <div class="flex items-center justify-between gap-3 mb-4">
+      <h3 class="text-sm font-semibold text-slate-300">篩選任務</h3>
+      <div id="tag-view-toggle" class="tk-vtoggle" role="group" aria-label="顯示方式" data-mod="thumb">
+        <button type="button" data-v="table" onclick="ThumbKit.setTagView('table')">表格</button>
+        <button type="button" data-v="wall" onclick="ThumbKit.setTagView('wall')">圖牆</button>
+      </div>
+    </div>
     <div class="flex flex-wrap gap-4 mb-6 items-end justify-between">
       <div class="flex flex-wrap gap-4 items-end">
         <div class="flex flex-col gap-1.5">
@@ -1094,7 +1101,7 @@ html[data-mod-off~="aix"] [data-mod="aix"]{display:none !important;}
           <div id="tag-grp-dd" class="tag-dd"></div>
         </div>
       </div>
-      <div class="flex flex-col gap-1.5"><label class="text-xs text-slate-500">關鍵字</label><input type="text" id="tag-search" class="inp w-48" placeholder="搜尋任務名稱…" oninput="rTagStats()"></div>
+      <div class="flex flex-col gap-1.5"><label class="text-xs text-slate-500">關鍵字</label><input type="text" id="tag-search" class="inp w-48" placeholder="搜尋任務名稱…" oninput="tagSearchInput(event)"></div>
     </div>
     
     <!-- 隱藏的舊 select 保留 id 供部分 JS 參照，但不顯示 -->
@@ -1102,12 +1109,13 @@ html[data-mod-off~="aix"] [data-mod="aix"]{display:none !important;}
     <select id="tag-grp-filter" class="hidden"></select>
     <select id="tag-month-filter" class="hidden"></select>
     
-    <div class="tbl-wrap"><div class="overflow-x-auto">
+    <div class="tbl-wrap" id="tag-tbl-wrap"><div class="overflow-x-auto">
       <table>
         <thead><tr><th>任務名稱</th><th>專案群組</th><th>狀態</th><th>已配標籤</th><th>工時</th><th>總應收</th><th>時薪</th><th class="w-20 text-center">操作</th></tr></thead>
         <tbody id="tag-proj-body"></tbody>
       </table>
     </div><div id="tag-proj-empty" class="text-center py-10 text-sm text-slate-600">無符合條件的任務</div></div>
+    <div id="tag-wall" class="hidden"></div>
   </div>
 
   <div id="v-cat" class="hidden">
@@ -1634,6 +1642,21 @@ html[data-mod-off~="aix"] [data-mod="aix"]{display:none !important;}
           </div>
           <p id="cfg-msg" class="text-center text-[11px] mt-2 hidden"></p>
         </div>
+
+        <div class="mt-6 pt-5 border-t border-slate-800" data-mod="thumb">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-xs font-bold text-slate-300">階段縮圖備份</h3>
+            <span id="tk-cloud-badge" class="text-[10px] px-2 py-0.5 rounded-full border border-slate-700 text-slate-400">未檢查</span>
+          </div>
+          <p id="tk-cloud-msg" class="text-[11px] text-slate-500 leading-relaxed">縮圖只存在這台電腦的瀏覽器。</p>
+          <p id="tk-stats" class="text-[11px] text-slate-500 mt-1.5"></p>
+          <div class="grid grid-cols-2 gap-2 mt-3">
+            <button class="btn btn-sm justify-center" onclick="ThumbKit.recheck()">重新檢查</button>
+            <button class="btn btn-sm justify-center" onclick="ThumbKit.pushUnsynced(true)">補傳未備份</button>
+            <button class="btn btn-sm justify-center" onclick="ThumbKit.restoreAll()">從雲端還原</button>
+            <button class="btn btn-sm justify-center text-slate-400" onclick="ThumbKit.cleanup()">清理未使用</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1704,6 +1727,19 @@ html[data-mod-off~="aix"] [data-mod="aix"]{display:none !important;}
                        https://yyinnart.github.io/freelance-tracker/
                     </a>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex gap-6 pt-4 border-t border-slate-900" data-mod="thumb">
+            <div class="step-num bg-slate-800 text-slate-400">5</div>
+            <div class="flex-1">
+              <p class="text-sm font-bold text-slate-200 mb-1">已經在用舊版腳本？更新以備份縮圖（選用）</p>
+              <div class="text-xs text-slate-500 leading-relaxed space-y-2">
+                <p>不更新也能正常同步，縮圖只會存在這台電腦。想把縮圖也備份到 Drive：</p>
+                <p>① 在步驟 2 直接按「📋 複製 Code.gs」，選擇沿用目前的安全碼，貼上覆蓋 Apps Script 裡原本的內容並儲存。</p>
+                <p>② 到「部署」→「管理部署作業」→ 按鉛筆圖示編輯 →「版本」選<strong class="text-slate-300">新版本</strong>→ 部署。這樣網址不會變，工具裡不用改任何設定。</p>
+                <p class="text-slate-600">若改用「新增部署」會產生新的網址，就需要回到左側重新填入。更新後按左側「重新檢查」，看到「已啟用」即完成。</p>
               </div>
             </div>
           </div>
@@ -1832,33 +1868,58 @@ function copyFullHTML() {
 }
 
 // Code.gs 範本 (純資料 API，不負責渲染頁面)
+// v2：新增縮圖備份。沒帶 action 的請求維持 v1 行為，舊版前端照常可用。
+// 注意：此範本放在樣板字串裡，GAS 程式碼內不可出現反斜線、反引號與「錢字號＋左大括號」。
 function copyScriptTemplate(){
-  const token = document.getElementById('token-preview').value;
-  if(!token){ alert('請先產生安全碼'); return; }
+  var token = document.getElementById('token-preview').value;
+  if(!token){
+    var saved = localStorage.getItem('ft_sync_token') || '';
+    if(saved && confirm('尚未產生新的安全碼。\n\n要沿用目前連線中的安全碼來產生 Code.gs 嗎？（更新舊版腳本時選這個，就不用改工具裡的設定）')){
+      token = saved;
+    } else {
+      alert('請先產生安全碼'); return;
+    }
+  }
 
   const code = 
 `var AUTH_TOKEN = '${token}';
 var FILE_NAME = '接案追蹤器_資料.json';
+var THUMB_FOLDER = '接案追蹤器_縮圖';
+var API_VERSION = 2;
 
-// 讀取資料
+// 讀取資料（沒帶 action ＝ 回傳主資料，與 v1 相同）
 function doGet(e){
   if(!e.parameter.token || e.parameter.token !== AUTH_TOKEN) return errorRes('驗證失敗');
-  return ContentService.createTextOutput(JSON.stringify(loadData())).setMimeType(ContentService.MimeType.JSON);
-}
-
-// 儲存資料
-function doPost(e){
-  if(e.parameter.token !== AUTH_TOKEN) return errorRes('驗證失敗');
+  var a = e.parameter.action || '';
   try {
-    var p = JSON.parse(e.postData.contents);
-    saveData(p);
-    return ContentService.createTextOutput(JSON.stringify({ok:true})).setMimeType(ContentService.MimeType.JSON);
+    if(a === 'info') return jsonRes({ok:true, api:API_VERSION, features:['thumb']});
+    if(a === 'thumbList') return jsonRes({ok:true, keys:thumbList()});
+    if(a === 'thumbGet') return jsonRes({ok:true, items:thumbGet(String(e.parameter.keys || '').split(',').slice(0, 30))});
+    if(a) return errorRes('不支援的動作：' + a);
+    return jsonRes(loadData());
   } catch(err) { return errorRes(err.message); }
 }
 
-function errorRes(msg){
-  return ContentService.createTextOutput(JSON.stringify({ok:false, error:msg})).setMimeType(ContentService.MimeType.JSON);
+// 儲存資料（沒帶 action ＝ 覆寫主資料，與 v1 相同）
+function doPost(e){
+  if(e.parameter.token !== AUTH_TOKEN) return errorRes('驗證失敗');
+  var a = e.parameter.action || '';
+  try {
+    var p = JSON.parse(e.postData.contents);
+    if(a === 'thumbPut'){ thumbPut(p); return jsonRes({ok:true}); }
+    if(a === 'thumbDel'){ return jsonRes({ok:true, deleted:thumbDel(p.keys || [])}); }
+    if(a) return errorRes('不支援的動作：' + a);
+    // 防呆：不像主資料的內容一律拒絕，避免誤蓋
+    if(!p || (!Array.isArray(p.PJ) && !Array.isArray(p.P))) return errorRes('資料格式不符，已拒絕覆寫');
+    saveData(p);
+    return jsonRes({ok:true});
+  } catch(err) { return errorRes(err.message); }
 }
+
+function jsonRes(obj){
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+function errorRes(msg){ return jsonRes({ok:false, error:msg}); }
 
 function loadData(){
   var f = DriveApp.getFilesByName(FILE_NAME);
@@ -1871,10 +1932,62 @@ function saveData(p){
   var f = DriveApp.getFilesByName(FILE_NAME);
   if(f.hasNext()){ f.next().setContent(c); }
   else { DriveApp.createFile(FILE_NAME, c, MimeType.PLAIN_TEXT); }
+}
+
+// ===== 縮圖（每張一個小檔，放在 THUMB_FOLDER 資料夾）=====
+function isThumbKey(k){ return /^th_[0-9]+$/.test(String(k || '')); }
+
+function thumbFolder(){
+  var it = DriveApp.getFoldersByName(THUMB_FOLDER);
+  while(it.hasNext()){ var fd = it.next(); if(!fd.isTrashed()) return fd; }
+  return DriveApp.createFolder(THUMB_FOLDER);
+}
+
+function liveFilesByName(folder, name){
+  var out = [], it = folder.getFilesByName(name);
+  while(it.hasNext()){ var f = it.next(); if(!f.isTrashed()) out.push(f); }
+  return out;
+}
+
+function thumbPut(p){
+  if(!isThumbKey(p.key)) throw new Error('縮圖代號不正確');
+  if(!/^image[/](webp|jpeg|png)$/.test(p.type || '')) throw new Error('縮圖格式不支援');
+  if(!p.b64 || p.b64.length > 2000000) throw new Error('縮圖檔案過大');
+  var fd = thumbFolder();
+  liveFilesByName(fd, p.key).forEach(function(f){ f.setTrashed(true); });
+  fd.createFile(Utilities.newBlob(Utilities.base64Decode(p.b64), p.type, p.key));
+}
+
+function thumbGet(keys){
+  var fd = thumbFolder(), out = {};
+  keys.forEach(function(k){
+    if(!isThumbKey(k)) return;
+    var files = liveFilesByName(fd, k);
+    if(!files.length) return;
+    var b = files[0].getBlob();
+    out[k] = {type:b.getContentType(), b64:Utilities.base64Encode(b.getBytes())};
+  });
+  return out;
+}
+
+function thumbList(){
+  var fd = thumbFolder(), it = fd.getFiles(), out = [];
+  while(it.hasNext()){ var f = it.next(); if(!f.isTrashed() && isThumbKey(f.getName())) out.push(f.getName()); }
+  return out;
+}
+
+// 刪除＝移到 Drive 垃圾桶，30 天內可救回
+function thumbDel(keys){
+  var fd = thumbFolder(), n = 0;
+  keys.forEach(function(k){
+    if(!isThumbKey(k)) return;
+    liveFilesByName(fd, k).forEach(function(f){ f.setTrashed(true); n++; });
+  });
+  return n;
 }`;
 
   navigator.clipboard.writeText(code);
-  alert('已複製 Code.gs 程式碼');
+  alert('已複製 Code.gs 程式碼（v2，含縮圖備份）');
 }
 function saveHintVisibility(){
   var show = document.getElementById('toggle-hints').checked;
@@ -2203,12 +2316,13 @@ var MODS = [
   {k:'cal',  name:'排程日曆',   desc:'「排程日曆」分頁'},
   {k:'tag',  name:'任務一覽',   desc:'「任務一覽」分頁'},
   {k:'fexp', name:'固定支出',   desc:'房租、保險、訂閱等每月自動帶入的支出'},
-  {k:'aix',  name:'AI 匯出',    desc:'把工時與收支整理成文字，複製給 AI 分析'}
+  {k:'aix',  name:'AI 匯出',    desc:'把工時與收支整理成文字，複製給 AI 分析'},
+  {k:'thumb',name:'階段縮圖',   desc:'在任務上貼草稿、完稿縮圖，並可在任務一覽用圖牆瀏覽舊案'}
 ];
 var MOD_TPLS = [
-  {k:'lite', name:'輕量計時',   desc:'只留任務、計時與分析', mods:{grp:false,out:false,pay:false,cal:false,tag:false,fexp:false,aix:false}},
-  {k:'solo', name:'個人接案',   desc:'加上專案群組、收付款與排程', mods:{grp:true,out:false,pay:true,cal:true,tag:true,fexp:true,aix:true}},
-  {k:'full', name:'接案＋外包', desc:'全部功能，含外包、轉包與聯絡人', mods:{grp:true,out:true,pay:true,cal:true,tag:true,fexp:true,aix:true}}
+  {k:'lite', name:'輕量計時',   desc:'只留任務、計時與分析', mods:{grp:false,out:false,pay:false,cal:false,tag:false,fexp:false,aix:false,thumb:true}},
+  {k:'solo', name:'個人接案',   desc:'加上專案群組、收付款與排程', mods:{grp:true,out:false,pay:true,cal:true,tag:true,fexp:true,aix:true,thumb:true}},
+  {k:'full', name:'接案＋外包', desc:'全部功能，含外包、轉包與聯絡人', mods:{grp:true,out:true,pay:true,cal:true,tag:true,fexp:true,aix:true,thumb:true}}
 ];
 // 需要模組才能進入的分頁
 var VIEW_MOD = {grp:'grp', vendor:'out', pay:'pay', cal:'cal', tag:'tag'};
@@ -2268,6 +2382,11 @@ function applyModules(){
   safe(rProj, 'rProj'); safe(rGrp, 'rGrp');
   var dash = document.getElementById('v-dash');
   if(dash && !dash.classList.contains('hidden')) safe(renderDash, 'renderDash');
+  // 縮圖等模組會影響詳情面板與任務一覽，開著的話一併重繪
+  var tagV = document.getElementById('v-tag');
+  if(tagV && !tagV.classList.contains('hidden')) safe(rTagStats, 'rTagStats');
+  var dp = document.getElementById('detail-panel');
+  if(CUR_DETAIL != null && dp && dp.classList.contains('open')) safe(function(){ openDetail(CUR_DETAIL); }, 'openDetail');
 }
 /* ---- 設定頁 UI ---- */
 function modDataNote(k){
@@ -2276,6 +2395,10 @@ function modDataNote(k){
     return n ? n + ' 個委外任務改列在一般任務中' : '';
   }
   if(k === 'grp' && GRPS.length) return GRPS.length + ' 個群組的資料都會保留';
+  if(k === 'thumb' && window.ThumbKit){
+    var tn = PJ.reduce(function(s, p){ return s + ThumbKit.keysOf(p).length; }, 0);
+    return tn ? tn + ' 張縮圖與歸檔位置都會保留' : '';
+  }
   if(k === 'fexp' && FEXP.length) return '已設定的支出仍計入儀表板';
   if(k === 'pay' && P.length) return '收付紀錄保留，仍計入儀表板';
   return '';
@@ -2526,6 +2649,7 @@ function cloudSave(){
     phases: localStorage.getItem('ft_phases'),
     phase_hidden: localStorage.getItem('ft_phase_hidden'),
     estacc_hide_phases: localStorage.getItem('ft_estacc_hide_phases'),
+    tk_hide: localStorage.getItem('ft_tk_hide'),
     xp_tpl: localStorage.getItem('ft_xp_tpl'),
     focus_cfg: localStorage.getItem('ft_focus_cfg')
   };
@@ -2548,11 +2672,26 @@ function cloudSave(){
     }).catch(e=>setSyncStatus('error'));
 }
 
+// 主資料的基本形狀檢查：至少要有任務或收付款陣列。
+// 用來擋住「雲端檔案被寫入非主資料內容」時，把本機一起清空的情況。
+function looksLikeMainData(cd){
+  return !!cd && typeof cd === 'object' && !Array.isArray(cd)
+    && (Array.isArray(cd.PJ) || Array.isArray(cd.P));
+}
+
 function cloudLoad(){
   var url = getScriptUrl(); if(!url) return;
   setSyncStatus('saving','讀取雲端…');
   fetch(getAuthUrl(url), {method:'GET'})
     .then(r=>r.json()).then(d=>{
+      if(d.ok && d.data && !looksLikeMainData(d.data)){
+        // 雲端檔案不像主資料（例如被誤寫入其他內容）：拒絕覆寫，保留本機資料
+        setSyncStatus('error','雲端資料格式異常');
+        if(confirm('雲端的資料檔內容格式不正確，為了保護你的資料，這次沒有用它覆蓋本機，本機資料完整保留。\n\n要現在用本機資料重新寫回雲端、修復雲端檔案嗎？\n\n（如果你懷疑這台電腦的資料不是最新的，請按「取消」，到 Google Drive 對「接案追蹤器_資料.json」使用「管理版本」找回舊版。）')){
+          forceCloudSave();
+        }
+        return;
+      }
       if(d.ok && d.data){
         var cd=d.data; P=cd.P||[]; PJ=cd.PJ||[]; CATS=cd.CATS||JSON.parse(JSON.stringify(DCATS));
         TAGS=cd.TAGS||[]; GRPS=cd.GRPS||[]; DLOGS=cd.DLOGS||[]; VENDORS=cd.VENDORS||[];
@@ -2567,7 +2706,7 @@ function cloudLoad(){
         
         // 2. 讀取並覆寫本地端設定檔
         if(cd.CFG) {
-          ['wmode','modules','trate','dl_crit','wtarget','track_limit','show_tracks','show_hints','dash_cfg','unify_cur','ai_note','aix_tpls','aix_shared','phases','phase_hidden','estacc_hide_phases','xp_tpl','focus_cfg'].forEach(k=>{
+          ['wmode','modules','trate','dl_crit','wtarget','track_limit','show_tracks','show_hints','dash_cfg','unify_cur','ai_note','aix_tpls','aix_shared','phases','phase_hidden','estacc_hide_phases','tk_hide','xp_tpl','focus_cfg'].forEach(k=>{
             if(cd.CFG[k]) localStorage.setItem('ft_'+k, cd.CFG[k]);
           });
         }
@@ -2678,6 +2817,7 @@ function cloudSaveBeacon(){
     phases: localStorage.getItem('ft_phases'),
     phase_hidden: localStorage.getItem('ft_phase_hidden'),
     estacc_hide_phases: localStorage.getItem('ft_estacc_hide_phases'),
+    tk_hide: localStorage.getItem('ft_tk_hide'),
     xp_tpl: localStorage.getItem('ft_xp_tpl'),
     focus_cfg: localStorage.getItem('ft_focus_cfg')
   };
@@ -2727,7 +2867,7 @@ document.addEventListener('visibilitychange', function() {
   }
 });
 function exportJSON(){
-  var cfg={wmode:localStorage.getItem('ft_wmode'),modules:localStorage.getItem('ft_modules'),trate:localStorage.getItem('ft_trate'),dl_crit:localStorage.getItem('ft_dl_crit'),wtarget:localStorage.getItem('ft_wtarget'),track_limit:localStorage.getItem('ft_track_limit'),show_tracks:localStorage.getItem('ft_show_tracks'),show_hints:localStorage.getItem('ft_show_hints'),dash_cfg:localStorage.getItem('ft_dash_cfg'),phases:localStorage.getItem('ft_phases'),phase_hidden:localStorage.getItem('ft_phase_hidden'),estacc_hide_phases:localStorage.getItem('ft_estacc_hide_phases'),xp_tpl:localStorage.getItem('ft_xp_tpl'),ai_note:localStorage.getItem('ft_ai_note'),aix_tpls:localStorage.getItem('ft_aix_tpls'),aix_shared:localStorage.getItem('ft_aix_shared'),focus_cfg:localStorage.getItem('ft_focus_cfg')};
+  var cfg={wmode:localStorage.getItem('ft_wmode'),modules:localStorage.getItem('ft_modules'),trate:localStorage.getItem('ft_trate'),dl_crit:localStorage.getItem('ft_dl_crit'),wtarget:localStorage.getItem('ft_wtarget'),track_limit:localStorage.getItem('ft_track_limit'),show_tracks:localStorage.getItem('ft_show_tracks'),show_hints:localStorage.getItem('ft_show_hints'),dash_cfg:localStorage.getItem('ft_dash_cfg'),phases:localStorage.getItem('ft_phases'),phase_hidden:localStorage.getItem('ft_phase_hidden'),estacc_hide_phases:localStorage.getItem('ft_estacc_hide_phases'),tk_hide:localStorage.getItem('ft_tk_hide'),xp_tpl:localStorage.getItem('ft_xp_tpl'),ai_note:localStorage.getItem('ft_ai_note'),aix_tpls:localStorage.getItem('ft_aix_tpls'),aix_shared:localStorage.getItem('ft_aix_shared'),focus_cfg:localStorage.getItem('ft_focus_cfg')};
   var d={version:8,at:new Date().toISOString(),P:P,PJ:PJ,CATS:CATS,TAGS:TAGS,GRPS:GRPS,DLOGS:DLOGS,VENDORS:VENDORS,VACS:VACS,WORKDAYS:WORKDAYS,MEXP:MEXP,FEXP:FEXP,MFIX:MFIX,REM:REM,CFG:cfg};
   var a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'}));
@@ -2751,7 +2891,7 @@ function importJSON(e){
         MFIX=d.MFIX||{}; // 匯入已壓平的固定支出
         REM=d.REM||[]; // 匯入日曆小提醒
         if(d.CFG){ // 匯入設定
-          ['wmode','modules','trate','dl_crit','wtarget','track_limit','show_tracks','show_hints','dash_cfg','phases','phase_hidden','estacc_hide_phases','xp_tpl','ai_note','aix_tpls','aix_shared','focus_cfg'].forEach(k=>{
+          ['wmode','modules','trate','dl_crit','wtarget','track_limit','show_tracks','show_hints','dash_cfg','phases','phase_hidden','estacc_hide_phases','tk_hide','xp_tpl','ai_note','aix_tpls','aix_shared','focus_cfg'].forEach(k=>{
             if(d.CFG[k]) localStorage.setItem('ft_'+k, d.CFG[k]);
           });
         }
@@ -3024,6 +3164,12 @@ function mergePhaseNames(variantNorms, target){
             if(m.date && (!keep.date || m.date < keep.date)) keep.date = m.date;
             keep.hard = !!keep.hard || !!m.hard;
             keep.done = !!keep.done && !!m.done; // 全完成才算完成
+            // 縮圖／歸檔位置：keep 沒有就接手；兩邊都有縮圖時，被合併那張移到任務層（「其他」格），不讓它消失
+            if(m.thumb){
+              if(!keep.thumb) keep.thumb = m.thumb;
+              else if(m.thumb !== keep.thumb && !p.thumb) p.thumb = m.thumb;
+            }
+            if(m.path && !keep.path) keep.path = m.path;
             dedupCount++;
           }
         } else { kept.push(m); }
@@ -3526,7 +3672,7 @@ function buildTagDD(cid,px){
 }
 function toggleTagDD(px){var l=document.getElementById(px+'-tag-list');if(!l)return;l.classList.toggle('open');if(l.classList.contains('open')){var c=e=>{if(!l.parentElement.contains(e.target)){l.classList.remove('open');document.removeEventListener('click',c);}};setTimeout(()=>document.addEventListener('click',c),0);}}
 function toggleDD(ddId){var l=document.getElementById(ddId+'_list');if(!l)return;l.classList.toggle('open');if(l.classList.contains('open')){var c=function(e){if(!l.parentElement.contains(e.target)){l.classList.remove('open');document.removeEventListener('click',c);}};setTimeout(function(){document.addEventListener('click',c);},0);}}
-function updateTagLabel(px){var chks=document.querySelectorAll('.'+px+'-tag-chk:checked');var l=document.getElementById(px+'-tag-label');if(!chks.length){l.textContent='選擇標籤…';l.style.color='#94a3b8';return;}l.innerHTML=Array.from(chks).map(c=>{var t=tagBy(c.value);if(!t)return '';return '<span style="color:'+(BC[t.color]||BC.gray).text+'">'+esc(t.name)+'</span>';}).join(', ');l.style.color='#f1f5f9';}
+function updateTagLabel(px){var chks=document.querySelectorAll('.'+px+'-tag-chk:checked');var l=document.getElementById(px+'-tag-label');if(!l)return;if(!chks.length){l.textContent='選擇標籤…';l.style.color='#94a3b8';return;}l.innerHTML=Array.from(chks).map(c=>{var t=tagBy(c.value);if(!t)return '';return '<span style="color:'+(BC[t.color]||BC.gray).text+'">'+esc(t.name)+'</span>';}).join(', ');l.style.color='#f1f5f9';}
 function getCheckedTags(px){return Array.from(document.querySelectorAll('.'+px+'-tag-chk:checked')).map(c=>c.value);}
 function setCheckedTags(px,tags){document.querySelectorAll('.'+px+'-tag-chk').forEach(c=>{c.checked=(tags||[]).indexOf(c.value)!==-1;});updateTagLabel(px);}
 
@@ -4121,23 +4267,31 @@ function rGrp(){
         }
 
         // 卡片備註：有內容顯示備註文字，沒有則顯示極淡的「＋ 備註」入口，點擊皆可直接編輯
+        var cardThumb=window.ThumbKit?ThumbKit.cardHTML(p):'';
         var noteRow=p.cardNote
           ?'<div class="card-note" onclick="editCardNote('+p.id+',event)" title="點擊編輯備註">'+esc(p.cardNote)+'</div>'
           :'<div class="card-note card-note-empty" onclick="editCardNote('+p.id+',event)">＋ 備註</div>';
 
+        // 版面：[縮圖] ＋ 名稱 → 截止資訊 → 金流／工時，由主到次；沒有縮圖的卡片內容直接佔滿寬度
+        var metaRow=(moneyLeft||rateHtml)
+          ?`<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;min-height:20px">
+              <div style="display:flex;align-items:center;gap:5px;min-width:0">${moneyLeft}</div>
+              ${rateHtml}
+            </div>`
+          :'';
         return `<div class="task-card${dlCls}" style="padding:0;display:flex;flex-direction:column;overflow:hidden;${cardFilter}" onclick="openDetail(${p.id})">
-          <div style="padding:9px 11px 8px;display:flex;align-items:baseline;justify-content:space-between;gap:6px">
-            <span style="font-weight:700;color:#f1f5f9;font-size:13px;line-height:1.3;flex:1;min-width:0">${esc(p.name)}</span>
-            ${execCorner}
+          <div style="display:flex;align-items:center;gap:12px;padding:11px 12px 10px">
+            ${cardThumb}
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px">
+              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:6px">
+                <span style="font-weight:700;color:#f1f5f9;font-size:14px;line-height:1.3;flex:1;min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(p.name)}</span>
+                ${execCorner}
+              </div>
+              <div style="font-size:10px;line-height:1.5">${deadlineRow}</div>
+              ${metaRow}
+            </div>
           </div>
-          <div style="height:1px;background:#0d1826;margin:0 11px"></div>
-          <div style="padding:5px 11px;display:flex;align-items:center;justify-content:space-between;gap:6px;min-height:26px">
-            <div style="display:flex;align-items:center;gap:5px;min-width:0">${moneyLeft||'<span style="font-size:10px;color:#1a2540">—</span>'}</div>
-            ${rateHtml}
-          </div>
-          <div style="height:1px;background:#0d1826;margin:0 11px"></div>
-          <div style="padding:5px 11px;font-size:10px">${deadlineRow}</div>
-          <div style="height:1px;background:#0d1826;margin:0 11px"></div>
+          <div style="height:1px;background:#0d1826;margin:0 12px"></div>
           ${noteRow}
         </div>`;
       };
@@ -4543,6 +4697,7 @@ function editProj(id) {
 
 function delProj(id){
     if(confirm('刪除無法復原，確定？\n（同時會清除此任務的工時紀錄與收付款歸屬）')) {
+        var delThumbs = window.ThumbKit ? ThumbKit.keysOf(pBy(id)) : [];
         PJ = PJ.filter(x => x.id !== id);
         DLOGS = DLOGS.filter(x => x.pid !== id);
         P = P.filter(x => x.pid !== id);   // 同步清除歸屬此任務的收付款，避免「未分類」孤兒紀錄
@@ -4552,6 +4707,7 @@ function delProj(id){
           try{ localStorage.setItem('ft_timers', JSON.stringify(activeTimers)); }catch(e){}
         }
         save(); rProj(); rPay(); rGrp(); syncSel();
+        if(delThumbs.length) ThumbKit.forget(delThumbs);
     }
 }
 
@@ -4834,6 +4990,8 @@ function openDetail(id){
         })()}
       </div>
 
+      ${window.ThumbKit ? ThumbKit.detailHTML(p) : ''}
+
       <div class="mb-6">
         <div class="flex items-center justify-between mb-3 px-1">
           <h3 class="font-bold text-white text-sm flex items-center gap-2">
@@ -4892,6 +5050,7 @@ ${dayLogs.map(l => `
     </div>
   `;
   document.getElementById('detail-content').innerHTML = html;
+  if (window.ThumbKit) ThumbKit.hydrateSoon();
   refreshPhaseDatalist();
   document.getElementById('detail-panel').classList.add('open');
   document.getElementById('detail-overlay').classList.add('open');
@@ -5021,7 +5180,10 @@ function addMS(pid){
 }
 function delMS(pid,idx){
   var p=pBy(pid);if(!p||!p.milestones)return;
+  var m=p.milestones[idx];
+  if(m&&(m.thumb||m.path)&&!confirm('「'+(m.name||'這個階段')+'」有縮圖或歸檔位置，刪除階段後會一起移除。\n\n確定刪除？'))return;
   p.milestones.splice(idx,1);save();rerenderActive();
+  if(m&&m.thumb&&window.ThumbKit) ThumbKit.forget([m.thumb]);
 }
 function toggleMS(pid,idx){
   var p=pBy(pid);if(!p||!p.milestones)return;
@@ -5705,15 +5867,18 @@ function renderRows(list, isDone, scores, bucketKey, currentTopId) {
         }
         var arCellFinal = p.nonBillable ? '<span class=\"text-slate-600 text-xs\">—</span>' : arCell;
         var budgetCell = p.nonBillable ? '<span class=\"text-slate-600 text-xs\">不計費</span>' : (p.budget?fmtMoney(p.budget,cur):'合約未定');
+        var rowThumb = window.ThumbKit ? ThumbKit.rowHTML(p) : '';
 
         return `<tr class=\"${trClass}\" ${dragEvents} onclick=\"rowClick(event,${p.id})\" style=\"cursor:pointer\">
           ${dragHandle}
           <td class="py-3">
+            ${rowThumb ? '<div class="flex items-start gap-3">' + rowThumb + '<div class="min-w-0">' : ''}
             ${ovBadge}${topBadge}
             <div class=\"font-medium text-slate-200\">${esc(p.name)}${nbBadge}${execBadge}</div>
             ${urgBadge}
             <div class=\"text-xs text-slate-500 mt-1\">${gn?esc(gn):'無群組'}</div>
             ${vendorHint}              
+            ${rowThumb ? '</div></div>' : ''}
           </td>
           <td class="py-3">
             <div class=\"text-xs text-slate-400 mb-1 flex items-center gap-2\">${p.sdate ? p.sdate.substring(5).replace('-','/') : '未定'} ~ ${p.edate ? p.edate.substring(5).replace('-','/') : '未定'}</div>
@@ -5809,6 +5974,7 @@ function renderRows(list, isDone, scores, bucketKey, currentTopId) {
     doneWrap.style.display=doneCollapsed?'none':'block';
     if(doneToggleLabel) doneToggleLabel.textContent=doneCollapsed?'展開 ▾':'收合 ▴';
   }
+  if(window.ThumbKit) ThumbKit.hydrateSoon();
 }
 
 function toggleStandby(){
@@ -6371,6 +6537,14 @@ function rTagStats(){
 
   _applyTagFilter();}
 
+// 關鍵字：停手約 0.2 秒才篩選，任務多時打字不卡；注音／拼音選字過程中不觸發
+var _tagSearchTimer = null;
+function tagSearchInput(e){
+  if(e && e.isComposing) return;
+  clearTimeout(_tagSearchTimer);
+  _tagSearchTimer = setTimeout(_applyTagFilter, 200);
+}
+
 function _applyTagFilter(){
   var selMonths=getMultiDDValues('tag-month-dd');
   var selTags=getMultiDDValues('tag-tag-dd');
@@ -6403,6 +6577,11 @@ function _applyTagFilter(){
   var tb=document.getElementById('tag-proj-body');
   if(!tb)return;
   document.getElementById('tag-proj-empty').style.display=filtered.length?'none':'block';
+  // 縮圖欄：篩選結果裡至少一張有圖才出現；沒圖的列留白對齊
+  var tkCol = !!window.ThumbKit && filtered.some(function(p){ return ThumbKit.keysOfAny(p); });
+  if(window.ThumbKit) ThumbKit.renderTagView(filtered);
+  // 圖牆模式時表格是隱藏的，不必畫；切回表格時會重新呼叫本函式
+  if(window.ThumbKit && ThumbKit.tagViewIsWall()){ tb.innerHTML = ''; document.getElementById('tag-proj-empty').style.display = 'none'; return; }
   
         tb.innerHTML = filtered.map(p => {
           var cur = p.budgetCur || 'TWD';
@@ -6425,7 +6604,7 @@ function _applyTagFilter(){
           }
 
           return `<tr onclick="rowClick(event,${p.id})" style="cursor:pointer" class="hover:bg-slate-800/40 transition-colors">
-            <td class="font-medium text-slate-200">${esc(p.name)}</td>
+            <td class="font-medium text-slate-200">${tkCol ? '<div class="flex items-center gap-3">' + ThumbKit.listHTML(p) + '<span class="min-w-0">' + esc(p.name) + '</span></div>' : esc(p.name)}</td>
             <td class="text-xs text-slate-400">${grpName(p.gid) || '-'}</td>
             <td>${bdgSt(p.st)}</td>
             <td>${renderTagList(p.tags)}</td>
@@ -11517,5 +11696,970 @@ document.addEventListener('visibilitychange', function(){ if(document.visibility
 window.addEventListener('focus', tgCheck);
 setTimeout(tgCheck, 1500);
 </script>
+<style>
+/* ===== 階段縮圖（ThumbKit）===== */
+.tk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:10px}
+.tk-tile{display:flex;flex-direction:column;background:rgba(30,41,59,.4);border:1px solid rgba(51,65,85,.5);border-radius:12px;overflow:hidden;transition:border-color .15s,box-shadow .15s}
+.tk-tile.tk-over{border-color:#38bdf8;box-shadow:0 0 0 2px rgba(56,189,248,.3)}
+.tk-drop{position:relative;aspect-ratio:4/3;background:rgba(2,6,23,.6);display:flex;align-items:center;justify-content:center;cursor:pointer;outline:none}
+.tk-drop:focus{box-shadow:inset 0 0 0 2px #3b82f6}
+.tk-drop img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;visibility:hidden}
+.tk-drop.tk-loaded img{visibility:visible}
+.tk-drop.tk-loaded .tk-ph{display:none}
+.tk-ph{font-size:10px;line-height:1.5;color:#64748b;padding:0 10px;text-align:center}
+.tk-drop.tk-missing .tk-ph{color:#94a3b8}
+.tk-empty{position:absolute;inset:8px;border:1px dashed #334155;border-radius:8px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:12px;color:#475569;padding:6px}
+.tk-drop:hover .tk-empty{border-color:#475569;color:#94a3b8}
+.tk-ready{position:absolute;left:6px;right:6px;bottom:6px;font-size:10px;text-align:center;color:#dbeafe;background:rgba(30,58,138,.88);border-radius:6px;padding:2px 0;opacity:0;transition:opacity .15s;pointer-events:none}
+.tk-drop:focus .tk-ready{opacity:1}
+.tk-drop.tk-busy::after{content:'處理中…';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(2,6,23,.78);color:#cbd5e1;font-size:11px}
+.tk-meta{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;padding:7px 9px 3px}
+.tk-label{font-size:12px;color:#e2e8f0;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tk-sub{font-size:10px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tk-acts{display:flex;gap:1px;flex-shrink:0}
+.tk-acts button{font-size:10px;color:#64748b;padding:2px 5px;border-radius:4px;background:transparent}
+.tk-acts button:hover{color:#e2e8f0;background:rgba(51,65,85,.6)}
+.tk-acts button.tk-del:hover{color:#f87171}
+.tk-path{display:flex;align-items:center;gap:2px;padding:0 7px 8px}
+.tk-path input{flex:1;min-width:0;background:transparent;border:1px solid transparent;border-radius:4px;padding:2px 4px;font-size:10px;color:#94a3b8;outline:none}
+.tk-path input:hover{border-color:#334155}
+.tk-path input:focus{border-color:#475569;background:rgba(15,23,42,.6);color:#e2e8f0}
+.tk-path input::placeholder{color:#475569}
+.tk-path a,.tk-path button{font-size:10px;color:#60a5fa;padding:2px 4px;flex-shrink:0;border-radius:4px;background:transparent}
+.tk-path a:hover,.tk-path button:hover{background:rgba(51,65,85,.6);color:#93c5fd}
+.tk-row{position:relative;display:inline-block;vertical-align:middle;flex-shrink:0;width:44px;height:44px;border-radius:6px;overflow:hidden;background:#0f172a;border:1px solid rgba(51,65,85,.7);margin-top:2px}
+.tk-row img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .15s}
+.tk-row.tk-loaded img{opacity:1}
+.tk-row.tk-missing{background:#0f172a url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='16' rx='2'/%3E%3Ccircle cx='9' cy='10' r='1.6'/%3E%3Cpath d='M21 16l-5-5-8 8'/%3E%3C/svg%3E") center/42% no-repeat}
+.tk-row.tk-list{width:48px;height:48px;margin-top:0;border-radius:6px;cursor:zoom-in}
+.tk-list-gap{display:inline-block;width:48px;flex-shrink:0}
+#tk-peek{position:fixed;z-index:80;pointer-events:none;background:#0b1220;border:1px solid #334155;border-radius:10px;padding:6px;box-shadow:0 12px 32px rgba(0,0,0,.55);opacity:0;transition:opacity .12s;left:-9999px;top:0}
+#tk-peek.show{opacity:1}
+#tk-peek img{display:block;max-width:360px;max-height:360px;border-radius:6px}
+#tk-peek div{font-size:11px;color:#94a3b8;padding:5px 2px 0}
+.tk-vtoggle{display:inline-flex;border:1px solid #1e293b;border-radius:8px;padding:2px;gap:2px}
+.tk-vtoggle button{font-size:12px;color:#64748b;padding:3px 12px;border-radius:6px;background:transparent}
+.tk-vtoggle button:hover{color:#cbd5e1}
+.tk-vtoggle button.on{background:#1e293b;color:#e2e8f0}
+.tk-wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px 14px}
+.tk-wtile{cursor:pointer;min-width:0;content-visibility:auto;contain-intrinsic-block-size:auto 260px}
+/* ↑ 畫面外的格子由瀏覽器略過排版與繪製；auto 會記住實際高度，捲動時不跳動 */
+.tk-wimg{position:relative;aspect-ratio:1/1;background:#0b1220;border:1px solid #1e293b;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center;transition:border-color .15s}
+.tk-wtile:hover .tk-wimg{border-color:#475569}
+.tk-wimg img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;visibility:hidden}
+.tk-wimg.tk-loaded img{visibility:visible}
+.tk-wimg.tk-loaded .tk-ph{display:none}
+.tk-wimg .tk-ph{font-size:11px}
+.tk-wcount{position:absolute;top:7px;right:7px;font-size:10px;color:#cbd5e1;background:rgba(15,23,42,.85);border:1px solid #334155;border-radius:999px;padding:0 7px;line-height:18px}
+.tk-wstages{position:absolute;left:6px;right:6px;bottom:6px;display:flex;flex-wrap:wrap;gap:4px;opacity:0;transition:opacity .15s}
+.tk-wtile:hover .tk-wstages,.tk-wstages:focus-within{opacity:1}
+.tk-wstages button{font-size:10px;color:#cbd5e1;background:rgba(15,23,42,.9);border:1px solid #334155;border-radius:999px;padding:1px 8px}
+.tk-wstages button.on{border-color:#60a5fa;color:#fff}
+.tk-wcap{padding:7px 2px 0}
+.tk-wname{font-size:13px;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tk-wsub{font-size:11px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.tk-wempty .tk-drop{aspect-ratio:1/1;border-radius:10px;border:1px solid #1e293b}
+.tk-wempty .tk-wcap{cursor:pointer}
+.tk-wbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-top:18px;padding-top:12px;border-top:1px solid #1e293b;font-size:12px;color:#64748b}
+.tk-wswitch{display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:#94a3b8}
+.tk-wnote{padding:40px 0;text-align:center;font-size:13px;color:#64748b}
+.tk-row.tk-card{width:76px;height:76px;margin-top:0;border-radius:8px;border-color:#1e2d42}
+.tk-hidden-bar{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:8px;padding:0 4px;font-size:10px;color:#475569}
+.tk-hidden-bar button{font-size:10px;color:#64748b;border:1px solid #1e293b;border-radius:999px;padding:1px 8px;background:transparent}
+.tk-hidden-bar button:hover{color:#cbd5e1;border-color:#475569}
+@media (prefers-reduced-motion: reduce){.tk-row img,.tk-ready,.tk-tile{transition:none}}
+</style>
+<script>
+/* ============================================================
+   階段縮圖（ThumbKit）
+   ・縮圖存在瀏覽器的 IndexedDB（ft_thumbs），不進主資料、不佔 localStorage
+   ・主資料只在 milestone（或任務本身）上記兩個小欄位：
+       thumb：縮圖代號（th_數字）　path：歸檔位置（路徑或連結）
+   ・雲端備份：每張縮圖一個小檔，放在 Drive「接案追蹤器_縮圖」資料夾
+   ・安全：舊版 Code.gs 會把「任何 POST」當主資料覆寫，所以帶 action 的
+     請求一律先做版本握手（GET ?action=info），確認是 v2 才會送出
+   ・沒用縮圖的人：不開 IndexedDB、不發任何縮圖相關請求，畫面與原本相同
+   ============================================================ */
+var ThumbKit = (function(){
+  var DB_NAME = 'ft_thumbs', STORE = 'thumbs';
+  var MAX_EDGE = 480, WEBP_Q = 0.74, JPEG_Q = 0.82;
+  var FETCH_BATCH = 15;
+  var WEBP = (function(){ try{ return document.createElement('canvas').toDataURL('image/webp').indexOf('data:image/webp') === 0; }catch(e){ return false; } })();
+
+  var dbPromise = null;
+  var urls = {};        // key → objectURL（記憶體快取，重繪時直接用）
+  var missing = {};     // key → 'absent' | 'fetching' | 'gone'
+  var cloud = { url:null, state:null, promise:null };
+  var uploadChain = Promise.resolve();
+  var hydrateQueued = false, fetchTimer = null, statusTimer = null, persistAsked = false;
+
+  /* ---------- IndexedDB ---------- */
+  function openDB(){
+    if(!dbPromise){
+      dbPromise = new Promise(function(res, rej){
+        // 版本 2：若資料庫曾被建立成空殼（沒有資料表），升級時補建，避免之後每次讀取都失敗
+        var r = indexedDB.open(DB_NAME, 2);
+        r.onupgradeneeded = function(){ if(!r.result.objectStoreNames.contains(STORE)) r.result.createObjectStore(STORE); };
+        r.onsuccess = function(){ res(r.result); };
+        r.onerror = function(){ rej(r.error); };
+      });
+      dbPromise.catch(function(){ dbPromise = null; });
+    }
+    return dbPromise;
+  }
+  function withStore(mode, fn){
+    return openDB().then(function(db){
+      return new Promise(function(res, rej){
+        var tx = db.transaction(STORE, mode), out;
+        out = fn(tx.objectStore(STORE));
+        tx.oncomplete = function(){ res(out && 'result' in out ? out.result : undefined); };
+        tx.onerror = tx.onabort = function(){ rej(tx.error); };
+      });
+    });
+  }
+  function idbGet(k){ return withStore('readonly', function(st){ return st.get(k); }); }
+  function idbPut(k, v){ return withStore('readwrite', function(st){ st.put(v, k); }); }
+  function idbDel(k){ return withStore('readwrite', function(st){ st.delete(k); }); }
+  function idbKeys(){ return withStore('readonly', function(st){ return st.getAllKeys(); }); }
+  function idbEntries(){
+    return openDB().then(function(db){
+      return new Promise(function(res, rej){
+        var tx = db.transaction(STORE, 'readonly'), st = tx.objectStore(STORE), ks, vs;
+        st.getAllKeys().onsuccess = function(e){ ks = e.target.result; };
+        st.getAll().onsuccess = function(e){ vs = e.target.result; };
+        tx.oncomplete = function(){ res((ks||[]).map(function(k, i){ return { key:k, rec:vs[i] }; })); };
+        tx.onerror = tx.onabort = function(){ rej(tx.error); };
+      });
+    });
+  }
+
+  // 「階段縮圖」模組：關閉時所有縮圖畫面都不輸出（資料保留）。新增縮圖畫面時一律經過下列函式，就會自動受控
+  function enabled(){ return typeof modOn !== 'function' || modOn('thumb'); }
+
+  /* ---------- 資料參照 ---------- */
+  function slotTarget(p, slot){
+    if(!p) return null;
+    if(String(slot) === 'p') return p;
+    return (p.milestones || [])[+slot] || null;
+  }
+  function keysOf(p){
+    var out = [];
+    if(!p) return out;
+    if(p.thumb) out.push(p.thumb);
+    (p.milestones || []).forEach(function(m){ if(m && m.thumb) out.push(m.thumb); });
+    return out;
+  }
+  function refSet(){
+    var set = {};
+    (typeof PJ !== 'undefined' ? PJ : []).forEach(function(p){ keysOf(p).forEach(function(k){ set[k] = 1; }); });
+    return set;
+  }
+  function hasRefs(){
+    return (typeof PJ !== 'undefined' ? PJ : []).some(function(p){ return keysOf(p).length > 0; });
+  }
+  function coverOf(p){
+    var ms = p.milestones || [];
+    for(var i = ms.length - 1; i >= 0; i--){ if(ms[i] && ms[i].thumb) return { key:ms[i].thumb, label:ms[i].name || '階段' }; }
+    if(p.thumb) return { key:p.thumb, label:'任務縮圖' };
+    return null;
+  }
+
+  /* ---------- 圖片處理 ---------- */
+  function mkCanvas(w, h){ var c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+  function decodeImg(file){
+    return new Promise(function(res, rej){
+      var u = URL.createObjectURL(file), im = new Image();
+      im.onload = function(){ URL.revokeObjectURL(u); res(im); };
+      im.onerror = function(){ URL.revokeObjectURL(u); rej(new Error('decode')); };
+      im.src = u;
+    });
+  }
+  function decode(file){
+    if(window.createImageBitmap) return createImageBitmap(file).catch(function(){ return decodeImg(file); });
+    return decodeImg(file);
+  }
+  function makeThumb(file){
+    return decode(file).then(function(src){
+      var w0 = src.width, h0 = src.height;
+      if(!w0 || !h0) throw new Error('empty');
+      var sc = Math.min(1, MAX_EDGE / Math.max(w0, h0));
+      var tw = Math.max(1, Math.round(w0 * sc)), th = Math.max(1, Math.round(h0 * sc));
+      // 先逐次減半，再縮到目標尺寸：線稿、細節比一次縮到位乾淨
+      var cur = src, cw = w0, ch = h0;
+      while(cw / 2 >= tw && ch / 2 >= th){
+        var c = mkCanvas(Math.round(cw / 2), Math.round(ch / 2));
+        c.getContext('2d').drawImage(cur, 0, 0, c.width, c.height);
+        cur = c; cw = c.width; ch = c.height;
+      }
+      var out = mkCanvas(tw, th), g = out.getContext('2d');
+      g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+      if(!WEBP){ g.fillStyle = '#0f172a'; g.fillRect(0, 0, tw, th); } // JPEG 沒有透明，墊深色底
+      g.drawImage(cur, 0, 0, tw, th);
+      if(src.close) src.close();
+      return new Promise(function(res, rej){
+        out.toBlob(function(b){ b ? res({ blob:b, w:tw, h:th }) : rej(new Error('encode')); },
+          WEBP ? 'image/webp' : 'image/jpeg', WEBP ? WEBP_Q : JPEG_Q);
+      });
+    });
+  }
+  function blobToB64(blob){
+    return new Promise(function(res, rej){
+      var r = new FileReader();
+      r.onload = function(){ res(String(r.result).split(',')[1] || ''); };
+      r.onerror = function(){ rej(r.error); };
+      r.readAsDataURL(blob);
+    });
+  }
+  function b64ToBlob(b64, type){
+    var bin = atob(b64), arr = new Uint8Array(bin.length);
+    for(var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    return new Blob([arr], { type:type || 'image/webp' });
+  }
+  function requestPersist(){
+    // 申請持久儲存，避免硬碟吃緊時被瀏覽器自動清掉；Chrome 會依使用頻率、書籤等自動判斷，不會跳視窗
+    if(persistAsked) return; persistAsked = true;
+    try{
+      if(navigator.storage && navigator.storage.persist){
+        navigator.storage.persisted().then(function(ok){ if(!ok) return navigator.storage.persist(); }).catch(function(){});
+      }
+    }catch(e){}
+  }
+
+  /* ---------- 雲端（一律經過版本握手）---------- */
+  function cloudCheck(force){
+    var url = getScriptUrl();
+    if(!url){ cloud = { url:null, state:'none', promise:null }; renderStatusSoon(); return Promise.resolve('none'); }
+    if(!force && cloud.url === url && cloud.promise) return cloud.promise;
+    cloud.url = url; cloud.state = 'checking'; renderStatusSoon();
+    var pr = fetch(getAuthUrl(url) + '&action=info', { method:'GET' })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if(d && d.ok === true && +d.api >= 2 && Array.isArray(d.features) && d.features.indexOf('thumb') >= 0) return 'ok';
+        if(d && d.ok === true) return 'old';   // 舊版腳本忽略 action、直接回主資料
+        return 'auth';
+      }, function(){ return 'error'; })
+      .then(function(st){
+        if(cloud.promise === pr){
+          cloud.state = st;
+          if(st === 'error' || st === 'auth') cloud.promise = null; // 下次需要時再試
+        }
+        renderStatusSoon();
+        return st;
+      });
+    cloud.promise = pr;
+    return pr;
+  }
+  // 唯一會送出「帶 action 請求」的出口：握手不是 ok、或網址換過，就拒絕
+  function cloudCall(method, action, params, body){
+    return cloudCheck(false).then(function(st){
+      var url = getScriptUrl();
+      if(st !== 'ok' || !url || url !== cloud.url) throw new Error('cloud-unavailable');
+      var q = '&action=' + encodeURIComponent(action);
+      Object.keys(params || {}).forEach(function(k){ q += '&' + k + '=' + encodeURIComponent(params[k]); });
+      var opt = { method:method };
+      if(method === 'POST') opt.body = JSON.stringify(body || {});
+      return fetch(getAuthUrl(url) + q, opt).then(function(r){ return r.json(); }).then(function(d){
+        if(!d || d.ok !== true) throw new Error((d && d.error) || '雲端回應異常');
+        return d;
+      });
+    });
+  }
+
+  function queueUpload(key){
+    uploadChain = uploadChain.then(function(){ return uploadOne(key); }).catch(function(){});
+    return uploadChain;
+  }
+  function uploadOne(key){
+    return cloudCheck(false).then(function(st){
+      if(st !== 'ok') return false;
+      return idbGet(key).then(function(rec){
+        if(!rec || !rec.blob || rec.synced) return false;
+        return blobToB64(rec.blob)
+          .then(function(b64){ return cloudCall('POST', 'thumbPut', null, { key:key, type:rec.blob.type || rec.type, b64:b64 }); })
+          .then(function(){
+            return idbGet(key).then(function(cur){
+              if(cur && cur.at === rec.at){ cur.synced = true; return idbPut(key, cur).then(function(){ return true; }); }
+              return false; // 上傳途中又被換成新圖，留給下一輪
+            });
+          });
+      });
+    }).catch(function(e){ console.warn('[縮圖] 上傳失敗', key, e); return false; })
+      .then(function(r){ renderStatusSoon(); return r; });
+  }
+
+  function fetchKeys(keys){
+    var got = [], notFound = [];
+    var batches = [];
+    for(var i = 0; i < keys.length; i += FETCH_BATCH) batches.push(keys.slice(i, i + FETCH_BATCH));
+    var chain = Promise.resolve();
+    batches.forEach(function(batch){
+      chain = chain.then(function(){
+        return cloudCall('GET', 'thumbGet', { keys:batch.join(',') }).then(function(d){
+          var items = d.items || {};
+          return Promise.all(batch.map(function(k){
+            var it = items[k];
+            if(!it || !it.b64){ notFound.push(k); return; }
+            var blob = b64ToBlob(it.b64, it.type);
+            return idbPut(k, { blob:blob, type:blob.type, at:Date.now(), synced:true }).then(function(){
+              if(urls[k]) URL.revokeObjectURL(urls[k]);
+              urls[k] = URL.createObjectURL(blob);
+              got.push(k);
+            });
+          }));
+        });
+      });
+    });
+    return chain.then(function(){ return { got:got, notFound:notFound }; });
+  }
+
+  /* ---------- 顯示（hydrate）---------- */
+  function hydrateSoon(){
+    if(hydrateQueued) return;
+    hydrateQueued = true;
+    (window.requestAnimationFrame || setTimeout)(hydrateNow);
+  }
+  // 只載入「捲到畫面附近」的縮圖：隱藏的分頁、收合的面板、長清單下方都不會先讀
+  var io = window.IntersectionObserver ? new IntersectionObserver(function(entries){
+    var ready = [];
+    entries.forEach(function(e){ if(e.isIntersecting){ io.unobserve(e.target); ready.push(e.target); } });
+    if(ready.length) loadImgs(ready);
+  }, { rootMargin:'300px 0px' }) : null;
+
+  function hydrateNow(){
+    hydrateQueued = false;
+    var imgs = document.querySelectorAll('img[data-thumb]:not([data-tk])');
+    if(!imgs.length) return;
+    Array.prototype.forEach.call(imgs, function(img){
+      img.setAttribute('data-tk', '1');
+      if(io) io.observe(img);
+    });
+    if(!io) loadImgs(Array.prototype.slice.call(imgs));
+  }
+  function loadImgs(imgs){
+    var byKey = {};
+    imgs.forEach(function(img){
+      var k = img.getAttribute('data-thumb');
+      (byKey[k] = byKey[k] || []).push(img);
+    });
+    Object.keys(byKey).forEach(function(k){
+      if(urls[k]){ showImgs(byKey[k], urls[k]); return; }
+      var done = false;
+      var guard = setTimeout(function(){ if(!done) markMissing(byKey[k], k, '讀取縮圖逾時，請重新整理頁面'); }, 6000);
+      idbGet(k).then(function(rec){
+        done = true; clearTimeout(guard);
+        if(rec && rec.blob){
+          if(!urls[k]) urls[k] = URL.createObjectURL(rec.blob);
+          showImgs(byKey[k], urls[k]);
+        } else markMissing(byKey[k], k);
+      }).catch(function(e){ done = true; clearTimeout(guard); console.warn('[縮圖] 讀取失敗', k, e); markMissing(byKey[k], k); });
+    });
+    renderStatusSoon();
+  }
+
+  var retried = {};
+  function showImgs(imgs, url){
+    imgs.forEach(function(img){
+      var par = img.parentNode, k = img.getAttribute('data-thumb');
+      img.onload = function(){ if(par){ par.classList.add('tk-loaded'); par.classList.remove('tk-missing'); } };
+      img.onerror = function(){ recover(k, [img]); };
+      img.src = url;
+    });
+    // 保險：幾秒後仍沒顯示出來，就重讀一次，避免卡在「載入中」
+    setTimeout(function(){
+      var stuck = imgs.filter(function(img){ var par = img.parentNode; return img.isConnected && par && !par.classList.contains('tk-loaded') && !par.classList.contains('tk-missing'); });
+      if(stuck.length) recover(stuck[0].getAttribute('data-thumb'), stuck);
+    }, 4000);
+  }
+  // 物件網址失效或讀取失敗時，從 IndexedDB 重新產生一次；再失敗才標示缺圖
+  function recover(k, imgs){
+    if(retried[k]){ markMissing(imgs, k, '縮圖讀取失敗，請重新貼上'); return; }
+    retried[k] = 1;
+    delete urls[k];
+    idbGet(k).then(function(rec){
+      if(rec && rec.blob){ urls[k] = URL.createObjectURL(rec.blob); showImgs(imgs, urls[k]); }
+      else markMissing(imgs, k);
+    }).catch(function(){ markMissing(imgs, k); });
+  }
+
+  function missingText(k){
+    var s = missing[k];
+    if(s === 'gone') return '雲端也找不到這張縮圖，請重新貼上';
+    if(s === 'fetching' || cloud.state === 'ok' || cloud.state === 'checking') return '從雲端取回中…';
+    return '這台電腦沒有這張縮圖';
+  }
+  function markMissing(imgs, k, why){
+    if(!why && !missing[k]) missing[k] = 'absent';
+    imgs.forEach(function(img){
+      var par = img.parentNode; if(!par) return;
+      par.classList.add('tk-missing');
+      var ph = par.querySelector('.tk-ph'); if(ph) ph.textContent = why || missingText(k);
+      if(par.classList.contains('tk-row')) par.title = why || missingText(k);
+    });
+    if(!why) scheduleFetchMissing();
+  }
+  function refreshMissingText(){
+    Object.keys(missing).forEach(function(k){
+      document.querySelectorAll('img[data-thumb="' + k + '"]').forEach(function(img){
+        var par = img.parentNode; if(!par || par.classList.contains('tk-loaded')) return;
+        var ph = par.querySelector('.tk-ph'); if(ph) ph.textContent = missingText(k);
+      });
+    });
+  }
+  function scheduleFetchMissing(){
+    if(fetchTimer) return;
+    fetchTimer = setTimeout(function(){
+      fetchTimer = null;
+      var keys = Object.keys(missing).filter(function(k){ return missing[k] === 'absent'; });
+      if(!keys.length || !getScriptUrl()) { refreshMissingText(); return; }
+      cloudCheck(false).then(function(st){
+        if(st !== 'ok'){ refreshMissingText(); return; }
+        keys.forEach(function(k){ missing[k] = 'fetching'; });
+        refreshMissingText();
+        return fetchKeys(keys).then(function(r){
+          r.got.forEach(function(k){ delete missing[k]; reHydrateKey(k); });
+          r.notFound.forEach(function(k){ missing[k] = 'gone'; });
+          refreshMissingText(); renderStatusSoon();
+        }, function(){
+          keys.forEach(function(k){ if(missing[k] === 'fetching') missing[k] = 'absent'; });
+          refreshMissingText();
+        });
+      });
+    }, 500);
+  }
+  function reHydrateKey(k){
+    document.querySelectorAll('img[data-thumb="' + k + '"]').forEach(function(img){ img.removeAttribute('data-tk'); });
+    hydrateSoon();
+  }
+
+  /* ---------- 不需要縮圖的階段（依階段名，隨設定同步）---------- */
+  function normName(n){ return (typeof normPhase === 'function') ? normPhase(n) : String(n || '').trim(); }
+  function getHidden(){ try{ var a = JSON.parse(localStorage.getItem('ft_tk_hide') || '[]'); return Array.isArray(a) ? a : []; }catch(e){ return []; } }
+  function setHidden(arr){ localStorage.setItem('ft_tk_hide', JSON.stringify(arr)); save(); rerenderActive(); }
+  function hidePhase(pid, slot){
+    var t = slotTarget(pBy(pid), slot);
+    if(!t || !t.name) return;
+    var k = normName(t.name), arr = getHidden();
+    if(arr.indexOf(k) < 0) arr.push(k);
+    setHidden(arr);
+    showToast('所有任務的「' + t.name + '」都不再顯示縮圖格', 'blue');
+  }
+  function unhide(i){
+    var arr = getHidden();
+    if(i < 0 || i >= arr.length) return;
+    arr.splice(i, 1);
+    setHidden(arr);
+  }
+
+  /* ---------- 詳情面板 / 列表 HTML ---------- */
+  function rowHTML(p){
+    if(!enabled()) return '';
+    var c = p && coverOf(p);
+    if(!c) return '';
+    return '<span class="tk-row" title="' + esc(c.label) + '"><img data-thumb="' + esc(c.key) + '" alt=""></span>';
+  }
+  function cloudNote(){
+    var st = cloud.state || (getScriptUrl() ? 'unchecked' : 'none');
+    if(st === 'ok') return '自動備份到雲端';
+    if(st === 'old') return '僅存本機（腳本未更新）';
+    if(st === 'none') return '僅存本機';
+    return '';
+  }
+  function cardHTML(p){
+    if(!enabled()) return '';
+    var c = p && coverOf(p);
+    if(!c) return '';
+    return '<span class="tk-row tk-card" title="' + esc(c.label) + '"><img data-thumb="' + esc(c.key) + '" alt=""></span>';
+  }
+  function detailHTML(p){
+    if(!enabled()) return '';
+    var ms = p.milestones || [];
+    var hidden = getHidden(), hiddenUsed = {};
+    var slots = [];
+    ms.forEach(function(m, i){
+      var hi = m.name ? hidden.indexOf(normName(m.name)) : -1;
+      if(hi >= 0 && !m.thumb && !m.path){ hiddenUsed[hi] = m.name; return; } // 已有圖或路徑的照常顯示，不讓內容被藏起來
+      var sub = [];
+      if(m.date) sub.push(m.date.slice(5).replace('-', '/'));
+      if(m.note) sub.push(m.note);
+      slots.push({ slot:String(i), t:m, label:m.name || '未命名階段', sub:sub.join('　'), canHide:!!m.name });
+    });
+    if(!ms.length || p.thumb || p.path){
+      slots.push({ slot:'p', t:p, label: ms.length ? '其他' : '任務縮圖', sub: ms.length ? '不屬於特定階段' : '', canHide:false });
+    }
+    var anyThumb = slots.some(function(s){ return !!s.t.thumb; });
+    var hiddenIdx = Object.keys(hiddenUsed);
+    var bar = hiddenIdx.length
+      ? '<div class="tk-hidden-bar"><span>已隱藏：</span>' + hiddenIdx.map(function(i){
+          return '<button type="button" onclick="ThumbKit.unhide(' + i + ')" title="恢復顯示這個階段的縮圖格">' + esc(hiddenUsed[i]) + '</button>';
+        }).join('') + '</div>'
+      : '';
+    return '<div class="mb-6">'
+      + '<div class="flex items-center justify-between mb-3 px-1"><h3 class="font-bold text-white text-sm">階段檔案</h3>'
+      + (anyThumb ? '<span class="text-[10px] text-slate-600">' + cloudNote() + '</span>' : '') + '</div>'
+      + (slots.length ? '<div class="tk-grid">' + slots.map(function(s){ return tileHTML(p, s); }).join('') + '</div>' : '')
+      + bar
+      + '</div>';
+  }
+  function pathAction(p, slot, path){
+    if(!path) return '';
+    if(/^https?:\/\//i.test(path)) return '<a href="' + esc(path) + '" target="_blank" rel="noopener" title="在新分頁開啟">開啟</a>';
+    return '<button type="button" onclick="ThumbKit.copyPath(' + p.id + ',\'' + slot + '\')" title="複製路徑，貼到檔案總管的網址列">複製</button>';
+  }
+  function tileHTML(p, s){
+    var key = s.t.thumb || '', path = s.t.path || '';
+    var a = p.id + ',\'' + s.slot + '\'';
+    return '<div class="tk-tile">'
+      + '<div class="tk-drop" tabindex="0" role="button" data-pid="' + p.id + '" data-slot="' + s.slot + '"'
+      + ' title="點一下後按 Ctrl+V 貼上，或拖入圖片；按兩下可選檔"'
+      + ' aria-label="' + esc(s.label) + ' 的縮圖。按 Ctrl+V 貼上，或按 Enter 選擇檔案"'
+      + ' ondblclick="ThumbKit.pick(' + a + ')" onkeydown="ThumbKit.onKey(event,' + a + ')"'
+      + ' ondragover="ThumbKit.onDragOver(event)" ondragleave="ThumbKit.onDragLeave(event)" ondrop="ThumbKit.onDrop(event,' + a + ')">'
+      + (key ? '<img data-thumb="' + esc(key) + '" alt=""><span class="tk-ph">載入中…</span>'
+             : '<span class="tk-empty">＋ 貼上或拖入</span>')
+      + '<span class="tk-ready">Ctrl+V 貼上</span>'
+      + '</div>'
+      + '<div class="tk-meta"><div class="min-w-0">'
+      + '<div class="tk-label" title="' + esc(s.label) + '">' + esc(s.label) + '</div>'
+      + (s.sub ? '<div class="tk-sub" title="' + esc(s.sub) + '">' + esc(s.sub) + '</div>' : '')
+      + '</div><div class="tk-acts">'
+      + (key
+          ? '<button type="button" onclick="ThumbKit.pick(' + a + ')" title="從電腦選擇新圖片">換圖</button>'
+            + '<button type="button" class="tk-del" onclick="ThumbKit.clear(' + a + ')" title="移除這張縮圖">移除</button>'
+          : '<button type="button" onclick="ThumbKit.pick(' + a + ')" title="從電腦選擇圖片">選檔</button>'
+            + (s.canHide ? '<button type="button" onclick="ThumbKit.hidePhase(' + a + ')" title="這個階段不需要縮圖：所有任務的「' + esc(s.label) + '」都不再顯示這一格">隱藏</button>' : ''))
+      + '</div></div>'
+      + '<div class="tk-path"><input type="text" spellcheck="false" value="' + esc(path) + '" placeholder="歸檔位置" title="' + esc(path || '原檔放在哪裡：資料夾路徑或雲端連結') + '"'
+      + ' onchange="ThumbKit.setPath(' + a + ',this)" onkeydown="if(event.key===\'Enter\')this.blur()">'
+      + pathAction(p, s.slot, path)
+      + '</div></div>';
+  }
+
+  /* ---------- 任務一覽：表格縮圖、放大預覽、圖牆 ---------- */
+  function stagesOf(p){
+    var out = [];
+    (p.milestones || []).forEach(function(m){ if(m && m.thumb) out.push({ key:m.thumb, label:m.name || '階段' }); });
+    if(p.thumb) out.push({ key:p.thumb, label:(p.milestones || []).length ? '其他' : '任務縮圖' });
+    return out;
+  }
+  function listHTML(p){
+    if(!enabled()) return '';
+    var c = p && coverOf(p);
+    if(!c) return '<span class="tk-list-gap"></span>';
+    return '<span class="tk-row tk-list" data-label="' + esc(p.name + '　' + c.label) + '"><img data-thumb="' + esc(c.key) + '" alt=""></span>';
+  }
+  // 模組關閉時一律用表格，但不改動記住的偏好，重新開啟後回到原本的模式
+  function getTagView(){ if(!enabled()) return 'table'; try{ return localStorage.getItem('ft_tag_view') === 'wall' ? 'wall' : 'table'; }catch(e){ return 'table'; } }
+  function setTagView(v){
+    try{ localStorage.setItem('ft_tag_view', v === 'wall' ? 'wall' : 'table'); }catch(e){}
+    if(typeof _applyTagFilter === 'function') _applyTagFilter();
+  }
+  function wallShowEmpty(){ try{ return localStorage.getItem('ft_tag_wall_empty') === '1'; }catch(e){ return false; } }
+  function toggleWallEmpty(on){
+    try{ localStorage.setItem('ft_tag_wall_empty', on ? '1' : '0'); }catch(e){}
+    if(typeof _applyTagFilter === 'function') _applyTagFilter();
+  }
+  function whenOf(p){ var d = p.edate || p.sdate || ''; return d ? d.slice(0, 7).replace('-', '/') : ''; }
+
+  function wallTile(p){
+    var st = stagesOf(p), cover = coverOf(p);
+    var sub = [whenOf(p), (typeof grpName === 'function' ? grpName(p.gid) : '')].filter(Boolean).join('　');
+    var chips = st.length > 1
+      ? '<div class="tk-wstages">' + st.map(function(s){
+          return '<button type="button" data-key="' + esc(s.key) + '" class="' + (s.key === cover.key ? 'on' : '') + '"'
+            + ' onmouseenter="ThumbKit.wallStage(this)" onclick="event.stopPropagation();ThumbKit.wallStage(this)">' + esc(s.label) + '</button>';
+        }).join('') + '</div>'
+      : '';
+    return '<div class="tk-wtile" onclick="openDetail(' + p.id + ')" title="' + esc(p.name) + '">'
+      + '<div class="tk-wimg"><img data-thumb="' + esc(cover.key) + '" alt=""><span class="tk-ph"></span>'
+      + (st.length > 1 ? '<span class="tk-wcount">' + st.length + '</span>' : '')
+      + chips + '</div>'
+      + '<div class="tk-wcap"><div class="tk-wname">' + esc(p.name) + '</div>'
+      + (sub ? '<div class="tk-wsub">' + esc(sub) + '</div>' : '') + '</div></div>';
+  }
+  function wallEmptyTile(p){
+    var sub = [whenOf(p), (typeof grpName === 'function' ? grpName(p.gid) : '')].filter(Boolean).join('　');
+    var a = p.id + ',\'p\'';
+    return '<div class="tk-wtile tk-wempty">'
+      + '<div class="tk-drop" tabindex="0" role="button" data-pid="' + p.id + '" data-slot="p"'
+      + ' title="點一下後按 Ctrl+V 貼上，或拖入圖片；按兩下可選檔"'
+      + ' aria-label="' + esc(p.name) + ' 的縮圖。按 Ctrl+V 貼上，或按 Enter 選擇檔案"'
+      + ' ondblclick="ThumbKit.pick(' + a + ')" onkeydown="ThumbKit.onKey(event,' + a + ')"'
+      + ' ondragover="ThumbKit.onDragOver(event)" ondragleave="ThumbKit.onDragLeave(event)" ondrop="ThumbKit.onDrop(event,' + a + ')">'
+      + '<span class="tk-empty">＋ 貼上或拖入</span><span class="tk-ready">Ctrl+V 貼上</span></div>'
+      + '<div class="tk-wcap" onclick="openDetail(' + p.id + ')"><div class="tk-wname">' + esc(p.name) + '</div>'
+      + (sub ? '<div class="tk-wsub">' + esc(sub) + '</div>' : '') + '</div></div>';
+  }
+  function wallStage(btn){
+    var box = btn.closest('.tk-wimg'); if(!box) return;
+    var img = box.querySelector('img'), k = btn.getAttribute('data-key');
+    if(!img || img.getAttribute('data-thumb') === k) return;
+    Array.prototype.forEach.call(box.querySelectorAll('.tk-wstages button'), function(b){ b.classList.toggle('on', b === btn); });
+    img.setAttribute('data-thumb', k);
+    if(urls[k]){ img.src = urls[k]; return; }
+    idbGet(k).then(function(rec){
+      if(rec && rec.blob && img.getAttribute('data-thumb') === k){
+        if(!urls[k]) urls[k] = URL.createObjectURL(rec.blob);
+        img.src = urls[k];
+      }
+    }).catch(function(){});
+  }
+  // 由 _applyTagFilter 呼叫：切換表格／圖牆，並在圖牆模式下畫出篩選結果
+  function renderTagView(filtered){
+    var mode = getTagView();
+    Array.prototype.forEach.call(document.querySelectorAll('#tag-view-toggle button'), function(b){
+      var on = b.getAttribute('data-v') === mode;
+      b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    var tbl = document.getElementById('tag-tbl-wrap'), wall = document.getElementById('tag-wall');
+    if(!tbl || !wall) return;
+    if(mode !== 'wall'){ tbl.classList.remove('hidden'); wall.classList.add('hidden'); wall.innerHTML = ''; return; }
+    tbl.classList.add('hidden'); wall.classList.remove('hidden');
+    var withImg = [], without = [];
+    filtered.forEach(function(p){ (coverOf(p) ? withImg : without).push(p); });
+    var byDate = function(a, b){ return (b.edate || b.sdate || '').localeCompare(a.edate || a.sdate || ''); };
+    withImg.sort(byDate); without.sort(byDate);
+    var showEmpty = wallShowEmpty();
+    var html = '';
+    if(!filtered.length){
+      html = '<div class="tk-wnote">無符合條件的任務</div>';
+    } else {
+      var tiles = withImg.map(wallTile).join('') + (showEmpty ? without.map(wallEmptyTile).join('') : '');
+      if(tiles) html += '<div class="tk-wall">' + tiles + '</div>';
+      else html += '<div class="tk-wnote">這些任務都還沒有縮圖。打開下方的「顯示未歸檔」，就能直接把圖貼到牆上。</div>';
+    }
+    if(without.length){
+      html += '<div class="tk-wbar"><span>' + (showEmpty ? '其中 ' + without.length + ' 個任務還沒有縮圖，可以直接貼圖或拖入' : '另有 ' + without.length + ' 個任務沒有縮圖') + '</span>'
+        + '<label class="tk-wswitch"><input type="checkbox" ' + (showEmpty ? 'checked' : '') + ' onchange="ThumbKit.toggleWallEmpty(this.checked)"> 顯示未歸檔</label></div>';
+    }
+    wall.innerHTML = html;
+  }
+
+  // 表格縮圖：滑鼠停約半秒才浮出大圖，移動滑鼠時不會一直跳
+  var peekTimer = null, peekEl = null, peekFor = null;
+  function hidePeek(){ clearTimeout(peekTimer); peekFor = null; if(peekEl) peekEl.classList.remove('show'); }
+  function showPeek(t){
+    var small = t.querySelector('img');
+    if(!t.isConnected || !t.classList.contains('tk-loaded') || !small || !small.src) return;
+    if(!peekEl){
+      peekEl = document.createElement('div'); peekEl.id = 'tk-peek';
+      peekEl.innerHTML = '<img alt=""><div></div>';
+      document.body.appendChild(peekEl);
+    }
+    peekFor = t;
+    var big = peekEl.querySelector('img');
+    peekEl.querySelector('div').textContent = t.getAttribute('data-label') || '';
+    big.onload = function(){
+      if(peekFor !== t) return;
+      var r = t.getBoundingClientRect(), w = peekEl.offsetWidth, h = peekEl.offsetHeight;
+      var left = r.right + 12; if(left + w > window.innerWidth - 8) left = Math.max(8, r.left - w - 12);
+      var top = Math.min(Math.max(8, r.top + r.height / 2 - h / 2), window.innerHeight - h - 8);
+      peekEl.style.left = left + 'px'; peekEl.style.top = top + 'px';
+      peekEl.classList.add('show');
+    };
+    big.src = small.src;
+  }
+  document.addEventListener('mouseover', function(e){
+    var t = e.target && e.target.closest ? e.target.closest('.tk-list') : null;
+    if(!t || t === peekFor) return;
+    clearTimeout(peekTimer);
+    peekTimer = setTimeout(function(){ showPeek(t); }, 450);
+  });
+  document.addEventListener('mouseout', function(e){
+    var t = e.target && e.target.closest ? e.target.closest('.tk-list') : null;
+    if(!t || (e.relatedTarget && t.contains(e.relatedTarget))) return;
+    hidePeek();
+  });
+  window.addEventListener('scroll', hidePeek, true);
+  document.addEventListener('mousedown', hidePeek, true);
+
+  /* ---------- 操作 ---------- */
+  function dropFor(pid, slot){
+    return document.querySelector('.tk-drop[data-pid="' + pid + '"][data-slot="' + slot + '"]');
+  }
+  function setBusy(pid, slot, on){ var d = dropFor(pid, slot); if(d) d.classList.toggle('tk-busy', !!on); }
+  function isImageFile(f){ return !!f && /^image\//.test(f.type || ''); }
+
+  function setThumb(pid, slot, file){
+    var p = pBy(pid), t = slotTarget(p, slot);
+    if(!t) return;
+    if(!isImageFile(file)){
+      showToast('只能用圖片（PNG、JPG、WebP）。PSD、CLIP 請先截圖或匯出圖片再貼上', 'amber');
+      return;
+    }
+    setBusy(pid, slot, true);
+    makeThumb(file).then(function(r){
+      var oldKey = t.thumb || null;
+      var key = nextStrId('th_');
+      var rec = { blob:r.blob, type:r.blob.type, w:r.w, h:r.h, at:Date.now(), synced:false };
+      return idbPut(key, rec).then(function(){
+        urls[key] = URL.createObjectURL(r.blob);
+        delete missing[key]; delete retried[key];
+        t.thumb = key;
+        save(); requestPersist();
+        rerenderActive();
+        showToast(oldKey ? '✓ 已更新縮圖' : '✓ 已加入縮圖', 'green');
+        if(oldKey) forget([oldKey]);
+        if(getScriptUrl()) queueUpload(key);
+        renderStatusSoon();
+      });
+    }).catch(function(e){
+      console.error('[縮圖] 處理失敗', e);
+      setBusy(pid, slot, false);
+      showToast('這張圖片讀不進來，請換一張或改用截圖', 'amber');
+    });
+  }
+  // 釋放不再被任何任務引用的縮圖（本機＋雲端）；仍被引用的會略過
+  function forget(keys){
+    var refs = refSet();
+    var dead = (keys || []).filter(function(k){ return k && !refs[k]; });
+    if(!dead.length) return Promise.resolve();
+    dead.forEach(function(k){ if(urls[k]){ URL.revokeObjectURL(urls[k]); delete urls[k]; } delete missing[k]; });
+    var local = Promise.all(dead.map(function(k){ return idbDel(k).catch(function(){}); }));
+    var remote = getScriptUrl()
+      ? cloudCall('POST', 'thumbDel', null, { keys:dead }).catch(function(){})
+      : Promise.resolve();
+    return Promise.all([local, remote]).then(renderStatusSoon);
+  }
+
+  function pick(pid, slot){
+    var inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = 'image/*';
+    inp.onchange = function(){ if(inp.files && inp.files[0]) setThumb(pid, slot, inp.files[0]); };
+    inp.click();
+  }
+  function onKey(e, pid, slot){
+    if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); pick(pid, slot); }
+  }
+  function hasFiles(e){
+    var dt = e.dataTransfer; if(!dt) return false;
+    return Array.prototype.indexOf.call(dt.types || [], 'Files') >= 0;
+  }
+  function onDragOver(e){
+    if(!hasFiles(e)) return;
+    e.preventDefault(); e.dataTransfer.dropEffect = 'copy';
+    var tile = e.currentTarget.closest('.tk-tile'); if(tile) tile.classList.add('tk-over');
+  }
+  function onDragLeave(e){
+    var tile = e.currentTarget.closest('.tk-tile'); if(tile) tile.classList.remove('tk-over');
+  }
+  function onDrop(e, pid, slot){
+    if(!hasFiles(e)) return;
+    e.preventDefault(); e.stopPropagation();
+    onDragLeave(e);
+    var files = Array.prototype.slice.call(e.dataTransfer.files || []);
+    var img = files.filter(isImageFile)[0];
+    if(!img){ showToast('只能用圖片（PNG、JPG、WebP）。PSD、CLIP 請先截圖或匯出圖片再拖入', 'amber'); return; }
+    setThumb(pid, slot, img);
+  }
+  function imageFromClipboard(cd){
+    if(!cd) return null;
+    var items = cd.items || [];
+    for(var i = 0; i < items.length; i++){
+      if(items[i].kind === 'file' && /^image\//.test(items[i].type)){ var f = items[i].getAsFile(); if(f) return f; }
+    }
+    var files = cd.files || [];
+    for(var j = 0; j < files.length; j++){ if(isImageFile(files[j])) return files[j]; }
+    return null;
+  }
+  document.addEventListener('paste', function(e){
+    var el = document.activeElement;
+    if(!el || !el.classList || !el.classList.contains('tk-drop')) return; // 只有聚焦在縮圖格時才接手，輸入框照常貼文字
+    e.preventDefault();
+    var f = imageFromClipboard(e.clipboardData);
+    if(!f){ showToast('剪貼簿裡沒有圖片。可以先截圖，或在繪圖軟體裡複製畫面', 'amber'); return; }
+    setThumb(+el.getAttribute('data-pid'), el.getAttribute('data-slot'), f);
+  });
+
+  function clear(pid, slot){
+    var p = pBy(pid), t = slotTarget(p, slot);
+    if(!t || !t.thumb) return;
+    var label = String(slot) === 'p' ? '這個任務' : ('「' + (t.name || '這個階段') + '」');
+    if(!confirm('移除' + label + '的縮圖？\n（歸檔位置會保留）')) return;
+    var key = t.thumb;
+    delete t.thumb;
+    save(); rerenderActive();
+    forget([key]);
+    showToast('已移除縮圖', 'blue');
+  }
+  function setPath(pid, slot, input){
+    var p = pBy(pid), t = slotTarget(p, slot);
+    if(!t) return;
+    var v = String(input.value || '').trim().replace(/^"(.*)"$/, '$1'); // Windows「複製路徑」會帶引號
+    if(v) t.path = v; else delete t.path;
+    input.value = v; input.title = v || '原檔放在哪裡：資料夾路徑或雲端連結';
+    save();
+    // 只換右側按鈕，不整個重繪，避免吃掉使用者正要點的下一個欄位
+    var wrap = input.parentNode;
+    Array.prototype.slice.call(wrap.children).forEach(function(el){ if(el !== input) el.remove(); });
+    wrap.insertAdjacentHTML('beforeend', pathAction(p, slot, v));
+    if(v) showToast('✓ 已儲存歸檔位置', 'green');
+  }
+  function copyPath(pid, slot){
+    var t = slotTarget(pBy(pid), slot);
+    if(!t || !t.path) return;
+    navigator.clipboard.writeText(t.path).then(function(){
+      showToast('已複製路徑，貼到檔案總管的網址列即可開啟', 'green');
+    }, function(){ prompt('複製這個路徑：', t.path); });
+  }
+
+  /* ---------- 設定頁：狀態與維護 ---------- */
+  var STATE_UI = {
+    none:      ['未連線',     'slate',   '縮圖只存在這台電腦的瀏覽器。要備份到 Drive，請先在上方連線雲端。'],
+    unchecked: ['尚未檢查',   'slate',   '用到縮圖時會自動檢查 Apps Script 是否支援縮圖備份。'],
+    checking:  ['檢查中',     'slate',   '正在確認 Apps Script 版本…'],
+    ok:        ['已啟用',     'emerald', '新增的縮圖會自動備份到 Google Drive 的「接案追蹤器_縮圖」資料夾。'],
+    old:       ['需更新腳本', 'amber',   '目前的 Apps Script 是舊版：主資料照常同步，縮圖只存本機。依右側步驟 5 更新後即可備份。'],
+    auth:      ['驗證失敗',   'rose',    '安全碼不符，無法確認腳本版本，縮圖暫時只存本機。'],
+    error:     ['連不上',     'rose',    '暫時連不上 Apps Script，縮圖先存本機，之後可按「補傳未備份」。']
+  };
+  var BADGE_CLS = {
+    slate:'border-slate-700 text-slate-400', emerald:'border-emerald-800 text-emerald-400',
+    amber:'border-amber-800 text-amber-400', rose:'border-rose-800 text-rose-400'
+  };
+  function renderStatusSoon(){
+    if(statusTimer) return;
+    statusTimer = setTimeout(function(){ statusTimer = null; renderStatus(); }, 150);
+  }
+  function renderStatus(){
+    var badge = document.getElementById('tk-cloud-badge');
+    var msg = document.getElementById('tk-cloud-msg');
+    var stats = document.getElementById('tk-stats');
+    if(!badge || !msg || !stats) return;
+    var st = getScriptUrl() ? (cloud.url === getScriptUrl() && cloud.state ? cloud.state : 'unchecked') : 'none';
+    var ui = STATE_UI[st] || STATE_UI.unchecked;
+    badge.textContent = ui[0];
+    badge.className = 'text-[10px] px-2 py-0.5 rounded-full border ' + BADGE_CLS[ui[1]];
+    msg.textContent = ui[2];
+    if(!hasRefs()){ stats.textContent = '目前沒有任何縮圖。'; return; }
+    var refs = refSet();
+    idbEntries().then(function(list){
+      var local = {}, unsynced = 0, orphan = 0;
+      list.forEach(function(e){
+        local[e.key] = 1;
+        if(!refs[e.key]) orphan++;
+        else if(e.rec && !e.rec.synced) unsynced++;
+      });
+      var refKeys = Object.keys(refs);
+      var present = refKeys.filter(function(k){ return local[k]; }).length;
+      var parts = ['共 ' + refKeys.length + ' 張縮圖，這台電腦有 ' + present + ' 張'];
+      if(st === 'ok') parts.push(unsynced ? unsynced + ' 張尚未備份' : '全部已備份');
+      else if(unsynced) parts.push(unsynced + ' 張只存本機');
+      if(refKeys.length - present) parts.push('缺 ' + (refKeys.length - present) + ' 張');
+      var txt = parts.join('，') + '。';
+      if(orphan) txt += '另有 ' + orphan + ' 張沒有被任何任務使用。';
+      stats.textContent = txt;
+    }).catch(function(){ stats.textContent = '這個瀏覽器無法讀取縮圖儲存區。'; });
+  }
+  function needCloud(st){
+    if(st === 'ok') return true;
+    if(st === 'none') showToast('尚未連線雲端', 'amber');
+    else if(st === 'old') showToast('Apps Script 是舊版，請先依步驟 5 更新', 'amber');
+    else showToast('無法連上 Apps Script，請稍後再試', 'amber');
+    return false;
+  }
+  function recheck(){
+    cloudCheck(true).then(function(st){
+      renderStatus();
+      if(st === 'ok'){ showToast('✓ 縮圖備份已啟用', 'green'); pushUnsynced(false); }
+      else needCloud(st);
+    });
+  }
+  function pushUnsynced(manual){
+    if(!hasRefs()){ if(manual) showToast('目前沒有任何縮圖', 'blue'); return Promise.resolve(); }
+    return cloudCheck(!!manual).then(function(st){
+      if(st !== 'ok'){ if(manual) needCloud(st); return; }
+      var refs = refSet();
+      return idbEntries().then(function(list){
+        var keys = list.filter(function(e){ return refs[e.key] && e.rec && !e.rec.synced; }).map(function(e){ return e.key; });
+        if(!keys.length){ if(manual) showToast('所有縮圖都已備份', 'green'); return; }
+        if(manual) showToast('開始補傳 ' + keys.length + ' 張縮圖…', 'blue');
+        var ok = 0;
+        keys.forEach(function(k){ uploadChain = uploadChain.then(function(){ return uploadOne(k).then(function(r){ if(r) ok++; }); }); });
+        return uploadChain.then(function(){
+          if(manual) showToast(ok === keys.length ? '✓ 已補傳 ' + ok + ' 張' : '補傳完成 ' + ok + '/' + keys.length + ' 張，其餘稍後再試', ok === keys.length ? 'green' : 'amber');
+          renderStatus();
+        });
+      });
+    });
+  }
+  function restoreAll(){
+    if(!hasRefs()){ showToast('目前沒有任何縮圖', 'blue'); return; }
+    cloudCheck(true).then(function(st){
+      if(!needCloud(st)) return;
+      var refs = refSet();
+      return idbKeys().then(function(keys){
+        var have = {}; keys.forEach(function(k){ have[k] = 1; });
+        var want = Object.keys(refs).filter(function(k){ return !have[k]; });
+        if(!want.length){ showToast('這台電腦的縮圖都在，不需要還原', 'green'); return; }
+        showToast('正在從雲端取回 ' + want.length + ' 張…', 'blue');
+        return fetchKeys(want).then(function(r){
+          r.got.forEach(function(k){ delete missing[k]; reHydrateKey(k); });
+          r.notFound.forEach(function(k){ missing[k] = 'gone'; });
+          refreshMissingText(); renderStatus();
+          showToast(r.notFound.length ? '已還原 ' + r.got.length + ' 張，雲端找不到 ' + r.notFound.length + ' 張' : '✓ 已還原 ' + r.got.length + ' 張',
+            r.notFound.length ? 'amber' : 'green');
+        });
+      });
+    }).catch(function(e){ console.warn(e); showToast('還原失敗，請稍後再試', 'amber'); });
+  }
+  function cleanup(){
+    var refs = refSet();
+    var localP = idbKeys().catch(function(){ return []; });
+    var cloudP = getScriptUrl()
+      ? cloudCheck(true).then(function(st){ return st === 'ok' ? cloudCall('GET', 'thumbList').then(function(d){ return d.keys || []; }) : null; }).catch(function(){ return null; })
+      : Promise.resolve(null);
+    Promise.all([localP, cloudP]).then(function(res){
+      var localDead = res[0].filter(function(k){ return !refs[k]; });
+      var cloudDead = res[1] ? res[1].filter(function(k){ return !refs[k]; }) : [];
+      if(!localDead.length && !cloudDead.length){
+        showToast(res[1] === null && getScriptUrl() ? '本機沒有需要清理的縮圖（雲端未檢查）' : '沒有需要清理的縮圖', 'green');
+        renderStatus(); return;
+      }
+      var msg = '找到沒有被任何任務使用的縮圖（例如已刪除的任務或階段）：\n\n'
+        + '・這台電腦：' + localDead.length + ' 張\n'
+        + (res[1] ? '・雲端：' + cloudDead.length + ' 張（會移到 Google Drive 垃圾桶，30 天內可救回）\n' : '')
+        + '\n要刪除嗎？';
+      if(!confirm(msg)) return;
+      var jobs = localDead.map(function(k){ if(urls[k]){ URL.revokeObjectURL(urls[k]); delete urls[k]; } return idbDel(k).catch(function(){}); });
+      for(var i = 0; i < cloudDead.length; i += 50){
+        jobs.push(cloudCall('POST', 'thumbDel', null, { keys:cloudDead.slice(i, i + 50) }).catch(function(){}));
+      }
+      return Promise.all(jobs).then(function(){ showToast('✓ 已清理 ' + (localDead.length + cloudDead.length) + ' 張', 'green'); renderStatus(); });
+    });
+  }
+
+  /* ---------- 啟動 ---------- */
+  // 任何畫面重繪（列表、群組、詳情…）只要出現縮圖元素就自動補上，不必每個畫面各自呼叫
+  if(window.MutationObserver){
+    new MutationObserver(function(muts){
+      for(var i = 0; i < muts.length; i++){ if(muts[i].addedNodes.length){ hydrateSoon(); return; } }
+    }).observe(document.body, { childList:true, subtree:true });
+  }
+  renderStatus();
+  // 頁面第一次繪製時本模組還沒載入，畫面上不會有縮圖；有縮圖資料時重繪一次目前的分頁
+  // （延到下一輪：此刻還在建立 ThumbKit 本身，window.ThumbKit 尚未賦值）
+  setTimeout(function(){ if(enabled() && hasRefs() && typeof rerenderActive === 'function') rerenderActive(); }, 0);
+  setTimeout(function(){                        // 開啟一陣子後，把之前沒傳成功的縮圖補上
+    if(enabled() && getScriptUrl() && hasRefs()) pushUnsynced(false);
+  }, 6000);
+  // 詳情面板開著時，圖片沒丟準（落在格子外）不要讓瀏覽器直接打開那張圖、離開本頁
+  function strayFileDrag(e){
+    if(!hasFiles(e)) return false;
+    if(e.target && e.target.closest && e.target.closest('.tk-drop')) return false;
+    return !!document.querySelector('#detail-panel.open .tk-drop');
+  }
+  window.addEventListener('dragover', function(e){ if(strayFileDrag(e)){ e.preventDefault(); e.dataTransfer.dropEffect = 'none'; } });
+  window.addEventListener('drop', function(e){ if(strayFileDrag(e)){ e.preventDefault(); showToast('請把圖片拖到縮圖格子裡', 'amber'); } });
+
+  return {
+    detailHTML:detailHTML, rowHTML:rowHTML, cardHTML:cardHTML, listHTML:listHTML, keysOfAny:function(p){ return enabled() && !!coverOf(p); },
+    renderTagView:renderTagView, setTagView:setTagView, tagViewIsWall:function(){ return getTagView() === 'wall'; }, toggleWallEmpty:toggleWallEmpty, wallStage:wallStage, hidePhase:hidePhase, unhide:unhide, hydrateSoon:hydrateSoon, keysOf:keysOf, forget:forget,
+    pick:pick, onKey:onKey, onDragOver:onDragOver, onDragLeave:onDragLeave, onDrop:onDrop,
+    clear:clear, setPath:setPath, copyPath:copyPath,
+    recheck:recheck, pushUnsynced:pushUnsynced, restoreAll:restoreAll, cleanup:cleanup
+  };
+})();
+</script>
+
 </body>
 </html>
