@@ -109,6 +109,7 @@ tbody tr:hover td{background:#131f2e;}
 .tag-dd-item:hover{background:#273548;}
 .tag-dd-item input[type=checkbox]{accent-color:#3b82f6;}
 .pdd-list{min-width:250px;max-height:320px;}
+#mdd_tag-st-dd_list > div:first-child{display:none;}   /* 狀態只有四項，不需要搜尋框 */
 .pdd-list input[type=checkbox]{accent-color:#3b82f6;pointer-events:none;flex-shrink:0;}
 .pdd-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:3px 10px 3px 0;}
 .pdd-row:hover{background:#273548;}
@@ -1083,7 +1084,7 @@ html[data-mod-off~="thumb"] [data-mod="thumb"]{display:none !important;}
   </div>
 
   <div id="v-tag" class="hidden">
-    <div class="hint-bar">以表格或圖牆列出所有任務，支援多條件同時篩選。<strong>期間</strong>可選整年或單一季度（依工時紀錄與任務起訖日期判斷）；<strong>業務類型</strong>與<strong>標籤</strong>皆可多選；<strong>關鍵字</strong>比對任務名稱。點擊任務名稱可開啟詳情面板。</div>
+    <div class="hint-bar">以表格或圖牆列出所有任務，支援多條件同時篩選。<strong>期間</strong>可選整年或單一季度（依工時紀錄與任務起訖日期判斷）；<strong>狀態</strong>的「未開始」指還沒記過工時的進行中任務；<strong>業務類型</strong>與<strong>標籤</strong>皆可多選；<strong>關鍵字</strong>比對任務名稱。點擊任務名稱可開啟詳情面板。</div>
     <div class="flex items-center justify-between gap-3 mb-4">
       <h3 class="text-sm font-semibold text-slate-300">篩選任務</h3>
       <div id="tag-view-toggle" class="tk-vtoggle" role="group" aria-label="顯示方式" data-mod="thumb">
@@ -1096,6 +1097,10 @@ html[data-mod-off~="thumb"] [data-mod="thumb"]{display:none !important;}
         <div class="flex flex-col gap-1.5">
           <label class="text-xs text-slate-500">期間</label>
           <div id="tag-month-dd" class="tag-dd"></div>
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs text-slate-500">狀態</label>
+          <div id="tag-st-dd" class="tag-dd"></div>
         </div>
         <div class="flex flex-col gap-1.5">
           <label class="text-xs text-slate-500">業務類型</label>
@@ -1527,6 +1532,21 @@ html[data-mod-off~="thumb"] [data-mod="thumb"]{display:none !important;}
                 <input id="phase-new" class="inp text-sm w-48 py-1.5" placeholder="新增階段名（如：分鏡）" onkeydown="if(event.key==='Enter')addPhaseName()">
                 <button class="btn btn-sm" onclick="addPhaseName()">+ 加入</button>
                 <button class="btn btn-sm text-slate-500" onclick="resetPhaseList()">還原預設</button>
+              </div>
+            </div>
+          </div>
+          <div class="cfg-card" data-mod="thumb">
+            <div class="cfg-card-head">
+              <div class="min-w-0">
+                <div class="cfg-card-title">縮圖區不顯示的階段</div>
+                <div class="cfg-row-desc">這些階段不會出現在任務詳情的「階段檔案」裡，適合永遠不會有圖的階段（例如雜事）；已經放了圖的照常顯示</div>
+              </div>
+            </div>
+            <div class="cfg-block">
+              <div id="tk-hide-box" class="flex flex-wrap gap-2 mb-3"></div>
+              <div class="flex gap-2 flex-wrap">
+                <select id="tk-hide-sel" class="inp text-sm w-48 py-1.5"></select>
+                <button class="btn btn-sm" onclick="ThumbKit.hideFromSettings()">+ 加入</button>
               </div>
             </div>
           </div>
@@ -3377,6 +3397,7 @@ function rPhaseList(){
   }).join('');
   chips += '<span class="inline-flex items-center bg-slate-950 border border-slate-800 rounded-full px-3 py-1 text-xs text-slate-600" title="保留名稱，永遠存在且不可移除">◇ ' + esc(MISC_PHASE) + '（保留）</span>';
   box.innerHTML = chips;
+  if(window.ThumbKit) ThumbKit.renderHideSettings();
 }
 function addPhaseName(){
   var el = document.getElementById('phase-new'); if(!el) return;
@@ -3701,6 +3722,11 @@ function grpBy(id){return GRPS.find(g=>g.id===id);}
 function grpName(id){var g=grpBy(id);return g?g.name:'';}
 function tagBy(id){return TAGS.find(t=>t.id===id);}
 function bdg(t,c){var x=BC[c]||BC.gray;return '<span class="badge" style="background:'+x.bg+'40;border:1px solid '+x.bg+';color:'+x.text+'">'+t+'</span>';}
+// 任務一覽的狀態分類：進行中的任務再依「有沒有記過工時」分成未開始／進行中
+function taskStKey(p){
+  if(p.st==='done'||p.st==='paused') return p.st;
+  return (p.hrs||0)>0 ? 'active' : 'todo';
+}
 function bdgSt(s){var m={active:['進行','teal'],done:['完成','blue'],paused:['暫停','gray']};var a=m[s]||[s,'gray'];return bdg(a[0],a[1]);}//
 function renderTagList(tagIds){
   if(!tagIds || !tagIds.length) return '';
@@ -6516,6 +6542,28 @@ function togglePayAR(){
   }
 }
 
+function editTag(id){
+  var t=TAGS.find(function(x){return x.id===id;}); if(!t) return;
+  var names={blue:'藍色',teal:'青綠',purple:'紫色',amber:'琥珀',rose:'玫瑰',green:'綠色',pink:'粉紅',gray:'灰色'};
+  var colorOpts=Object.keys(names).map(function(v){return '<option value="'+v+'" '+(t.color===v?'selected':'')+'>'+names[v]+'</option>';}).join('');
+  var used=PJ.filter(function(p){return p.tags&&p.tags.indexOf(id)!==-1;}).length;
+  var html='<div class="flex flex-col gap-4">'+
+    '<div class="grid grid-cols-2 gap-3">'+
+      '<div><label class="text-xs text-slate-400 block mb-1">名稱</label><input id="et-name" class="inp" value="'+esc(t.name)+'" onkeydown="if(event.key===\'Enter\'&&!event.isComposing){event.preventDefault();modalConfirm();}"></div>'+
+      '<div><label class="text-xs text-slate-400 block mb-1">顏色</label><select id="et-color" class="inp">'+colorOpts+'</select></div>'+
+    '</div>'+
+    (used?'<p class="text-[11px] text-slate-500">目前有 '+used+' 個任務使用這個標籤，改名後會一起更新。</p>':'')+
+  '</div>';
+  openModal('編輯標籤',html,function(){
+    var n=document.getElementById('et-name').value.trim(); if(!n) return false;   // 名稱空白就不關視窗
+    t.name=n;
+    t.color=document.getElementById('et-color').value;
+    save(); rTagStats(); syncSel();
+    if(typeof rerenderActive==='function') rerenderActive();
+  },'儲存');
+  setTimeout(function(){ var i=document.getElementById('et-name'); if(i){ i.focus(); i.select(); } }, 50);
+}
+
 function addTag(){var n=document.getElementById('tag-name').value.trim();if(!n)return;TAGS.push({id:nextStrId('t'),name:n,color:document.getElementById('tag-color').value});save();rTagStats();syncSel();document.getElementById('tag-name').value='';}
 
 // ===== 多選下拉組件（v3：狀態外存、無冒泡問題、含搜尋框）=====
@@ -6757,7 +6805,15 @@ function _periodRefresh(cid, ddId){
 function rTagStats(){
   // 渲染 tag-list（在 v-cat 頁）
   var el=document.getElementById('tag-list');
-  if(el) el.innerHTML=TAGS.map(t=>`<div class=\"flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-full\"><span class=\"w-2 h-2 rounded-full\" style=\"background:${(BC[t.color]||BC.gray).text}\"></span><span class=\"text-xs font-medium text-slate-300\">${esc(t.name)}</span><button class=\"text-slate-500 hover:text-red-400 text-[10px]\" onclick=\"TAGS=TAGS.filter(x=>x.id!=='${t.id}');save();rTagStats();syncSel()\">✕</button></div>`).join('');
+  if(el) el.innerHTML=TAGS.map(function(t){
+    // 與業務類型一致：滑過顯示 ✎ 編輯，✕ 刪除
+    return '<div class="flex items-center gap-2 bg-slate-800 pl-3 pr-2 py-1.5 rounded-full group">'
+      + '<span class="w-2 h-2 rounded-full" style="background:' + (BC[t.color]||BC.gray).text + '"></span>'
+      + '<span class="text-xs font-medium text-slate-300">' + esc(t.name) + '</span>'
+      + '<button class="text-slate-500 hover:text-blue-400 text-[10px] px-0.5 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity" title="編輯標籤" onclick="editTag(\'' + t.id + '\')">✎</button>'
+      + '<button class="text-slate-500 hover:text-red-400 text-[10px] px-0.5" title="刪除標籤" onclick="TAGS=TAGS.filter(x=>x.id!==\'' + t.id + '\');save();rTagStats();syncSel()">✕</button>'
+      + '</div>';
+  }).join('');
   
   // 建立選項
   var yearSet={};
@@ -6774,6 +6830,10 @@ function rTagStats(){
   // 只在容器存在且尚未初始化時才 build（避免重建 DOM 關掉開著的下拉）
   // 期間選單每次都刷新內容（新年份出現時才會跟著列出）；外框只建一次，開著也不會被關掉
   buildPeriodDD('tag-month-dd',yearItems,'_applyTagFilter');
+  // 狀態：「未開始」＝進行中但還沒記過任何工時，與「進行中（已有工時）」分開
+  if(document.getElementById('tag-st-dd')&&!document.getElementById('mdd_tag-st-dd')){
+    buildMultiDD('tag-st-dd',[{val:'todo',label:'未開始'},{val:'active',label:'進行中'},{val:'paused',label:'暫停'},{val:'done',label:'完成'}],'全部狀態','_applyTagFilter');
+  }
   if(document.getElementById('tag-cat-dd')&&!document.getElementById('mdd_tag-cat-dd')){
     buildMultiDD('tag-cat-dd',catItems,'全部類型','_applyTagFilter');
   }
@@ -6809,10 +6869,13 @@ function _applyTagFilter(){
   var selTags=getMultiDDValues('tag-tag-dd');
   var selGrps=getMultiDDValues('tag-grp-dd');
   var selCats=getMultiDDValues('tag-cat-dd');
+  var selSts=getMultiDDValues('tag-st-dd');
   var q=document.getElementById('tag-search')?document.getElementById('tag-search').value.toLowerCase():'';
   var filtered=PJ.filter(function(p){
     // 業務類型複選
     if(selCats.length>0&&selCats.indexOf(p.type)===-1)return false;
+    // 狀態複選
+    if(selSts.length>0&&selSts.indexOf(taskStKey(p))===-1)return false;
     // 標籤複選：任一符合即通過
     if(selTags.length>0){
       var hasTags=selTags.some(function(tid){return p.tags&&p.tags.indexOf(tid)!==-1;});
@@ -6865,7 +6928,7 @@ function _applyTagFilter(){
           return `<tr onclick="rowClick(event,${p.id})" style="cursor:pointer" class="hover:bg-slate-800/40 transition-colors">
             <td class="font-medium text-slate-200">${tkCol ? '<div class="flex items-center gap-3">' + ThumbKit.listHTML(p) + '<span class="min-w-0">' + esc(p.name) + '</span></div>' : esc(p.name)}</td>
             <td class="text-xs text-slate-400">${grpName(p.gid) || '-'}</td>
-            <td>${bdgSt(p.st)}</td>
+            <td>${taskStKey(p)==='todo' ? bdg('未開始','purple') : bdgSt(p.st)}</td>
             <td>${renderTagList(p.tags)}</td>
             <td>${formatHrs(p.hrs || 0)}</td>
             <td class="text-slate-300">${p.earned ? fmtMoney(p.earned, cur) : '-'}</td>
@@ -10940,7 +11003,7 @@ function go(id,btn){
   document.querySelectorAll('.tab-main,.tab-sub').forEach(el=>el.classList.remove('active'));
   document.getElementById(VIEWS[id]).classList.remove('hidden');
   btn.classList.add('active');
-  if(id==='dash')renderDash(); if(id==='tag')rTagStats(); if(id==='grp')rGrp(); if(id==='cal'){syncCalModeBtns();renderCal();} if(id==='vendor')rVendors(); if(id==='cat')rTagStats(); if(id==='pay')rPay(); if(id==='cfg'){rAIExportCfg();rFixedExp();}
+  if(id==='dash')renderDash(); if(id==='tag')rTagStats(); if(id==='grp')rGrp(); if(id==='cfg'&&window.ThumbKit)ThumbKit.renderHideSettings(); if(id==='cal'){syncCalModeBtns();renderCal();} if(id==='vendor')rVendors(); if(id==='cat')rTagStats(); if(id==='pay')rPay(); if(id==='cfg'){rAIExportCfg();rFixedExp();}
 }
 // 程式化跳分頁（給面板上的快捷鈕用）：自動找到對應的導覽按鈕來套用 active 狀態。
 // 若指定 calMode（'sched'|'cal'|'hist'），切到排程日曆後再切換子模式。
@@ -11981,6 +12044,7 @@ setTimeout(tgCheck, 1500);
 .tk-acts button{font-size:10px;color:#64748b;padding:2px 5px;border-radius:4px;background:transparent}
 .tk-acts button:hover{color:#e2e8f0;background:rgba(51,65,85,.6)}
 .tk-acts button.tk-del:hover{color:#f87171}
+.tk-acts button.tk-ico{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;padding:0}
 .tk-path{display:flex;align-items:center;gap:2px;padding:0 7px 8px}
 .tk-path input{flex:1;min-width:0;background:transparent;border:1px solid transparent;border-radius:4px;padding:2px 4px;font-size:10px;color:#94a3b8;outline:none}
 .tk-path input:hover{border-color:#334155}
@@ -12025,6 +12089,15 @@ setTimeout(tgCheck, 1500);
 .tk-wswitch{display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:#94a3b8}
 .tk-wnote{padding:40px 0;text-align:center;font-size:13px;color:#64748b}
 .tk-row.tk-card{width:76px;height:76px;margin-top:0;border-radius:8px;border-color:#1e2d42}
+.tk-chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px;padding:0 2px}
+.tk-chips.tk-chips-only{margin-top:0}
+.tk-chips-lbl{font-size:10px;color:#475569;margin-right:2px}
+.tk-drop.tk-chip{position:relative;aspect-ratio:auto;display:inline-flex;align-items:center;gap:2px;font-size:11px;line-height:1;color:#94a3b8;background:rgba(30,41,59,.5);border:1px dashed #334155;border-radius:999px;padding:5px 10px;overflow:hidden;transition:border-color .15s,color .15s}
+.tk-drop.tk-chip:hover{border-color:#64748b;color:#e2e8f0}
+.tk-drop.tk-chip:focus{box-shadow:none;border-style:solid;border-color:#3b82f6;color:#dbeafe;background:rgba(30,58,138,.35)}
+.tk-drop.tk-chip:focus::after{content:'Ctrl+V 貼上';margin-left:6px;font-size:10px;color:#93c5fd}
+.tk-drop.tk-chip.tk-over{border-style:solid;border-color:#38bdf8;color:#e0f2fe}
+.tk-drop.tk-chip.tk-busy::after{content:'處理中…';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(2,6,23,.85);color:#cbd5e1;font-size:10px;margin:0}
 .tk-hidden-bar{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:8px;padding:0 4px;font-size:10px;color:#475569}
 .tk-hidden-bar button{font-size:10px;color:#64748b;border:1px solid #1e293b;border-radius:999px;padding:1px 8px;background:transparent}
 .tk-hidden-bar button:hover{color:#cbd5e1;border-color:#475569}
@@ -12399,15 +12472,7 @@ var ThumbKit = (function(){
   /* ---------- 不需要縮圖的階段（依階段名，隨設定同步）---------- */
   function normName(n){ return (typeof normPhase === 'function') ? normPhase(n) : String(n || '').trim(); }
   function getHidden(){ try{ var a = JSON.parse(localStorage.getItem('ft_tk_hide') || '[]'); return Array.isArray(a) ? a : []; }catch(e){ return []; } }
-  function setHidden(arr){ localStorage.setItem('ft_tk_hide', JSON.stringify(arr)); save(); rerenderActive(); }
-  function hidePhase(pid, slot){
-    var t = slotTarget(pBy(pid), slot);
-    if(!t || !t.name) return;
-    var k = normName(t.name), arr = getHidden();
-    if(arr.indexOf(k) < 0) arr.push(k);
-    setHidden(arr);
-    showToast('所有任務的「' + t.name + '」都不再顯示縮圖格', 'blue');
-  }
+  function setHidden(arr){ localStorage.setItem('ft_tk_hide', JSON.stringify(arr)); save(); rerenderActive(); renderHideSettings(); }
   function unhide(i){
     var arr = getHidden();
     if(i < 0 || i >= arr.length) return;
@@ -12438,38 +12503,77 @@ var ThumbKit = (function(){
   function detailHTML(p){
     if(!enabled()) return '';
     var ms = p.milestones || [];
-    var hidden = getHidden(), hiddenUsed = {};
+    var hidden = getHidden();
     var slots = [];
     ms.forEach(function(m, i){
-      var hi = m.name ? hidden.indexOf(normName(m.name)) : -1;
-      if(hi >= 0 && !m.thumb && !m.path){ hiddenUsed[hi] = m.name; return; } // 已有圖或路徑的照常顯示，不讓內容被藏起來
+      // 設定裡勾選「縮圖區不顯示」的階段：沒圖也沒路徑時完全不出現
+      if(m.name && !m.thumb && !m.path && hidden.indexOf(normName(m.name)) >= 0) return;
       var sub = [];
       if(m.date) sub.push(m.date.slice(5).replace('-', '/'));
       if(m.note) sub.push(m.note);
-      slots.push({ slot:String(i), t:m, label:m.name || '未命名階段', sub:sub.join('　'), canHide:!!m.name });
+      slots.push({ slot:String(i), t:m, label:m.name || '未命名階段', sub:sub.join('　') });
     });
     if(!ms.length || p.thumb || p.path){
-      slots.push({ slot:'p', t:p, label: ms.length ? '其他' : '任務縮圖', sub: ms.length ? '不屬於特定階段' : '', canHide:false });
+      slots.push({ slot:'p', t:p, label: ms.length ? '其他' : '任務縮圖', sub: ms.length ? '不屬於特定階段' : '' });
     }
-    var anyThumb = slots.some(function(s){ return !!s.t.thumb; });
-    var hiddenIdx = Object.keys(hiddenUsed);
-    var bar = hiddenIdx.length
-      ? '<div class="tk-hidden-bar"><span>已隱藏：</span>' + hiddenIdx.map(function(i){
-          return '<button type="button" onclick="ThumbKit.unhide(' + i + ')" title="恢復顯示這個階段的縮圖格">' + esc(hiddenUsed[i]) + '</button>';
-        }).join('') + '</div>'
-      : '';
+    // 有圖（或有歸檔路徑）的階段顯示成大格子；還沒放圖的縮成一排小標籤，不佔位置
+    var filled = slots.filter(function(s){ return s.t.thumb || s.t.path; });
+    var empty = slots.filter(function(s){ return !(s.t.thumb || s.t.path); });
+    var anyThumb = filled.some(function(s){ return !!s.t.thumb; });
     return '<div class="mb-6">'
       + '<div class="flex items-center justify-between mb-3 px-1"><h3 class="font-bold text-white text-sm">階段檔案</h3>'
       + (anyThumb ? '<span class="text-[10px] text-slate-600">' + cloudNote() + '</span>' : '') + '</div>'
-      + (slots.length ? '<div class="tk-grid">' + slots.map(function(s){ return tileHTML(p, s); }).join('') + '</div>' : '')
-      + bar
+      + (filled.length ? '<div class="tk-grid">' + filled.map(function(s){ return tileHTML(p, s); }).join('') + '</div>' : '')
+      + (empty.length ? '<div class="tk-chips' + (filled.length ? '' : ' tk-chips-only') + '">'
+          + empty.map(function(s){ return chipHTML(p, s); }).join('') + '</div>' : '')
       + '</div>';
+  }
+  // 空階段的小標籤：本身就是貼圖目標（點一下後 Ctrl+V、拖圖進來、按兩下選檔）
+  function chipHTML(p, s){
+    var a = p.id + ',\'' + s.slot + '\'';
+    return '<span class="tk-drop tk-chip" tabindex="0" role="button" data-pid="' + p.id + '" data-slot="' + s.slot + '"'
+      + ' title="' + esc(s.label + (s.sub ? '（' + s.sub + '）' : '')) + '：點一下後按 Ctrl+V 貼上，或把圖拖到這裡；按兩下可選檔"'
+      + ' aria-label="' + esc(s.label) + ' 還沒有縮圖。按 Ctrl+V 貼上，或按 Enter 選擇檔案"'
+      + ' ondblclick="ThumbKit.pick(' + a + ')" onkeydown="ThumbKit.onKey(event,' + a + ')"'
+      + ' ondragover="ThumbKit.onDragOver(event)" ondragleave="ThumbKit.onDragLeave(event)" ondrop="ThumbKit.onDrop(event,' + a + ')">'
+      + '＋ ' + esc(s.label) + '</span>';
+  }
+  // 設定頁：縮圖區不顯示的階段（取代原本詳情面板上的「隱藏」）
+  function renderHideSettings(){
+    var box = document.getElementById('tk-hide-box');
+    if(!box) return;
+    var hidden = getHidden();
+    var chips = hidden.map(function(n, i){
+      return '<span class="inline-flex items-center gap-1 bg-slate-800 border border-slate-700 rounded-full pl-3 pr-1 py-1 text-xs text-slate-300">' + esc(n)
+        + '<button type="button" class="text-slate-600 hover:text-red-400 px-1" title="恢復顯示" onclick="ThumbKit.unhide(' + i + ')">✕</button></span>';
+    }).join('');
+    box.innerHTML = chips || '<span class="text-xs text-slate-600">目前沒有，所有階段都會顯示</span>';
+    var sel = document.getElementById('tk-hide-sel');
+    if(sel){
+      // 正式名單＋任務裡實際用過的階段名（例如不在名單內的「設計」），依正規化名稱去重
+      var names = (typeof getPhaseList === 'function' ? getPhaseList() : []).slice();
+      if(typeof MISC_PHASE !== 'undefined') names.push(MISC_PHASE);
+      if(typeof collectPhaseNames === 'function') collectPhaseNames().forEach(function(o){ names.push(o.label); });
+      var seen = {};
+      names = names.filter(function(n){ var k = normName(n); if(!n || seen[k]) return false; seen[k] = 1; return true; });
+      sel.innerHTML = '<option value="">選擇階段…</option>' + names.filter(function(n){ return hidden.indexOf(normName(n)) < 0; })
+        .map(function(n){ return '<option value="' + esc(n) + '">' + esc(n) + '</option>'; }).join('');
+    }
+  }
+  function hideFromSettings(){
+    var sel = document.getElementById('tk-hide-sel');
+    if(!sel || !sel.value) return;
+    var arr = getHidden(), k = normName(sel.value);
+    if(arr.indexOf(k) < 0) arr.push(k);
+    setHidden(arr);
   }
   function pathAction(p, slot, path){
     if(!path) return '';
     if(/^https?:\/\//i.test(path)) return '<a href="' + esc(path) + '" target="_blank" rel="noopener" title="在新分頁開啟">開啟</a>';
     return '<button type="button" onclick="ThumbKit.copyPath(' + p.id + ',\'' + slot + '\')" title="複製路徑，貼到檔案總管的網址列">複製</button>';
   }
+  var ICO_SWAP = '<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M5.5 10.5l2-2.5 1.5 1.5 1-1 1.5 2"/><circle cx="6" cy="6.3" r=".9"/></svg>';
+  var ICO_DEL = '<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5"/></svg>';
   function tileHTML(p, s){
     var key = s.t.thumb || '', path = s.t.path || '';
     var a = p.id + ',\'' + s.slot + '\'';
@@ -12488,10 +12592,9 @@ var ThumbKit = (function(){
       + (s.sub ? '<div class="tk-sub" title="' + esc(s.sub) + '">' + esc(s.sub) + '</div>' : '')
       + '</div><div class="tk-acts">'
       + (key
-          ? '<button type="button" onclick="ThumbKit.pick(' + a + ')" title="從電腦選擇新圖片">換圖</button>'
-            + '<button type="button" class="tk-del" onclick="ThumbKit.clear(' + a + ')" title="移除這張縮圖">移除</button>'
-          : '<button type="button" onclick="ThumbKit.pick(' + a + ')" title="從電腦選擇圖片">選檔</button>'
-            + (s.canHide ? '<button type="button" onclick="ThumbKit.hidePhase(' + a + ')" title="這個階段不需要縮圖：所有任務的「' + esc(s.label) + '」都不再顯示這一格">隱藏</button>' : ''))
+          ? '<button type="button" class="tk-ico" onclick="ThumbKit.pick(' + a + ')" title="換圖" aria-label="換圖">' + ICO_SWAP + '</button>'
+            + '<button type="button" class="tk-ico tk-del" onclick="ThumbKit.clear(' + a + ')" title="移除縮圖" aria-label="移除縮圖">' + ICO_DEL + '</button>'
+          : '<button type="button" onclick="ThumbKit.pick(' + a + ')" title="從電腦選擇圖片">選檔</button>')
       + '</div></div>'
       + '<div class="tk-path"><input type="text" spellcheck="false" value="' + esc(path) + '" placeholder="歸檔位置" title="' + esc(path || '原檔放在哪裡：資料夾路徑或雲端連結') + '"'
       + ' onchange="ThumbKit.setPath(' + a + ',this)" onkeydown="if(event.key===\'Enter\')this.blur()">'
@@ -12702,10 +12805,10 @@ var ThumbKit = (function(){
   function onDragOver(e){
     if(!hasFiles(e)) return;
     e.preventDefault(); e.dataTransfer.dropEffect = 'copy';
-    var tile = e.currentTarget.closest('.tk-tile'); if(tile) tile.classList.add('tk-over');
+    var tile = e.currentTarget.closest('.tk-tile') || e.currentTarget; tile.classList.add('tk-over');
   }
   function onDragLeave(e){
-    var tile = e.currentTarget.closest('.tk-tile'); if(tile) tile.classList.remove('tk-over');
+    var tile = e.currentTarget.closest('.tk-tile') || e.currentTarget; tile.classList.remove('tk-over');
   }
   function onDrop(e, pid, slot){
     if(!hasFiles(e)) return;
@@ -12901,6 +13004,7 @@ var ThumbKit = (function(){
     }).observe(document.body, { childList:true, subtree:true });
   }
   renderStatus();
+  renderHideSettings();
   // 頁面第一次繪製時本模組還沒載入，畫面上不會有縮圖；有縮圖資料時重繪一次目前的分頁
   // （延到下一輪：此刻還在建立 ThumbKit 本身，window.ThumbKit 尚未賦值）
   setTimeout(function(){ if(enabled() && hasRefs() && typeof rerenderActive === 'function') rerenderActive(); }, 0);
@@ -12918,7 +13022,7 @@ var ThumbKit = (function(){
 
   return {
     detailHTML:detailHTML, rowHTML:rowHTML, cardHTML:cardHTML, listHTML:listHTML, keysOfAny:function(p){ return enabled() && !!coverOf(p); },
-    renderTagView:renderTagView, setTagView:setTagView, tagViewIsWall:function(){ return getTagView() === 'wall'; }, toggleWallEmpty:toggleWallEmpty, wallStage:wallStage, hidePhase:hidePhase, unhide:unhide, hydrateSoon:hydrateSoon, keysOf:keysOf, forget:forget,
+    renderTagView:renderTagView, setTagView:setTagView, tagViewIsWall:function(){ return getTagView() === 'wall'; }, toggleWallEmpty:toggleWallEmpty, wallStage:wallStage, unhide:unhide, renderHideSettings:renderHideSettings, hideFromSettings:hideFromSettings, hydrateSoon:hydrateSoon, keysOf:keysOf, forget:forget,
     pick:pick, onKey:onKey, onDragOver:onDragOver, onDragLeave:onDragLeave, onDrop:onDrop,
     clear:clear, setPath:setPath, copyPath:copyPath,
     recheck:recheck, pushUnsynced:pushUnsynced, restoreAll:restoreAll, cleanup:cleanup
