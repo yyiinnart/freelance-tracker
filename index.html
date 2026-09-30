@@ -1796,6 +1796,31 @@ html[data-mod-off~="thumb"] [data-mod="thumb"]{display:none !important;}
 <script>
 var L=[],P=[],PJ=[],CATS=[],TAGS=[],GRPS=[],DLOGS=[],VENDORS=[],CH={},VACS=[],WORKDAYS=[],MEXP={},FEXP=[],MFIX={},REM=[],MCB=null,syncTimer=null;
 var hasUnsynced=false;
+/* ===== 本機優先的雲端同步 =====
+   開頁先顯示本機資料，雲端在背景讀取。讀取完成前（CLOUD_READY=false）一律不往雲端寫，
+   避免在還不知道雲端狀態時，蓋掉其他裝置較新的資料。
+   ft_cloud_at：已確認在雲端的資料時間戳　ft_pending_at：關頁時用 beacon 送出、尚未確認的時間戳
+   ft_dirty：這台電腦有尚未確認上傳的修改（跨重新整理也記得） */
+var CLOUD_READY = true;
+// 開頁初始化期間（例如套用畫面設定時）呼叫到 save() 只存本機，不算使用者修改，也不觸發上傳
+var _booting = true;
+var _cloudReadyQ = [];
+function whenCloudReady(fn){ if(CLOUD_READY || !getScriptUrl()) fn(); else _cloudReadyQ.push(fn); }
+function markCloudReady(){
+  if(CLOUD_READY) return;
+  CLOUD_READY = true;
+  var q = _cloudReadyQ; _cloudReadyQ = [];
+  q.forEach(function(f){ try{ f(); }catch(e){ console.error(e); } });
+}
+function setLocalDirty(on){ try{ if(on) localStorage.setItem('ft_dirty','1'); else localStorage.removeItem('ft_dirty'); }catch(e){} }
+function isLocalDirty(){ try{ return localStorage.getItem('ft_dirty') === '1'; }catch(e){ return false; } }
+function rememberCloudAt(at){ try{ if(at) localStorage.setItem('ft_cloud_at', at); localStorage.removeItem('ft_pending_at'); }catch(e){} }
+function forgetCloudAt(){ try{ localStorage.removeItem('ft_cloud_at'); localStorage.removeItem('ft_pending_at'); }catch(e){} }
+function fmtCloudAt(at){
+  var d = new Date(at); if(isNaN(d)) return '';
+  var z = function(n){ return (n < 10 ? '0' : '') + n; };
+  return (d.getMonth()+1) + '/' + d.getDate() + ' ' + z(d.getHours()) + ':' + z(d.getMinutes());
+}
 
 // ID 產生器：避免 Date.now() 在同一毫秒被連按時撞號
 // 例：壓平工時迴圈、快速連點儲存等情境
@@ -1911,9 +1936,7 @@ function doGet(e){
     if(a === 'thumbList') return jsonRes({ok:true, keys:thumbList()});
     if(a === 'thumbGet') return jsonRes({ok:true, items:thumbGet(String(e.parameter.keys || '').split(',').slice(0, 30))});
     if(a) return errorRes('不支援的動作：' + a);
-    var t0 = Date.now(), r = loadData();
-    r.ms = Date.now() - t0;   // 伺服器端處理時間，方便判斷慢在哪裡
-    return jsonRes(r);
+    return loadDataRes(e.parameter.since || '');
   } catch(err) { return errorRes(err.message); }
 }
 
@@ -1992,14 +2015,30 @@ function thumbFolder(){
   });
 }
 
-function loadData(){
+// 讀取主資料：
+// ・前端帶 since（它手上的版本時間戳），且雲端檔案自上次儲存後沒被動過 → 只回 unchanged，不讀檔、不傳資料
+// ・否則把檔案原文直接包進回應，不先解析再轉回文字（資料大時省下不少時間）
+// ・ms：伺服器端處理時間，前端會印在 Console，方便判斷慢在哪裡
+function loadDataRes(since){
+  var t0 = Date.now();
   var f = dataFile(false);
-  if(!f) return {ok:true, data:null};
-  return {ok:true, data:JSON.parse(f.getBlob().getDataAsString())};
+  if(!f) return jsonRes({ok:true, data:null, ms:Date.now() - t0});
+  var upd = String(f.getLastUpdated().getTime());
+  var sameFile = upd === PROPS.getProperty('dataUpd');   // 若在 Drive 手動還原過版本，這裡會不相符，改回完整讀取
+  var at = sameFile ? (PROPS.getProperty('dataAt') || '') : '';
+  if(since && at && since === at){
+    return jsonRes({ok:true, unchanged:true, at:at, ms:Date.now() - t0});
+  }
+  var raw = f.getBlob().getDataAsString() || 'null';
+  return ContentService.createTextOutput('{"ok":true,"at":' + JSON.stringify(at) + ',"ms":' + (Date.now() - t0) + ',"data":' + raw + '}')
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 function saveData(p){
-  dataFile(true).setContent(JSON.stringify(p));
+  var f = dataFile(true);
+  f.setContent(JSON.stringify(p));
+  // 記下這次寫入的版本與檔案時間，下次讀取時用來判斷「有沒有變」
+  PROPS.setProperties({dataAt:String(p.at || ''), dataUpd:String(DriveApp.getFileById(f.getId()).getLastUpdated().getTime())});
 }
 
 // ===== 縮圖（每張一個小檔，放在 thumbnails 資料夾）=====
@@ -2646,12 +2685,14 @@ function saveScriptUrl(){
   var url = document.getElementById('script-url').value.trim();
   var token = document.getElementById('sync-token').value.trim();
   if(!url || !token) { alert('網址與驗證碼皆為必填'); return; }
+  if(url !== getScriptUrl()) forgetCloudAt();   // 換了雲端，上次的同步紀錄不再適用
   localStorage.setItem(SKEY, url);
   localStorage.setItem('ft_sync_token', token); 
   showCfgMsg('已儲存，測試中…','#60a5fa');
   testConnection();
 }
 function clearScriptUrl(){
+  forgetCloudAt();
   localStorage.removeItem(SKEY);
   localStorage.removeItem('ft_sync_token');
   document.getElementById('script-url').value='';
@@ -2689,8 +2730,17 @@ function forceCloudSave() {
   cloudSave();
 }
 
+var _saveAfterReady = false;
 function cloudSave(){
   var url = getScriptUrl(); if(!url) return;
+  if(!CLOUD_READY){
+    // 還在讀雲端：先排隊，讀完且沒有改用雲端資料時才上傳
+    if(!_saveAfterReady){
+      _saveAfterReady = true;
+      whenCloudReady(function(){ _saveAfterReady = false; if(hasUnsynced || isLocalDirty()) cloudSave(); });
+    }
+    return;
+  }
   setSyncStatus('saving');
   
   // 1. 將所有分散的系統設定打包成物件
@@ -2724,6 +2774,7 @@ function cloudSave(){
       var btn = document.getElementById('btn-manual-sync');
       if(d.ok){
         hasUnsynced = false; setSyncStatus('ok','已同步');
+        rememberCloudAt(p.at); setLocalDirty(false);
         if(btn) {
           // 完整還原按鈕初始樣式（移除 save() 加上的琥珀色與光點）
           btn.classList.remove('text-amber-400','border-amber-500','bg-amber-950/30','shadow-[0_0_8px_rgba(245,158,11,0.3)]');
@@ -2741,64 +2792,105 @@ function looksLikeMainData(cd){
     && (Array.isArray(cd.PJ) || Array.isArray(cd.P));
 }
 
+// 把雲端資料套用到畫面與本機（原 cloudLoad 內的套用流程）
+function applyCloudData(cd){
+  P=cd.P||[]; PJ=cd.PJ||[]; CATS=cd.CATS||JSON.parse(JSON.stringify(DCATS));
+  TAGS=cd.TAGS||[]; GRPS=cd.GRPS||[]; DLOGS=cd.DLOGS||[]; VENDORS=cd.VENDORS||[];
+  
+  // 1. 讀取休假日
+  VACS=cd.VACS||[]; 
+  WORKDAYS=cd.WORKDAYS||[];
+  MEXP=cd.MEXP||{};
+  FEXP=cd.FEXP||[];
+  MFIX=cd.MFIX||{};
+  REM=cd.REM||[];
+  
+  // 2. 讀取並覆寫本地端設定檔
+  if(cd.CFG) {
+    ['wmode','modules','trate','dl_crit','wtarget','track_limit','show_tracks','show_hints','dash_cfg','unify_cur','ai_note','aix_tpls','aix_shared','phases','phase_hidden','estacc_hide_phases','tk_hide','xp_tpl','focus_cfg'].forEach(k=>{
+      if(cd.CFG[k]) localStorage.setItem('ft_'+k, cd.CFG[k]);
+    });
+  }
+
+  saveLocal(); syncSel(); rCats(); rProj(); rPay(); rGrp(); rVendors(); renderCal();
+  
+  // 3. 強制更新 UI 畫面上的設定值
+  document.getElementById('global-rate').value = getGlobalRate();
+  if(typeof applyFocusCfgUI==='function') applyFocusCfgUI();
+  var wtEl = document.getElementById('weekly-target'); if(wtEl) wtEl.value = getWeeklyTarget();
+  var trkLim = document.getElementById('cal-track-limit'); if(trkLim) trkLim.value = parseInt(localStorage.getItem('ft_track_limit')) || 21;
+  var trkToggle = document.getElementById('cal-toggle-tracks'); if(trkToggle) trkToggle.checked = localStorage.getItem('ft_show_tracks') !== '0';
+  loadDLThresh(); 
+  applyWorkMode();
+  applyHintVisibility();
+  applyUnifyCurUI();
+  applyDashPanels();
+  rPhaseList();
+  refreshPhaseDatalist();
+  if(typeof rerenderActive === 'function') rerenderActive();
+}
+
 function cloudLoad(){
-  var url = getScriptUrl(); if(!url) return;
+  var url = getScriptUrl(); if(!url){ markCloudReady(); return; }
   setSyncStatus('saving','讀取雲端…');
   var _t0 = Date.now();
-  fetch(getAuthUrl(url), {method:'GET'})
+  var knownAt = '', pendingAt = '';
+  try{ knownAt = localStorage.getItem('ft_cloud_at') || ''; pendingAt = localStorage.getItem('ft_pending_at') || ''; }catch(e){}
+  // 本機完全沒資料（例如只清掉了部分瀏覽器資料）：不管版本紀錄，一律完整讀回雲端
+  if(!PJ.length && !P.length){ knownAt = ''; pendingAt = ''; }
+  var after = null;   // 讀完、解除寫入限制後要做的事（例如把本機較新的修改推上去）
+  var pushLocal = function(){ hasUnsynced = true; after = forceCloudSave; };
+  // since：告訴腳本「我手上是這個版本」，沒變的話腳本只回一句 unchanged，不必傳整份資料
+  fetch(getAuthUrl(url) + (knownAt ? '&since=' + encodeURIComponent(knownAt) : ''), {method:'GET'})
     .then(r=>r.json()).then(d=>{
       // 診斷用：總等待時間 vs. Apps Script 實際處理時間（舊版腳本沒有後者）
-      console.info('[雲端讀取] 總共 ' + (Date.now() - _t0) + ' ms' + (d && typeof d.ms === 'number' ? '，其中 Apps Script 處理 ' + d.ms + ' ms' : ''));
+      console.info('[雲端讀取] 總共 ' + (Date.now() - _t0) + ' ms' + (d && typeof d.ms === 'number' ? '，其中 Apps Script 處理 ' + d.ms + ' ms' : '') + (d && d.unchanged ? '（資料沒變，未重傳）' : ''));
+      var localEdited = hasUnsynced || isLocalDirty();
+      if(d.ok && d.unchanged){
+        setSyncStatus('ok','已同步');
+        if(localEdited) pushLocal();          // 雲端還是上次確認的版本，本機的修改比較新
+        return;
+      }
       if(d.ok && d.data && !looksLikeMainData(d.data)){
         // 雲端檔案不像主資料（例如被誤寫入其他內容）：拒絕覆寫，保留本機資料
         setSyncStatus('error','雲端資料格式異常');
         if(confirm('雲端的資料檔內容格式不正確，為了保護你的資料，這次沒有用它覆蓋本機，本機資料完整保留。\n\n要現在用本機資料重新寫回雲端、修復雲端檔案嗎？\n\n（如果你懷疑這台電腦的資料不是最新的，請按「取消」，到 Google Drive 的「Freelance Tracker Sync」資料夾，對 data.json 使用「管理版本」找回舊版；舊版腳本的檔名是「接案追蹤器_資料.json」。）')){
-          forceCloudSave();
+          pushLocal();   // 讀取流程結束、解除寫入限制後立即上傳本機資料修復
         }
         return;
       }
       if(d.ok && d.data){
-        var cd=d.data; P=cd.P||[]; PJ=cd.PJ||[]; CATS=cd.CATS||JSON.parse(JSON.stringify(DCATS));
-        TAGS=cd.TAGS||[]; GRPS=cd.GRPS||[]; DLOGS=cd.DLOGS||[]; VENDORS=cd.VENDORS||[];
-        
-        // 1. 讀取休假日
-        VACS=cd.VACS||[]; 
-        WORKDAYS=cd.WORKDAYS||[];
-        MEXP=cd.MEXP||{};
-        FEXP=cd.FEXP||[];
-        MFIX=cd.MFIX||{};
-        REM=cd.REM||[];
-        
-        // 2. 讀取並覆寫本地端設定檔
-        if(cd.CFG) {
-          ['wmode','modules','trate','dl_crit','wtarget','track_limit','show_tracks','show_hints','dash_cfg','unify_cur','ai_note','aix_tpls','aix_shared','phases','phase_hidden','estacc_hide_phases','tk_hide','xp_tpl','focus_cfg'].forEach(k=>{
-            if(cd.CFG[k]) localStorage.setItem('ft_'+k, cd.CFG[k]);
-          });
+        var cd = d.data, cloudAt = cd.at || d.at || '';
+        if(cloudAt && (cloudAt === pendingAt || cloudAt === knownAt)){
+          // 雲端就是這台電腦上次送出的版本（舊版腳本不支援 since，也會走到這裡）
+          rememberCloudAt(cloudAt);
+          if(hasUnsynced) pushLocal(); else setLocalDirty(false);
+          setSyncStatus('ok','已同步');
+          return;
         }
-
-        saveLocal(); syncSel(); rCats(); rProj(); rPay(); rGrp(); rVendors(); renderCal();
-        
-        // 3. 強制更新 UI 畫面上的設定值
-        document.getElementById('global-rate').value = getGlobalRate();
-        if(typeof applyFocusCfgUI==='function') applyFocusCfgUI();
-        var wtEl = document.getElementById('weekly-target'); if(wtEl) wtEl.value = getWeeklyTarget();
-        var trkLim = document.getElementById('cal-track-limit'); if(trkLim) trkLim.value = parseInt(localStorage.getItem('ft_track_limit')) || 21;
-        var trkToggle = document.getElementById('cal-toggle-tracks'); if(trkToggle) trkToggle.checked = localStorage.getItem('ft_show_tracks') !== '0';
-        loadDLThresh(); 
-        applyWorkMode();
-        applyHintVisibility();
-        applyUnifyCurUI();
-        applyDashPanels();
-        rPhaseList();
-        refreshPhaseDatalist();
-        
-        setSyncStatus('ok','已雲端載入'); hasUnsynced = false;
-      } else { setSyncStatus('ok'); }
+        if(localEdited){
+          var useCloud = confirm('雲端有比較新的資料' + (cloudAt ? '（' + fmtCloudAt(cloudAt) + ' 在其他地方更新）' : '') + '，而這台電腦也有尚未上傳的修改。\n\n'
+            + '按「確定」：改用雲端的資料（這台電腦尚未上傳的修改會被捨棄）\n'
+            + '按「取消」：保留這台電腦的資料，並上傳覆蓋雲端');
+          if(!useCloud){ pushLocal(); setSyncStatus('saving'); return; }
+        }
+        var wasShowingLocal = !!knownAt;
+        applyCloudData(cd);
+        hasUnsynced = false; setLocalDirty(false); rememberCloudAt(cloudAt);
+        setSyncStatus('ok','已雲端載入');
+        if(wasShowingLocal) showToast('已更新為雲端最新資料', 'blue');
+      } else {
+        // 雲端還沒有資料：本機有修改就直接上傳建立
+        setSyncStatus('ok');
+        if(localEdited) pushLocal();
+      }
     })
     .catch(e=>setSyncStatus('error'))
     .finally(function(){
-      // 無論成功失敗都要關遮罩，否則畫面會卡死
+      // 無論成功失敗都要關遮罩、解除寫入限制，否則畫面或同步會卡住
       if(typeof showCloudMask === 'function') showCloudMask(false);
+      markCloudReady();
+      if(after) after();
     });
 }
 
@@ -2889,10 +2981,13 @@ function cloudSaveBeacon(){
   var payload = {version:8, at:new Date().toISOString(),
     P:P, PJ:PJ, CATS:CATS, TAGS:TAGS, GRPS:GRPS,
     DLOGS:DLOGS, VENDORS:VENDORS, VACS:VACS, WORKDAYS:WORKDAYS, MEXP:MEXP, FEXP:FEXP, MFIX:MFIX, REM:REM, CFG:cfg};
+  if(!CLOUD_READY) return false;   // 雲端還沒讀完，不在這時候蓋掉雲端
   try {
     var blob = new Blob([JSON.stringify(payload)], {type:'application/json'});
     // GAS doPost 從 e.postData.contents 拿 body、從 e.parameter.token 拿 token
-    return navigator.sendBeacon(getAuthUrl(url), blob);
+    var ok = navigator.sendBeacon(getAuthUrl(url), blob);
+    if(ok){ try{ localStorage.setItem('ft_pending_at', payload.at); }catch(e){} }   // 送達與否要等下次開頁確認
+    return ok;
   } catch(e){ return false; }
 }
 
@@ -3763,10 +3858,12 @@ function projAR(pid){
 // 優化 1：帶防震處理的儲存功能
 function save(isImmediate = false) {
   saveLocal(); // 本地儲存永遠是瞬間的，確保流暢
+  if (_booting) return;
   
   if (!getScriptUrl()) return;
 
   hasUnsynced = true;
+  setLocalDirty(true);
   // 安靜背景同步：不再跳醒目提示，避免造成「卡頓 / 要等它」的錯覺。
   // 本地已瞬間存好，雲端在背景同步；真正未同步就關頁時，beforeunload 會攔下提醒。
   var dot = document.getElementById('sync-dot');
@@ -10903,8 +11000,9 @@ function init(){
   if(url){
     document.getElementById('script-url').value=url;
     setSyncStatus('saving');
-    // 在 cloudLoad 完成前顯示遮罩，避免使用者看到「本地舊資料 → 一閃 → 雲端新資料」
-    showCloudMask(true);
+    // 本機優先：直接顯示本機資料，雲端在背景讀取；只有這台電腦完全沒資料時（例如新裝置）才蓋遮罩等雲端
+    CLOUD_READY = false;
+    if(!PJ.length && !P.length) showCloudMask(true);
     cloudLoad();
   }
   syncSel(); rCats(); rProj(); rPay(); rGrp(); rTagStats(); rVendors();
@@ -10919,6 +11017,7 @@ function init(){
   refreshPhaseDatalist();
   fetchFX();
   setTimeout(checkForeignHrate, 1200);
+  _booting = false;
 }
 
 /* ============================================================
@@ -12089,6 +12188,10 @@ var ThumbKit = (function(){
 
   /* ---------- 雲端（一律經過版本握手）---------- */
   function cloudCheck(force){
+    // 開頁時先讓主資料讀完，縮圖相關請求不跟它搶 Apps Script
+    if(typeof CLOUD_READY !== 'undefined' && !CLOUD_READY && getScriptUrl()){
+      return new Promise(function(res){ whenCloudReady(function(){ res(cloudCheck(force)); }); });
+    }
     var url = getScriptUrl();
     if(!url){ cloud = { url:null, state:'none', promise:null }; renderStatusSoon(); return Promise.resolve('none'); }
     if(!force && cloud.url === url && cloud.promise) return cloud.promise;
