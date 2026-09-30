@@ -1883,9 +1883,15 @@ function copyScriptTemplate(){
 
   const code = 
 `var AUTH_TOKEN = '${token}';
-var FILE_NAME = '接案追蹤器_資料.json';
-var THUMB_FOLDER = '接案追蹤器_縮圖';
 var API_VERSION = 2;
+
+// Drive 結構：Freelance Tracker Sync/ ── data.json、thumbnails/
+var ROOT_FOLDER = 'Freelance Tracker Sync';
+var DATA_NAME = 'data.json';
+var THUMB_NAME = 'thumbnails';
+// 舊版名稱：第一次執行時自動搬進新資料夾並改名，資料與版本紀錄完整保留
+var LEGACY_FILE = '接案追蹤器_資料.json';
+var LEGACY_THUMB = '接案追蹤器_縮圖';
 
 // 讀取資料（沒帶 action ＝ 回傳主資料，與 v1 相同）
 function doGet(e){
@@ -1921,27 +1927,53 @@ function jsonRes(obj){
 }
 function errorRes(msg){ return jsonRes({ok:false, error:msg}); }
 
+// ===== Drive 位置（含一次性搬家）=====
+// 同時進來的請求可能一起建立資料夾，用鎖避免建出兩個
+function withLock(fn){
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try { return fn(); } finally { lock.releaseLock(); }
+}
+function firstLive(it){
+  while(it.hasNext()){ var x = it.next(); if(!x.isTrashed()) return x; }
+  return null;
+}
+function rootFolder(){
+  return firstLive(DriveApp.getFoldersByName(ROOT_FOLDER)) || DriveApp.createFolder(ROOT_FOLDER);
+}
+function dataFile(create){
+  return withLock(function(){
+    var root = rootFolder();
+    var f = firstLive(root.getFilesByName(DATA_NAME));
+    if(f) return f;
+    var old = firstLive(DriveApp.getFilesByName(LEGACY_FILE));
+    if(old){ old.moveTo(root); old.setName(DATA_NAME); return old; }
+    return create ? root.createFile(DATA_NAME, '{}', MimeType.PLAIN_TEXT) : null;
+  });
+}
+function thumbFolder(){
+  return withLock(function(){
+    var root = rootFolder();
+    var fd = firstLive(root.getFoldersByName(THUMB_NAME));
+    if(fd) return fd;
+    var old = firstLive(DriveApp.getFoldersByName(LEGACY_THUMB));
+    if(old){ old.moveTo(root); old.setName(THUMB_NAME); return old; }
+    return root.createFolder(THUMB_NAME);
+  });
+}
+
 function loadData(){
-  var f = DriveApp.getFilesByName(FILE_NAME);
-  if(!f.hasNext()) return {ok:true, data:null};
-  return {ok:true, data:JSON.parse(f.next().getBlob().getDataAsString())};
+  var f = dataFile(false);
+  if(!f) return {ok:true, data:null};
+  return {ok:true, data:JSON.parse(f.getBlob().getDataAsString())};
 }
 
 function saveData(p){
-  var c = JSON.stringify(p);
-  var f = DriveApp.getFilesByName(FILE_NAME);
-  if(f.hasNext()){ f.next().setContent(c); }
-  else { DriveApp.createFile(FILE_NAME, c, MimeType.PLAIN_TEXT); }
+  dataFile(true).setContent(JSON.stringify(p));
 }
 
-// ===== 縮圖（每張一個小檔，放在 THUMB_FOLDER 資料夾）=====
+// ===== 縮圖（每張一個小檔，放在 thumbnails 資料夾）=====
 function isThumbKey(k){ return /^th_[0-9]+$/.test(String(k || '')); }
-
-function thumbFolder(){
-  var it = DriveApp.getFoldersByName(THUMB_FOLDER);
-  while(it.hasNext()){ var fd = it.next(); if(!fd.isTrashed()) return fd; }
-  return DriveApp.createFolder(THUMB_FOLDER);
-}
 
 function liveFilesByName(folder, name){
   var out = [], it = folder.getFilesByName(name);
@@ -1987,7 +2019,7 @@ function thumbDel(keys){
 }`;
 
   navigator.clipboard.writeText(code);
-  alert('已複製 Code.gs 程式碼（v2，含縮圖備份）');
+  alert('已複製 Code.gs 程式碼（v2，含縮圖備份）\n\n資料會放在 Google Drive 的「Freelance Tracker Sync」資料夾；用過舊版的話，第一次連線時會自動把舊檔案搬進去。');
 }
 function saveHintVisibility(){
   var show = document.getElementById('toggle-hints').checked;
@@ -2687,7 +2719,7 @@ function cloudLoad(){
       if(d.ok && d.data && !looksLikeMainData(d.data)){
         // 雲端檔案不像主資料（例如被誤寫入其他內容）：拒絕覆寫，保留本機資料
         setSyncStatus('error','雲端資料格式異常');
-        if(confirm('雲端的資料檔內容格式不正確，為了保護你的資料，這次沒有用它覆蓋本機，本機資料完整保留。\n\n要現在用本機資料重新寫回雲端、修復雲端檔案嗎？\n\n（如果你懷疑這台電腦的資料不是最新的，請按「取消」，到 Google Drive 對「接案追蹤器_資料.json」使用「管理版本」找回舊版。）')){
+        if(confirm('雲端的資料檔內容格式不正確，為了保護你的資料，這次沒有用它覆蓋本機，本機資料完整保留。\n\n要現在用本機資料重新寫回雲端、修復雲端檔案嗎？\n\n（如果你懷疑這台電腦的資料不是最新的，請按「取消」，到 Google Drive 的「Freelance Tracker Sync」資料夾，對 data.json 使用「管理版本」找回舊版；舊版腳本的檔名是「接案追蹤器_資料.json」。）')){
           forceCloudSave();
         }
         return;
@@ -11775,7 +11807,7 @@ setTimeout(tgCheck, 1500);
    ・縮圖存在瀏覽器的 IndexedDB（ft_thumbs），不進主資料、不佔 localStorage
    ・主資料只在 milestone（或任務本身）上記兩個小欄位：
        thumb：縮圖代號（th_數字）　path：歸檔位置（路徑或連結）
-   ・雲端備份：每張縮圖一個小檔，放在 Drive「接案追蹤器_縮圖」資料夾
+   ・雲端備份：每張縮圖一個小檔，放在 Drive「Freelance Tracker Sync/thumbnails」資料夾
    ・安全：舊版 Code.gs 會把「任何 POST」當主資料覆寫，所以帶 action 的
      請求一律先做版本握手（GET ?action=info），確認是 v2 才會送出
    ・沒用縮圖的人：不開 IndexedDB、不發任何縮圖相關請求，畫面與原本相同
@@ -12507,7 +12539,7 @@ var ThumbKit = (function(){
     none:      ['未連線',     'slate',   '縮圖只存在這台電腦的瀏覽器。要備份到 Drive，請先在上方連線雲端。'],
     unchecked: ['尚未檢查',   'slate',   '用到縮圖時會自動檢查 Apps Script 是否支援縮圖備份。'],
     checking:  ['檢查中',     'slate',   '正在確認 Apps Script 版本…'],
-    ok:        ['已啟用',     'emerald', '新增的縮圖會自動備份到 Google Drive 的「接案追蹤器_縮圖」資料夾。'],
+    ok:        ['已啟用',     'emerald', '新增的縮圖會自動備份到 Google Drive 的「Freelance Tracker Sync」資料夾。'],
     old:       ['需更新腳本', 'amber',   '目前的 Apps Script 是舊版：主資料照常同步，縮圖只存本機。依右側步驟 5 更新後即可備份。'],
     auth:      ['驗證失敗',   'rose',    '安全碼不符，無法確認腳本版本，縮圖暫時只存本機。'],
     error:     ['連不上',     'rose',    '暫時連不上 Apps Script，縮圖先存本機，之後可按「補傳未備份」。']
