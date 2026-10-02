@@ -11043,6 +11043,7 @@ function renderSched(){
   var _sf = new Date(); _sf.setHours(0,0,0,0);
   if(new Date().getHours() >= getOffHour()) _sf.setDate(_sf.getDate()+1);
   var schedFirstStr = toLocalDate(_sf);
+  var prevRsv = null; // 上一個排程工作日的保留量，用來偵測變化
   var weekDays=['日','一','二','三','四','五','六'];
   var g='<table class="cal-table"><thead><tr>';
   weekDays.forEach(function(w){g+='<th>'+w+'</th>';});
@@ -11075,12 +11076,16 @@ function renderSched(){
         g += '<div class="cal-ev" '+(u.pid===-1?'':'onclick="openDetail('+u.pid+')"')+' style="color:'+(u.hard?'#fb7185':pColor(u.pid))+';font-weight:600;font-size:9px;" title="'+esc(dlName+' 截止')+'">'+(late?'🚨':'◼')+' '+esc(dlName)+' 截止</div>';
       });
       var allocs = R.allocByDate[c.str]||[];
-      var rsvHrs = (!isOff && c.str >= schedFirstStr) ? reserveHrsOn(R.reserveList, c.str) : 0;
-      if(rsvHrs > 0){
-        var rsvNames = R.reserveList.filter(function(p){ return !(p.sdate && c.str < p.sdate) && !(p.edate && c.str > p.edate); })
-          .map(function(p){ return p.name+' '+formatHrs(+p.reserveWk/SCHED_WEEK_WORKDAYS); }).join('、');
-        g += '<div class="cal-ev sched-chip" style="border-left:2px solid #475569;cursor:default;" title="常態保留：'+esc(rsvNames)+'">'
-          + '<span style="color:#64748b">常態保留</span><span class="sched-hrs">'+(Math.round(rsvHrs*10)/10)+'h</span></div>';
+      // 常態保留不逐日顯示（每天都一樣，資訊在摘要列）；只在保留量變化的那天標一個小記號
+      var schedDay = !isOff && c.str >= schedFirstStr;
+      var rsvHrs = schedDay ? reserveHrsOn(R.reserveList, c.str) : 0;
+      if(schedDay){
+        if(prevRsv !== null && Math.abs(rsvHrs - prevRsv) > 0.001){
+          var rsvNames = R.reserveList.filter(function(p){ return !(p.sdate && c.str < p.sdate) && !(p.edate && c.str > p.edate); })
+            .map(function(p){ return p.name+' '+formatHrs(+p.reserveWk/SCHED_WEEK_WORKDAYS); }).join('、');
+          g += '<div class="cal-ev" style="color:#64748b;font-size:9px;cursor:help;" title="常態保留：'+esc(rsvNames||'無')+'">保留 → '+(Math.round(rsvHrs*10)/10)+'h</div>';
+        }
+        prevRsv = rsvHrs;
       }
       allocs.forEach(function(a){
         var isWI = a.pid === -1;
@@ -11088,9 +11093,9 @@ function renderSched(){
           + '<span style="color:'+pColor(a.pid)+'">'+esc(a.pname)+(a.phaseLabel?'<span style="opacity:.6"> · '+esc(a.phaseLabel)+'</span>':'')+'</span>'
           + '<span class="sched-hrs">'+(Math.round(a.hrs*10)/10)+'h</span></div>';
       });
-      if(allocs.length || rsvHrs > 0){
-        var dayTotal = allocs.reduce(function(s,a){return s+a.hrs;},0) + rsvHrs;
-        g += '<div class="sched-day-total">'+(Math.round(dayTotal*10)/10)+'h</div>';
+      if(allocs.length){
+        var dayTotal = allocs.reduce(function(s,a){return s+a.hrs;},0);
+        g += '<div class="sched-day-total"'+(rsvHrs > 0 ? ' style="cursor:help" title="另有常態保留 '+(Math.round(rsvHrs*10)/10)+'h"' : '')+'>'+(Math.round(dayTotal*10)/10)+'h</div>';
       }
       g += '</td>';
     }
