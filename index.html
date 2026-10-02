@@ -450,6 +450,8 @@ tbody tr[onclick]:hover td{background:#131f2e;}
 .cfg-switch:focus-visible{outline:2px solid #60a5fa;outline-offset:2px;}
 /* ⓘ 說明提示 */
 .cfg-info{position:relative;display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;border:1px solid #475569;color:#64748b;font-size:9px;font-weight:700;font-style:italic;font-family:Georgia,serif;cursor:help;flex-shrink:0;line-height:1;}
+.cfg-info.tip-r::after{left:auto;right:-6px;}
+.cfg-info{text-transform:none;letter-spacing:0;vertical-align:middle;}
 .cfg-info:hover,.cfg-info:focus{color:#cbd5e1;border-color:#94a3b8;outline:none;}
 .cfg-info::after{content:attr(data-tip);position:absolute;left:-6px;top:calc(100% + 8px);z-index:40;width:max-content;max-width:min(280px,72vw);padding:8px 11px;border-radius:8px;background:#1e293b;border:1px solid #334155;box-shadow:0 10px 24px rgba(0,0,0,.45);color:#cbd5e1;font:400 11px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI','PingFang TC',sans-serif;white-space:normal;opacity:0;visibility:hidden;transform:translateY(-2px);transition:opacity .12s,transform .12s,visibility .12s;pointer-events:none;}
 .cfg-info:hover::after,.cfg-info:focus::after{opacity:1;visibility:visible;transform:none;}
@@ -933,7 +935,7 @@ html[data-mod-off~="thumb"] [data-mod="thumb"]{display:none !important;}
 
   <div id="v-cal" class="hidden">
     <div class="hint-bar" id="cal-hint-cal">以月曆方式呈現所有任務的起訖區間，快速確認排程衝突與空檔。點擊色條可展開任務詳情。截止日臨近的任務會以顏色警示標記。</div>
-    <div class="hint-bar" id="cal-hint-sched" style="display:none;">依各任務的<strong>預估工時</strong>與<strong>截止日</strong>自動試算每日該做什麼：硬截止優先、截止日近的先排，自動跳過週末與休假日。試算僅供參考，不會寫入任何資料；在任務詳情填寫預估工時即可加入試算（委外／轉包任務不佔用工時，不參與）。</div>
+    <div class="hint-bar" id="cal-hint-sched" style="display:none;">依各任務的<strong>預估工時</strong>與<strong>截止日</strong>自動試算每日該做什麼：硬截止優先、截止日近的先排，自動跳過週末與休假日。試算僅供參考，不會寫入任何資料；未填預估的任務以歷史中位數暫排（虛線），常態任務改從每日容量扣除每週保留（委外／轉包不參與）。</div>
     <div class="hint-bar" id="cal-hint-hist" style="display:none;">以月曆回顧<strong>每天實際做了哪些專案、各花多少工時</strong>，資料來自工時紀錄（計時器自動記錄＋手動補登）。色塊依業務類型上色，方便看出時間流向；點擊任一專案列可直接開啟該案詳情。可依業務類型篩選，月份可用上方箭頭或下拉選單切換。</div>
     <div class="flex items-center gap-1 mb-4 bg-slate-900 border border-slate-800 rounded-lg p-1 w-fit">
       <button id="cal-mode-sched" class="tab-sub active" onclick="setCalMode('sched')">🧮 排程試算</button>
@@ -943,8 +945,7 @@ html[data-mod-off~="thumb"] [data-mod="thumb"]{display:none !important;}
     <div id="cal-newcase-top" class="mb-4" style="display:none;">
       <button id="sched-newcase-btn" class="btn btn-solid w-full sm:w-auto" onclick="toggleSchedNewcase()" title="客戶來問檔期時，填入條件即時試排">＋ 試算新案檔期</button>
       <div id="sched-newcase-body" class="bg-slate-900/60 border border-slate-800 rounded-xl p-3.5 mt-2" style="display:none;">
-        <div class="text-[11px] font-semibold text-slate-400 mb-1">🆕 接新案試算 <span class="font-normal text-slate-600">— 填入條件即時試排</span></div>
-        <div class="text-[10px] text-slate-600 mb-2.5">可拆多階段（廠商給的各階段期望日），每階段可分別標記硬截止；試算 OK 後可一鍵代入建立任務</div>
+        <div class="text-[11px] font-semibold text-slate-400 mb-2.5 flex items-center">🆕 接新案試算<span class="cfg-info" style="margin-left:4px" tabindex="0" role="note" data-tip="填入條件即時試排。可拆多階段（廠商給的各階段期望日），每階段可分別標記硬截止；試算 OK 後可一鍵代入建立任務。">i</span></div>
         <div class="flex flex-wrap items-end gap-2 mb-2">
           <div class="flex flex-col gap-1"><label class="text-[10px] text-slate-600">名稱（選填）</label><input type="text" id="wi-name" class="inp py-1.5 text-xs w-36" placeholder="新案試算"></div>
           <div class="flex flex-col gap-1"><label class="text-[10px] text-slate-600">最早開工（選填）</label><input type="date" id="wi-sd" class="inp py-1.5 text-xs w-36"></div>
@@ -1055,7 +1056,7 @@ html[data-mod-off~="thumb"] [data-mod="thumb"]{display:none !important;}
 
     <div id="cal-tip" class="text-[11px] text-slate-500 mt-3 flex items-center justify-center gap-1.5 opacity-80">
   <span>💡</span>
-  <span>操作提示：點擊日曆上的「日期數字」可標記或取消休假日（呈現反灰與刪除線）</span>
+  <span>點日期數字可標記休假日</span>
 </div>
   </div>
 
@@ -1259,10 +1260,9 @@ html[data-mod-off~="thumb"] [data-mod="thumb"]{display:none !important;}
       <div data-panel="estacc" class="dash-panel mb-6">
         <div class="bg-slate-900 rounded-xl border border-slate-800 p-5">
           <div class="flex items-center justify-between mb-1">
-            <h3 class="text-sm font-semibold text-slate-300">🎯 估時準確度</h3>
-            <span class="text-[10px] text-slate-600">統計所有已填預估工時的任務，不受月份篩選影響</span>
-          </div>
-          <p class="text-[11px] text-slate-500 mb-4">比較「預估工時」與「實際工時」，讓你知道自己的估時習慣偏樂觀還是保守，回饋到報價與排程。</p>
+            <h3 class="text-sm font-semibold text-slate-300 flex items-center">🎯 估時準確度<span class="cfg-info" style="margin-left:4px" tabindex="0" role="note" data-tip="比較預估與實際工時，看估時習慣偏樂觀還是保守。統計所有已填預估的任務，不受月份篩選影響。">i</span></h3>
+</div>
+<div class="mb-3"></div>
           <div id="est-acc-body"></div>
         </div>
       </div>
@@ -1284,7 +1284,7 @@ html[data-mod-off~="thumb"] [data-mod="thumb"]{display:none !important;}
       <div data-panel="busy" class="dash-panel mb-6">
         <div class="bg-slate-900 rounded-xl border border-slate-800 p-5" id="busy-panel-wrap">
           <div class="flex items-center justify-between mb-2">
-            <h3 class="text-sm font-semibold text-slate-300 flex items-center gap-2">📣 忙碌公告<button type="button" class="text-[11px] font-normal text-slate-500 hover:text-blue-400 transition-colors" title="前往排程日曆的排程試算" onclick="goTab('cal','sched')">排程試算 →</button></h3>
+            <h3 class="text-sm font-semibold text-slate-300 flex items-center gap-2">📣 忙碌公告<span class="cfg-info" style="margin-left:4px" tabindex="0" role="note" data-tip="依未完成任務的剩餘工時與截止日推算忙碌度，產生可貼出的對外公告。僅為現況快照。">i</span><button type="button" class="text-[11px] font-normal text-slate-500 hover:text-blue-400 transition-colors" title="前往排程日曆的排程試算" onclick="goTab('cal','sched')">排程試算 →</button></h3>
             <div class="flex items-center gap-3">
               <label class="text-[11px] text-slate-500 flex items-center gap-1.5">展望
                 <input type="number" id="busy-weeks" class="inp w-16 py-1 text-center" min="1" max="26" value="13" onchange="renderBusy()">週
@@ -1296,7 +1296,7 @@ html[data-mod-off~="thumb"] [data-mod="thumb"]{display:none !important;}
               <button class="btn btn-sm bg-transparent border-slate-700 text-slate-500 hover:text-blue-400 hover:bg-slate-800 transition-colors" id="busy-copy-btn" onclick="copyBusyAnnounce()">📋 複製公告</button>
             </div>
           </div>
-          <p class="text-[11px] text-slate-600 mb-4">依未完成任務的剩餘工時與截止日推算整體忙碌度，產生可貼出的對外公告。僅為現況快照。</p>
+          <div class="mb-3"></div>
 
           <div class="relative overflow-hidden rounded-lg border border-slate-800 mb-4">
             <div id="busy-overall-bar" class="absolute top-0 left-0 w-full h-1"></div>
@@ -1538,8 +1538,8 @@ html[data-mod-off~="thumb"] [data-mod="thumb"]{display:none !important;}
           <div class="cfg-card" data-mod="thumb">
             <div class="cfg-card-head">
               <div class="min-w-0">
-                <div class="cfg-card-title">縮圖區不顯示的階段</div>
-                <div class="cfg-row-desc">這些階段不會出現在任務詳情的「階段檔案」裡，適合永遠不會有圖的階段（例如雜事）；已經放了圖的照常顯示</div>
+                <div class="cfg-card-title">縮圖區不顯示的階段<span class="cfg-info" style="margin-left:4px" tabindex="0" role="note" data-tip="這些階段不會出現在任務詳情的「階段檔案」裡；已經放了圖的照常顯示。">i</span></div>
+                <div class="cfg-row-desc">適合永遠不會有圖的階段（如雜事）</div>
               </div>
             </div>
             <div class="cfg-block">
@@ -1576,8 +1576,7 @@ html[data-mod-off~="thumb"] [data-mod="thumb"]{display:none !important;}
                 </div>
                 <div class="mt-4 pt-3 border-t border-slate-800">
                   <div class="flex items-baseline gap-2 mb-1.5 flex-wrap">
-                    <span class="text-xs font-semibold text-slate-300">共用背景</span>
-                    <span class="text-[10px] text-slate-600">內容只寫一次；在任何模板插入 {{共用背景}} 就會帶入，留空時那一行自動省略。</span>
+                    <span class="text-xs font-semibold text-slate-300 flex items-center">共用背景<span class="cfg-info" style="margin-left:4px" tabindex="0" role="note" data-tip="內容只寫一次；在任何模板插入 {{共用背景}} 就會帶入，留空時那一行自動省略。">i</span></span>
                   </div>
                   <textarea id="aix-shared-input" class="inp w-full text-xs" rows="3" aria-label="共用背景" placeholder="例：2026 年 4 月轉全職接案，之前的資料偏少。" oninput="aixTplPreview()" onchange="aixSharedSave()"></textarea>
                 </div>
@@ -1585,7 +1584,7 @@ html[data-mod-off~="thumb"] [data-mod="thumb"]{display:none !important;}
 
               <div id="aix-pane-tpl" class="hidden">
                 <div class="flex items-start justify-between gap-3 mb-2">
-                  <p class="text-[10px] text-slate-600">任務的「📋 複製分析」都套用這份模板。點欄位插入到游標位置，沒資料的欄位會自動留白。</p>
+                  <span class="text-[10px] text-slate-600 flex items-center">套用於「📋 複製分析」<span class="cfg-info" style="margin-left:4px" tabindex="0" role="note" data-tip="點欄位插入到游標位置，沒資料的欄位會自動留白。">i</span></span>
                   <button type="button" class="text-[11px] text-slate-500 hover:text-amber-400 flex-shrink-0" onclick="xpTplReset()">恢復預設</button>
                 </div>
                 <div id="cfg-xp-chips" class="flex flex-wrap gap-1 mb-3"></div>
@@ -2394,22 +2393,22 @@ function showValDetail(){
       +d.missing.map(function(it){return row(it,formatHrs(it.hrs)+' · '+it.reason);}).join('')+'</div>';
   }
   if(d.est.length){
-    html+='<div class="text-xs font-semibold text-slate-400 mb-1.5">進行中任務的估算認列'+(d.mon?'（完工比例法優先，未填預估工時者採快照分攤）':'')+'</div>';
+    html+='<div class="text-xs font-semibold text-slate-400 mb-1.5 flex items-center">進行中任務的估算認列'+(d.mon?infoTip('完工比例法優先，未填預估工時者採快照分攤'):'')+'</div>';
     html+='<div class="rounded-lg border border-slate-800 overflow-hidden">'
       +d.est.map(function(it){return row(it,'≈ '+fmtMoney(it.amt,it.cur)+(d.mon&&it.m?' <span class="text-slate-600">('+it.m+' '+it.pct+'%)</span>':''));}).join('')+'</div>';
   }
   if(d.over&&d.over.length){
-    html+='<div class="text-xs font-semibold text-rose-400/90 mt-4 mb-1.5">⏱ 已超過預估工時（認列封頂，本期工時不再產生產值 → 報價或估時需檢討）</div>';
+    html+='<div class="text-xs font-semibold text-rose-400/90 mt-4 mb-1.5 flex items-center">⏱ 已超過預估工時'+infoTip('認列封頂，本期工時不再產生產值；報價或估時需檢討')+'</div>';
     html+='<div class="rounded-lg border border-rose-500/20 bg-rose-500/5 overflow-hidden">'
       +d.over.map(function(it){return row(it,formatHrs(it.hrs)+' · 進度 '+it.pct+'%');}).join('')+'</div>';
   }
   if(d.snap&&d.snap.length){
-    html+='<div class="text-xs font-semibold text-slate-500 mt-4 mb-1.5">未填預估工時（每月產值先按時數平均分攤：之後每登一筆新工時，過去月份的數字都會跟著重算。建議補填，月報數字才會固定）</div>';
+    html+='<div class="text-xs font-semibold text-slate-500 mt-4 mb-1.5 flex items-center">未填預估工時'+infoTip('每月產值先按時數平均分攤：之後每登一筆新工時，過去月份的數字都會跟著重算。補填後月報數字才會固定。')+'</div>';
     html+='<div class="rounded-lg border border-slate-800/60 overflow-hidden">'
       +d.snap.map(function(it){return row(it,formatHrs(it.hrs));}).join('')+'</div>';
   }
   if(d.zeroOut&&d.zeroOut.length){
-    html+='<div class="text-xs font-semibold text-slate-500 mt-4 mb-1.5">外包／轉包・零產值（視為無毛利，不列入漏填警示）</div>';
+    html+='<div class="text-xs font-semibold text-slate-500 mt-4 mb-1.5 flex items-center">外包／轉包・零產值'+infoTip('視為無毛利，不列入漏填警示')+'</div>';
     html+='<div class="rounded-lg border border-slate-800/60 overflow-hidden opacity-70">'
       +d.zeroOut.map(function(it){return row(it,formatHrs(it.hrs)+' · '+it.mode);}).join('')+'</div>';
   }
@@ -3745,6 +3744,8 @@ function renderTagList(tagIds){
   }).join('');
 }
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+// 行內說明一律收成 ⓘ，滑鼠懸停才顯示；right=true 時提示框往左展開（用在靠右的位置）
+function infoTip(t, right){ return '<span class="cfg-info'+(right?' tip-r':'')+'" style="margin-left:4px" tabindex="0" role="note" data-tip="'+esc(t)+'">i</span>'; }
 
 function linkify(s){
   if(!s) return '';
@@ -4639,8 +4640,7 @@ function editGrp(gid){
     <div><label class="text-xs text-slate-500 block mb-1">群組名稱</label><input id="eg-name" class="inp" value="${esc(g.name)}"></div>
     <div><label class="text-xs text-slate-500 block mb-1">狀態</label><select id="eg-st" class="inp"><option value="active" ${g.st==='active'?'selected':''}>進行中</option><option value="done" ${g.st==='done'?'selected':''}>已完成</option><option value="paused" ${g.st==='paused'?'selected':''}>暫停</option></select></div>
     <div>
-      <label class="text-xs text-slate-500 block mb-1">目標時薪覆蓋 (NT$)</label>
-      <p class="text-[10px] text-slate-600 mb-1.5">此群組內計件任務改用這個時薪做虧損預警，覆蓋全域設定（目前全域 ${getGlobalRate().toLocaleString()}）。留空＝沿用全域。適合非商業／個人創作向群組設低標。</p>
+      <label class="text-xs text-slate-500 mb-1 flex items-center">目標時薪覆蓋 (NT$)${infoTip('此群組內計件任務改用這個時薪做虧損預警，覆蓋全域設定（目前 '+getGlobalRate().toLocaleString()+'）。留空＝沿用全域。適合非商業／個人創作向群組設低標。')}</label>
       <input id="eg-rate" type="number" min="0" class="inp w-32 py-1.5 text-center font-mono" placeholder="沿用全域" value="${(g.rate!=null&&g.rate!=='')?g.rate:''}">
     </div>
   </div>`;
@@ -5004,14 +5004,58 @@ function openDetail(id){
             ${(function(){var d=deadlineInfo(p.edate,p.st);return d&&d.cls?`<span class="text-slate-500 ml-1">(${d.label})</span>`:'';})()}
           </div>
 
-          <div class="text-slate-500">預估工時</div>
-          <div class="flex items-center gap-3 text-slate-400 -ml-1.5">
-            <div class="flex items-center gap-1">
-              <input type="number" min="0" step="0.5" class="bg-transparent outline-none hover:bg-slate-800/60 border border-transparent hover:border-slate-700 rounded px-1.5 py-0.5 w-16 transition-colors text-slate-300" value="${p.estHrs||''}" placeholder="—" onchange="updateProjField(${id}, 'estHrs', this.value)">
-              <span class="text-slate-600 text-[10px]">h</span>
-              ${p.estHrs?`<span class="text-[10px] text-slate-600 ml-1">已投入 ${formatHrs(p.hrs||0)} / 剩餘 ${formatHrs(Math.max(0,(p.estHrs||0)-(p.hrs||0)))}</span>`:`<span class="text-[10px] text-red-400/90 ml-1 cursor-help" title="未填預估工時的影響：1. 無法排進排程試算；${p.bill!=='hourly'?'2. 每月產值只能按時數平均分攤，之後每登一筆新工時，過去月份的產值數字都會跟著重算。補填後改用完工比例法，月報數字才會固定。':''}">⚠ 尚未填寫 ⓘ</span>`}
-            </div>
-          </div>
+          ${(function(){
+            var selfExec = !(p.execMode==='outsource'||p.execMode==='resell');
+            var rec = selfExec && isRecurring(p);
+            var out = '';
+            // ---- 任務型態：一般／常態 二選一（委外、轉包不參與排程，不顯示）----
+            if(selfExec){
+              var segBtn = function(kind, label, on, tip){
+                return `<button type="button" title="${tip}" onclick="setTaskKind(${id}, '${kind}')" class="px-2.5 py-0.5 text-[11px] transition-colors ${on?'bg-slate-700 text-slate-100':'text-slate-500 hover:text-slate-300'}">${label}</button>`;
+              };
+              out += `<div class="text-slate-500">任務型態</div>
+          <div class="-ml-1.5">
+            <div class="inline-flex rounded border border-slate-700 overflow-hidden">${segBtn('normal','一般任務',!rec,'照預估工時與階段截止日排程')}${segBtn('recurring','常態任務',rec,'沒有終點的工作（監修、雜務）：改從每日容量扣除每週保留，只在起訖日期間生效；預估與階段不進排程')}</div>
+          </div>`;
+            }
+            // ---- 預估工時：一般任務照常；常態任務只在計件/計價時顯示，標示為計價用 ----
+            if(!rec){
+              var estNote;
+              if(p.estHrs){
+                estNote = `<span class="text-[10px] text-slate-600 ml-1">已投入 ${formatHrs(p.hrs||0)} / 剩餘 ${formatHrs(Math.max(0,(p.estHrs||0)-(p.hrs||0)))}</span>`;
+              } else {
+                var pe=(p.st==='active'&&p.edate&&selfExec)?schedProvisionalEst(p):null;
+                var provOk=pe&&pe.est>(+p.hrs||0);
+                var tip='未填預估工時的影響：1. 排程試算'+(!selfExec?'不適用（委外／轉包）':(provOk?'暫以「'+pe.src+'」'+pe.n+' 件已結案任務的實際工時中位數 '+formatHrs(pe.est)+' 排入，可能與實際落差很大':(p.edate?'無法暫估（已結案樣本不足，或已投入超過中位數），不會排進日曆':'需有截止日才能暫估，目前不參與試算')))+'；'+(p.bill!=='hourly'?'2. 每月產值只能按時數平均分攤，之後每登一筆新工時，過去月份的產值數字都會跟著重算。補填後改用完工比例法，月報數字才會固定。':'');
+                estNote = `<span class="text-[10px] text-red-400/90 ml-1 cursor-help" title="${esc(tip)}">⚠ 尚未填寫${provOk?'（排程暫估 ≈'+formatHrs(pe.est)+'）':''} ⓘ</span>`;
+              }
+              out += `<div class="text-slate-500">預估工時</div>
+          <div class="flex items-center gap-1 text-slate-400 -ml-1.5">
+            <input type="number" min="0" step="0.5" class="bg-transparent outline-none hover:bg-slate-800/60 border border-transparent hover:border-slate-700 rounded px-1.5 py-0.5 w-16 transition-colors text-slate-300" value="${p.estHrs||''}" placeholder="—" onchange="updateProjField(${id}, 'estHrs', this.value)">
+            <span class="text-slate-600 text-[10px]">h</span>
+            ${estNote}
+          </div>`;
+            } else {
+              if(p.bill!=='hourly'){
+                out += `<div class="text-slate-500 cursor-help" title="選填，只用於計畫時薪與產值分攤，不進排程">總時數</div>
+          <div class="flex items-center gap-1 text-slate-400 -ml-1.5 flex-wrap">
+            <input type="number" min="0" step="0.5" class="bg-transparent outline-none hover:bg-slate-800/60 border border-transparent hover:border-slate-700 rounded px-1.5 py-0.5 w-16 transition-colors text-slate-300" value="${p.estHrs||''}" placeholder="—" onchange="updateProjField(${id}, 'estHrs', this.value)">
+            <span class="text-slate-600 text-[10px]">h</span>
+            ${p.estHrs?`<span class="text-[10px] text-slate-600 ml-1">已投入 ${formatHrs(p.hrs||0)}</span>`:''}
+          </div>`;
+              }
+              var on=(+p.reserveWk||0)>0;
+              var sug=reserveSuggest(p);
+              var sugHtml=(sug>0&&sug!==(+p.reserveWk||0))?`<button type="button" class="text-[10px] text-sky-400 hover:text-sky-300 underline decoration-dotted ml-1" onclick="setReserveWk(${id}, ${sug})" title="點擊帶入近 4 週實際工時平均">近 4 週 ${formatHrs(sug)}</button>`:'';
+              out += `<div class="text-slate-500">每週保留</div>
+          <div class="flex items-center gap-1 text-slate-400 -ml-1.5 flex-wrap">
+            <input type="number" min="0" step="0.5" class="bg-transparent outline-none hover:bg-slate-800/60 border border-transparent hover:border-slate-700 rounded px-1.5 py-0.5 w-16 transition-colors text-slate-300" value="${on?p.reserveWk:''}" placeholder="—" title="${on?'每個工作日先扣 '+formatHrs(p.reserveWk/SCHED_WEEK_WORKDAYS):'未填：目前不佔排程容量'}" onchange="setReserveWk(${id}, this.value)">
+            <span class="text-slate-600 text-[10px]">h/週</span>
+            ${sugHtml}
+          </div>`;
+            }
+            return out;
+          })()}
 
           ${(function(){
             // 計畫時薪：合約總額 ÷ 預估工時，開工前就先算，低於目標時薪即警示
@@ -5022,7 +5066,7 @@ function openDetail(id){
             var body = '<span class="'+col+' font-medium">'+icon+' NT$ '+pi.rate.toLocaleString()+' /h</span>'
               + '<span class="text-slate-600 ml-1.5">目標 '+pi.target.toLocaleString()+'</span>';
             if(pi.level!=='ok'){
-              body += '<div class="text-[10px] text-slate-500 mt-1 leading-relaxed">要達標，二選一：預估工時壓到 <span class="text-slate-300">'+pi.maxHrs+'h</span> 以內（現為 '+formatHrs(p.estHrs)+'），或報價提到 <span class="text-slate-300">NT$ '+pi.minFeeTWD.toLocaleString()+'</span> 以上。</div>';
+              body += '<div class="text-[10px] text-slate-500 mt-1">達標：預估 ≤ <span class="text-slate-300">'+pi.maxHrs+'h</span> 或報價 ≥ <span class="text-slate-300">NT$ '+pi.minFeeTWD.toLocaleString()+'</span></div>';
             }
             return '<div class="text-slate-500">計畫時薪</div><div class="text-xs -ml-1.5" title="合約總額 ÷ 預估工時，換算 TWD。這是報價當下就決定的效率，與實際投入無關。">'+body+'</div>';
           })()}
@@ -5117,7 +5161,7 @@ function openDetail(id){
 
       <div class="mb-6">
         <div class="flex items-center justify-between mb-1 px-1">
-          <h3 class="font-bold text-white text-sm">階段截止日</h3>
+          <h3 class="font-bold text-white text-sm flex items-center">階段截止日${infoTip('階段名只能從正式名單選，其餘一律歸「'+MISC_PHASE+'」；細節寫在後面的附註，附註不進統計。名單可在 ⚙ 設定 → 正式階段名單增修。')}</h3>
           <div class="flex items-center gap-1">
           <button type="button" onclick="openPhaseManager()" class="text-[11px] text-slate-500 hover:text-violet-300 px-1.5 py-0.5 rounded hover:bg-slate-800/60 transition-colors" title="整理所有用過的階段名（改名／合併／隱藏，不刪工時）">🏷️ 管理</button>
           ${(function(){
@@ -5133,7 +5177,7 @@ function openDetail(id){
           })()}
           </div>
         </div>
-        <p class="text-[10px] text-slate-600 mb-3 px-1">階段名只能從<span class="text-slate-500">正式名單</span>選，其餘一律歸「${MISC_PHASE}」；細節寫在後面的附註，附註不會進統計。名單可在 <span class="text-slate-500">⚙ 設定 → 正式階段名單</span> 增修。</p>
+        <div class="mb-2"></div>
         <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl overflow-hidden mb-3">
           ${(p.milestones||[]).map((m,i)=>`
             <div class="flex flex-wrap items-center justify-between gap-y-1.5 p-2.5 px-3 border-b border-slate-700/50 last:border-b-0 hover:bg-slate-800/60 transition-colors">
@@ -5172,8 +5216,8 @@ function openDetail(id){
         </div>
         ${(function(){
           var msSum=(p.milestones||[]).reduce(function(s,m){return s+(+m.estHrs||0);},0);
-          if(p.estHrs&&msSum>p.estHrs)return '<div class="text-[10px] text-amber-400 mt-2 px-1">⚠ 各階段工時加總 '+formatHrs(msSum)+' 已超過任務總預估 '+formatHrs(p.estHrs)+'，請調高總預估或調低某階段。<button type="button" onclick="sumEstFromMS('+id+')" class="underline decoration-dotted hover:text-sky-300 text-sky-400 ml-0.5">一鍵把總預估改為 '+formatHrs(msSum)+'</button></div>';
-          if(p.estHrs&&msSum>0&&msSum<p.estHrs)return '<div class="text-[10px] text-slate-600 mt-2 px-1">階段工時合計 '+formatHrs(msSum)+'，最終階段（至截止日）自動分配剩餘 '+formatHrs(p.estHrs-msSum)+'</div>';
+          if(p.estHrs&&msSum>p.estHrs)return '<div class="text-[10px] text-amber-400 mt-2 px-1"><span class="cursor-help" title="請調高總預估或調低某階段">⚠ 階段加總 '+formatHrs(msSum)+' ＞ 總預估 '+formatHrs(p.estHrs)+'</span><button type="button" onclick="sumEstFromMS('+id+')" title="把總預估改為階段加總" class="underline decoration-dotted hover:text-sky-300 text-sky-400 ml-2">改為 '+formatHrs(msSum)+'</button></div>';
+          if(p.estHrs&&msSum>0&&msSum<p.estHrs)return '<div class="text-[10px] text-slate-600 mt-2 px-1 cursor-help" title="階段合計 '+formatHrs(msSum)+'，剩餘工時自動分配給最終階段（至截止日）">剩餘 '+formatHrs(p.estHrs-msSum)+' 歸最終階段</div>';
           return '';
         })()}
       </div>
@@ -6967,7 +7011,7 @@ function editMonthExpense(mon){
   }
   var body='<div>'+fxHtml+
     '<label class="text-xs text-slate-400 block mb-1">當月消費</label>'+
-    '<p class="text-[10px] text-slate-600 mb-2">固定支出以外的日常開銷總額（僅記 TWD）。留空或填 0 可清除。</p>'+
+    '<p class="text-[10px] text-slate-600 mb-2">固定支出以外的開銷總額（TWD），清空即清除</p>'+
     '<div class="flex items-center gap-2"><span class="text-slate-400 text-sm">NT$</span>'+
     '<input id="mexp-input" type="number" inputmode="numeric" class="inp flex-1" value="'+cur+'" placeholder="例如 20000"></div>'+
     '</div>';
@@ -7079,7 +7123,7 @@ function fexpFormHtml(it, isNew){
       '<div class="flex-1"><label class="text-xs text-slate-500 block mb-1">'+fromLabel+'</label><input id="fx-from" type="month" class="inp" value="'+(isNew?fexpEarliestMon():toLocalDate().slice(0,7))+'" placeholder="YYYY-MM"></div>'+
       '<div class="flex-1"><label class="text-xs text-slate-500 block mb-1">截止月份（選填）</label><input id="fx-to" type="month" class="inp" value="'+(it&&it.to?it.to:'')+'" placeholder="留空表示持續"></div>'+
     '</div>'+
-    '<p class="text-[10px] text-slate-600">'+fromHint+'截止月份是最後一個計入的月份，留空表示持續；清空即可恢復。年繳項目會自動除以 12 分攤到每個月。</p>'+
+    '<p class="text-[10px] text-slate-600 flex items-center">截止月份留空＝持續'+infoTip(fromHint+'截止月份是最後一個計入的月份，清空即可恢復。年繳項目會自動除以 12 分攤到每個月。')+'</p>'+
     '</div>';
 }
 function fexpReadForm(){
@@ -7334,7 +7378,7 @@ function renderEstAcc(){
       var typeHeadCtrl = hiddenTypeCount > 0
         ? '<button type="button" class="text-[10px] text-slate-500 hover:text-slate-300 underline decoration-dotted normal-case" onclick="showAllTypes()">顯示已隱藏的 '+hiddenTypeCount+' 項</button>'
         : '';
-      html += '<div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">依案型估時偏差 <span class="text-slate-600 normal-case">（已結案任務按類型平均）</span></span>'+typeHeadCtrl+'</div>';
+      html += '<div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider flex items-center">依案型估時偏差'+infoTip('已結案任務按類型彙整。粗體為平均，次行為中位數與範圍（min–max），×N 為案件數。平均與中位數差很多代表有離群案件，平均別盡信。偏差＝實際平均÷預估平均。')+'</span>'+typeHeadCtrl+'</div>';
       var tRows = typeKeys.sort(function(a,b){
         var aa = byType[a].actArr, ba = byType[b].actArr;
         var as = aa.length?aa.reduce(function(s,v){return s+v;},0):0;
@@ -7357,12 +7401,11 @@ function renderEstAcc(){
           + _srcCell(g.actArr, g.actSrc, nm + '｜實際工時來源')
           + '<td class="font-mono text-xs ' + devCls + '">' + devTxt + '</td></tr>';
       }).join('');
-      html += '<div class="tbl-wrap mb-1"><table><thead><tr><th>案型</th><th>預估</th><th>實際</th><th>偏差</th></tr></thead><tbody>' + tRows + '</tbody></table></div>'
-        + '<div class="text-[10px] text-slate-600 px-1 mb-4">粗體為<span class="text-slate-500">平均</span>，次行為中位數與範圍（min–max），×N 為案件數。中位數抗極端值，平均與中位數差很多代表有離群案件，這格平均別盡信。偏差＝實際平均÷預估平均。</div>';
+      html += '<div class="tbl-wrap mb-4"><table><thead><tr><th>案型</th><th>預估</th><th>實際</th><th>偏差</th></tr></thead><tbody>' + tRows + '</tbody></table></div>';
     }
 
   } else {
-    html += '<div class="text-[11px] text-slate-500 bg-slate-950/50 border border-slate-800 rounded-lg px-3 py-2 mb-4">尚無已結案的估時樣本——結案幾件後，這裡會告訴你估時習慣偏樂觀還是保守。</div>';
+    html += '<div class="text-[11px] text-slate-500 bg-slate-950/50 border border-slate-800 rounded-lg px-3 py-2 mb-4">尚無已結案的估時樣本</div>';
   }
 
   // ---- 階段回測（獨立於總預估門檻，用 doneAll）----
@@ -7382,7 +7425,7 @@ function renderEstAcc(){
       var phaseHeadCtrl = hiddenPhaseCount > 0
         ? '<button type="button" class="text-[10px] text-slate-500 hover:text-slate-300 underline decoration-dotted normal-case" onclick="showAllPhases()">顯示已隱藏的 '+hiddenPhaseCount+' 項</button>'
         : '';
-      html += '<div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">各階段估時回測 <span class="text-slate-600 normal-case">（跨已結案任務彙整，依工時的階段標記）</span></span>'+phaseHeadCtrl+'</div>';
+      html += '<div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider flex items-center">各階段估時回測'+infoTip('跨已結案任務、依工時的階段標記彙整。粗體為平均，次行為中位數與範圍（×N 為案件數）；點預估／實際數字可查看組成。「尚無實際」代表還沒登工時；未標階段的工時不計入。同一案的同階段多個節點先在案內加總。只有正式階段名單內的階段各自成列，其餘折進「雜事」且不做偏差分析。')+'</span>'+phaseHeadCtrl+'</div>';
       var pRows = phaseKeys.sort(function(a,b){
         var as = byPhase[a].actArr.reduce(function(s,v){return s+v;},0);
         var bs = byPhase[b].actArr.reduce(function(s,v){return s+v;},0);
@@ -7416,8 +7459,7 @@ function renderEstAcc(){
           + '<td class="font-mono text-xs ' + devCls + '">' + devTxt + '</td></tr>';
       }).join('');
       html += '<div class="tbl-wrap mb-4"><table><thead><tr><th>階段</th><th>預估</th><th>實際</th><th>偏差</th></tr></thead><tbody>' + pRows + '</tbody></table></div>'
-        + '<div class="text-[10px] text-slate-600 px-1 mb-1">粗體為<span class="text-slate-500">平均</span>，次行為中位數與範圍（×N 為案件數）。<span class="text-slate-500">點預估／實際數字可查看由哪些卡片組成</span>。平均與中位數差很多＝有極端案件，這格平均別盡信。「尚無實際」代表此階段還沒登工時（正常）；未標記階段的工時不計入此表。<span class="text-slate-500">同一案若有多個同階段檢查節點（如草稿分動態／精緻兩段），預估與實際都先在案內加總成一筆再進統計</span>。<span class="text-slate-500">只有「正式階段名單」內的階段會各自成列，其餘一律折進「雜事」且不做偏差分析</span>。</div>'
-        + (anyWarn ? '<div class="text-[10px] text-amber-500/70 px-1 mb-4">標 ⚠ 的階段疑似與另一個名稱是同一階段（命名不一致被拆成兩列），點名稱可查出處，或用下方合併區處理。</div>' : '<div class="mb-4"></div>');
+        + (anyWarn ? '<div class="text-[10px] text-amber-500/70 px-1 mb-4 cursor-help" title="命名不一致被拆成兩列；點名稱可查出處，或用下方合併區處理">⚠ 有疑似重複的階段名</div>' : '<div class="mb-4"></div>');
     } else if(hiddenPhaseCount > 0){
       html += '<div class="flex items-center gap-2 mb-4 px-1"><span class="text-[10px] text-slate-600">階段回測：'+hiddenPhaseCount+' 項已隱藏</span>'
         + '<button type="button" class="text-[10px] text-slate-500 hover:text-slate-300 underline decoration-dotted" onclick="showAllPhases()">全部顯示</button></div>';
@@ -8841,21 +8883,27 @@ aixCollect.sched = function(){
   if(new Date().getHours() >= getOffHour()) st0.setDate(st0.getDate() + 1);
   var startStr = toLocalDate(st0), mon = aixMondayOf(startStr), wRows = [];
   for(var w = 0; w < 8; w++){
-    var wd = 0, used = 0;
+    var wd = 0, used = 0, capW = 0;
     for(var i = 0; i < 7; i++){
       var dd = new Date(mon); dd.setDate(mon.getDate() + w * 7 + i);
       var ds = toLocalDate(dd);
       if(ds < startStr) continue;
-      if(!isDayOff(ds, dd.getDay())) wd++;
+      if(!isDayOff(ds, dd.getDay())){ wd++; capW += Math.max(0, cap - reserveHrsOn(R.reserveList, ds)); }
       (R.allocByDate[ds] || []).forEach(function(a){ used += a.hrs; });
     }
-    var capW = wd * cap, ws = new Date(mon); ws.setDate(mon.getDate() + w * 7);
+    var ws = new Date(mon); ws.setDate(mon.getDate() + w * 7);
     wRows.push([toLocalDate(ws), wd + ' 天', formatHrs(capW), formatHrs(used), formatHrs(Math.max(0, capW - used)), capW > 0 ? Math.round(used / capW * 100) + '%' : '—']);
   }
   var outs = PJ.filter(function(p){ return p.st === 'active' && (p.execMode === 'outsource' || p.execMode === 'resell'); });
   var paused = PJ.filter(function(p){ return p.st === 'paused'; });
   var pastDl = PJ.filter(function(p){ return p.st === 'active' && p.edate && p.edate < now; });
-  var b4 = '- 未填預估工時（實際負荷可能被低估）：' + (R.noEst.length ? R.noEst.map(function(p){ return p.name + (p.edate ? '（截止 ' + p.edate + '）' : ''); }).join('、') : '無') + '\n'
+  var b4 = '';
+  if(R.rsvMissing.length) b4 += '- 常態任務尚未設每週保留（不佔產能）：' + R.rsvMissing.map(function(p){ return p.name; }).join('、') + '\n';
+  if(R.reserveList.length) b4 += '- 常態任務（每週保留，已從每日產能先扣除）：' + R.reserveList.map(function(p){ return p.name + ' ' + formatHrs(+p.reserveWk) + '/週'; }).join('、') + '\n';
+  if(R.provisional.length) b4 += '- 未填預估、以歷史中位數暫估排入：' + R.provisional.map(function(x){ return x.p.name + ' ≈' + formatHrs(x.est) + '（' + x.src + ' ' + x.n + ' 件中位數）'; }).join('、') + '\n';
+  if(R.msAuto.length) b4 += '- 階段未填工時、依時間比例自動分配：' + R.msAuto.map(function(x){ return x.p.name + '（' + x.items.map(function(it){ return it.label + ' ≈' + formatHrs(it.est); }).join('、') + '）'; }).join('、') + '\n';
+  if(R.msNoRoom.length) b4 += '- ⚠ 階段未填工時且總預估已分配完，截止日未納入排程：' + R.msNoRoom.map(function(x){ return x.p.name + '（' + x.labels.join('、') + '）'; }).join('、') + '\n';
+  b4 += '- 未填預估工時且無法暫估（實際負荷可能被低估）：' + (R.noEst.length ? R.noEst.map(function(p){ return p.name + (p.edate ? '（截止 ' + p.edate + '）' : ''); }).join('、') : '無') + '\n'
     + '- 已投入工時 ≥ 預估，剩餘視為 0：' + (R.spent.length ? R.spent.map(function(p){ return p.name; }).join('、') : '無') + '\n';
   if(R.overSum.length) b4 += '- 階段預估加總超過任務總預估（已改用階段加總排程）：' + R.overSum.map(function(p){ return p.name; }).join('、') + '\n';
   b4 += '- 外包／轉包進行中：' + (outs.length ? outs.map(function(p){ return p.name + '（' + aixMode(p) + (p.edate ? '，截止 ' + p.edate : '') + '）'; }).join('、') : '無') + '\n'
@@ -9896,8 +9944,12 @@ function renderHist(){
 /* ============================================================
    排程試算引擎（純函數：不寫入任何資料，每次切換視圖即時重算）
    規則：
-   - 僅納入 active、自己執行（非委外/轉包）、已填 estHrs 的任務
-   - 任務依 milestones(含estHrs者) 拆為多個階段單位，階段需依序完成
+   - 僅納入 active、自己執行（非委外/轉包）的任務
+   - 有效總預估依序取：總預估 estHrs → 階段工時加總 → 歷史中位數暫估（需有截止日）
+   - 常態任務（isRecurring）不產生排程單位，改從每日容量先扣除每週保留工時；
+     其預估工時（若有）只供計價、不進排程
+   - 任務依有日期的 milestones 拆為多個階段單位，階段需依序完成；
+     沒填工時的階段（未完成）依時間比例分配「總預估 − 已填階段」的剩餘工時
    - 已投入工時以瀑布式扣抵：從最早階段開始填
    - 逐日模擬：跳過週六日與 VACS；每日容量 getDayCap()
    - 分配優先序：硬截止 > 軟截止，同類依截止日近者優先 (EDF)
@@ -9947,7 +9999,7 @@ function showOvertime(pid, phaseIdx){
   var base = getDayCap();
   var head, body;
   if(r === null){
-    box.innerHTML = '<div class="text-[11px] text-emerald-400 bg-emerald-950/20 border border-emerald-900/40 rounded-lg px-3 py-2">此階段在每日 '+formatHrs(base)+' 的正常排程下即可準時，毋需加班。（若它仍顯示偏晚，可能是被更優先的硬截止案子排擠；可考慮調整優先序或其它案子交期）</div>';
+    box.innerHTML = '<div class="text-[11px] text-emerald-400 bg-emerald-950/20 border border-emerald-900/40 rounded-lg px-3 py-2"><span class="cursor-help" title="若它仍顯示偏晚，可能是被更優先的硬截止案子排擠">✓ 每日 '+formatHrs(base)+' 即可準時，不需加班</span></div>';
     box.scrollIntoView({behavior:'smooth', block:'nearest'});
     return;
   }
@@ -9955,7 +10007,7 @@ function showOvertime(pid, phaseIdx){
     if(r.reason === 'pastdue'){
       body = '截止日 '+r.deadline+' 已經過去，無法靠加班補救。請改期或調整截止日。';
     } else if(r.reason === 'nodays'){
-      body = '到截止日 '+r.deadline+' 之間沒有可用的工作日（全卡在週末／休假）。請改期或先取消部分休假。';
+      body = '截止日 '+r.deadline+' 前沒有可用工作日，請改期或取消部分休假';
     } else { // evenmax
       body = '即使每天加班到 24h，到截止日 '+r.deadline+' 前的 '+r.nDays+' 個工作日也排不完這個階段。<br>'
            + '<span class="text-slate-400">→ 這個交期單靠加班救不回來，需要：改期、拆轉包、或縮減範圍。</span>';
@@ -9970,14 +10022,86 @@ function showOvertime(pid, phaseIdx){
   var totalTxt = formatHrs(r.totalOT);
   var capTxt = formatHrs(r.minCap);
   box.innerHTML = '<div class="text-xs bg-amber-950/15 border border-amber-900/40 rounded-lg px-3.5 py-3 leading-relaxed flex flex-col gap-1.5">'
-    + '<div class="font-semibold text-amber-300">⚡ 趕工試算：'+esc(r.pname||'')+(r.phaseLabel?' · '+esc(r.phaseLabel):'')+(r.hard?' <span class="text-rose-400 text-[10px]">●硬截止</span>':'')+'</div>'
+          + '<div class="font-semibold text-amber-300 flex items-center">⚡ 趕工試算：'+esc(r.pname||'')+(r.phaseLabel?' · '+esc(r.phaseLabel):'')+(r.hard?' <span class="text-rose-400 text-[10px] ml-1">●硬截止</span>':'')+infoTip('平均分攤到每天的解；想集中拚幾天，可把上方「趕工加班」拉到 +'+perDayTxt.replace(/h.*/,'')+' 左右預覽。已考慮其他案子佔用的容量。')+'</div>'
     + '<div class="text-slate-300">要在 <span class="font-mono text-amber-200">'+r.deadline+'</span> 前準時完工，到期前有 <span class="font-mono">'+r.nDays+'</span> 個工作日，需要：</div>'
     + '<div class="text-slate-200 pl-1">• 每個工作日從 '+formatHrs(r.base)+' 提高到 <span class="font-mono text-amber-200 font-semibold">'+capTxt+'</span>（每天多 <span class="font-mono text-amber-300 font-semibold">+'+perDayTxt+'</span>）</div>'
     + '<div class="text-slate-200 pl-1">• 期間總加班量約 <span class="font-mono text-amber-300 font-semibold">'+totalTxt+'</span></div>'
-    + '<div class="text-[10px] text-slate-500 pt-1 border-t border-slate-800/60">此為「每天平均加班」的均勻解；若想集中拚幾天，把上方「趕工加班」欄拉到 +'+perDayTxt.replace(/h.*/,'')+' 左右可預覽整體排程變化。實際加班量已考慮其他案子在這段期間佔用的容量。</div>'
     + '</div>';
   box.scrollIntoView({behavior:'smooth', block:'nearest'});
 }
+/* ---- 常態任務：每週保留工時 ----
+   監修、雜務這類沒有終點的工作不適合填總預估（截止日拉到年底會被 EDF 排到最後，
+   趕工期間反而完全不佔容量）。改為每週保留 N 小時，平均攤到工作日，先從每日容量扣掉。
+   保留只在任務的起訖日期間內生效；沒填起訖日則一直生效。 */
+var SCHED_WEEK_WORKDAYS = 5; // 每週保留量以 5 個工作日平均攤提
+// 任務型態：一般任務（照預估與階段排程）／常態任務（每週保留）二選一。
+// p.recurring 為明確設定；舊資料沒有這個欄位時，填過每週保留即視為常態任務。
+// 切換型態不刪除任何數字（預估工時、每週保留都保留著），切回來即恢復。
+function isRecurring(p){
+  if(p.recurring === true) return true;
+  if(p.recurring === false) return false;
+  return (+p.reserveWk||0) > 0;
+}
+function setTaskKind(pid, kind){
+  var p = pBy(pid); if(!p) return;
+  p.recurring = (kind === 'recurring');
+  save();
+  rerenderActive();
+}
+function schedReserveTasks(){
+  return PJ.filter(function(p){
+    return p.st === 'active' && p.execMode !== 'outsource' && p.execMode !== 'resell' && isRecurring(p) && (+p.reserveWk||0) > 0;
+  });
+}
+function reserveHrsOn(list, ds){
+  var s = 0;
+  list.forEach(function(p){
+    if(p.sdate && ds < p.sdate) return;
+    if(p.edate && ds > p.edate) return;
+    s += (+p.reserveWk) / SCHED_WEEK_WORKDAYS;
+  });
+  return Math.round(s*100)/100;
+}
+// 建議保留量：近 4 週（28 天）實際工時平均，取到 0.5h
+function reserveSuggest(p){
+  var cut = new Date(); cut.setHours(0,0,0,0); cut.setDate(cut.getDate()-28);
+  var cs = toLocalDate(cut), sum = 0;
+  DLOGS.forEach(function(l){ if(l.pid === p.id && l.date >= cs) sum += (+l.hrs||0); });
+  return Math.round(sum/4*2)/2;
+}
+function setReserveWk(pid, val){
+  var p = pBy(pid); if(!p) return;
+  var v = parseFloat(val);
+  if(v > 0) p.reserveWk = Math.round(v*100)/100;
+  else delete p.reserveWk;
+  save();
+  rerenderActive();
+}
+
+/* ---- 未填預估的暫估值：已結案、自己執行、有實際工時的任務取中位數 ----
+   同業務類型 ≥ 3 件優先；不足則用全體（≥ 3 件）；再不足就不暫估。 */
+var SCHED_PROV_MIN_N = 3;
+function schedProvisionalEst(p){
+  var done = PJ.filter(function(x){
+    return x.st === 'done' && (+x.hrs||0) > 0 && x.execMode !== 'outsource' && x.execMode !== 'resell' && !isRecurring(x);
+  });
+  function med(arr){
+    arr = arr.slice().sort(function(a,b){ return a-b; });
+    var n = arr.length;
+    return n % 2 ? arr[(n-1)/2] : (arr[n/2-1] + arr[n/2]) / 2;
+  }
+  var same = done.filter(function(x){ return x.type === p.type; }).map(function(x){ return +x.hrs; });
+  if(same.length >= SCHED_PROV_MIN_N){
+    var c = catBy(p.type);
+    return {est: Math.round(med(same)*2)/2, src: (c && c.name) ? c.name : '同類型', n: same.length};
+  }
+  var all = done.map(function(x){ return +x.hrs; });
+  if(all.length >= SCHED_PROV_MIN_N) return {est: Math.round(med(all)*2)/2, src: '全體', n: all.length};
+  return null;
+}
+// 最近一次試算用到的有效總預估（含階段加總、暫估），供等效時薪換算
+var SCHED_EFF_EST = {};
+
 var SCHED_MIN_CHUNK = 4;     // 單日單案最低時數
 var SCHED_HORIZON_DAYS = 400; // 模擬上限，防無窮迴圈
 
@@ -9993,30 +10117,95 @@ function computeSchedule(extra, capOverride){
   var noEst = [];      // 未填預估工時的任務（提示用）
   var overSum = [];    // 階段工時加總超過總預估的任務
   var spent = [];      // 已投入工時 ≥ 預估，剩餘 0（提示更新預估或結案）
+  var reserveList = [];  // 常態任務（每週保留，不產生排程單位）
+  var rsvMissing = [];   // 常態任務但尚未填每週保留（不佔容量，提示用）
+  var provisional = [];  // 未填預估、以歷史中位數暫估排入 [{p, est, src, n}]
+  var msAuto = [];       // 有日期但沒填工時的階段，已自動分配 [{p, items:[{label, est}]}]
+  var msNoRoom = [];     // 同上，但已無剩餘工時可分配，截止日無法納入 [{p, labels:[]}]
+  SCHED_EFF_EST = {};
 
   PJ.forEach(function(p){
     if(p.st !== 'active') return;
     if(p.execMode === 'outsource' || p.execMode === 'resell') return;
-    if(!p.estHrs || p.estHrs <= 0){
-      noEst.push(p);
+    if(isRecurring(p)){
+      if((+p.reserveWk||0) > 0) reserveList.push(p); else rsvMissing.push(p);
       return;
     }
-    // ---- 組階段：有 estHrs 的 milestone 依日期排序，最後加最終階段(至 edate) ----
-    var phases = (p.milestones||[])
-      .filter(function(m){ return (+m.estHrs||0) > 0 && m.date; })
-      .slice().sort(function(a,b){ return a.date.localeCompare(b.date); })
-      .map(function(m){ return {label:m.name, deadline:m.date, est:+m.estHrs, done:!!m.done, hard:(typeof m.hard==='boolean') ? m.hard : false}; });
-    var msSum = phases.reduce(function(s,ph){ return s+ph.est; }, 0);
+
+    var allMs = (p.milestones||[])
+      .filter(function(m){ return m.date; })
+      .slice().sort(function(a,b){ return a.date.localeCompare(b.date); });
+    var fixedSum = allMs.reduce(function(s,m){ return s + (+m.estHrs||0); }, 0);
+
+    // ---- 有效總預估：總預估 → 階段加總 → 歷史中位數暫估 ----
+    var effEst = +p.estHrs || 0, prov = null;
+    if(effEst <= 0 && fixedSum > 0) effEst = fixedSum;
+    if(effEst <= 0 && p.edate){
+      var pe = schedProvisionalEst(p);
+      // 已投入 ≥ 中位數：暫估值顯然不適用，維持缺工時警示
+      if(pe && pe.est > (+p.hrs||0)){ prov = pe; effEst = pe.est; }
+    }
+    if(effEst <= 0){ noEst.push(p); return; }
     // 階段預估加總 > 任務總預估：兩個預估互相矛盾。
     // 階段是比較細、比較新的資料，所以改用階段加總當有效總量繼續排程，
     // 只是仍列入提示請使用者回頭修正總預估（早期版本直接把任務踢出排程，
     // 會讓帶硬截止的案子在排程表上無聲消失，風險更高）。
-    var effEst = p.estHrs;
-    if(msSum > p.estHrs){ overSum.push(p); effEst = msSum; }
-    var finalEst = effEst - msSum;
-    if(finalEst > 0 || phases.length === 0){
-      phases.push({label: phases.length ? '完稿' : '', deadline: p.edate || '', est: finalEst > 0 ? finalEst : p.estHrs, done:false, hard: false});
+    if(fixedSum > effEst){ overSum.push(p); effEst = fixedSum; }
+    if(prov) provisional.push({p:p, est:prov.est, src:prov.src, n:prov.n});
+    SCHED_EFF_EST[p.id] = effEst;
+
+    // ---- 組階段 ----
+    // 有日期的階段一律保留；已完成又沒填工時的階段不影響排程，略過。
+    var phases = allMs.map(function(m){
+      var e = +m.estHrs || 0;
+      return {label:m.name, deadline:m.date, est:e, done:!!m.done,
+              hard:(typeof m.hard==='boolean') ? m.hard : false, auto: e <= 0 && !m.done};
+    }).filter(function(ph){ return ph.est > 0 || ph.auto; });
+
+    var spare = Math.round((effEst - fixedSum)*100)/100; // 尚未分配給任何階段的工時
+    var autoPh = phases.filter(function(ph){ return ph.auto; });
+    var lastDl = phases.length ? phases[phases.length-1].deadline : '';
+    var finalPh = null;
+    if(!phases.length || spare > 0){
+      finalPh = {label: phases.length ? '完稿' : '', deadline: p.edate || '', est: 0, done:false, hard:false, auto:false};
     }
+    if(autoPh.length){
+      // 沒填工時的階段：與最終階段一起，依各段工作日長度比例分攤剩餘工時
+      // （每段至少算 1 天，避免已過期的階段分到 0）。
+      var recips = autoPh.slice();
+      var finalJoins = finalPh && (!p.edate || p.edate > lastDl);
+      if(finalJoins) recips.push(finalPh);
+      if(spare > 0){
+        var segStart = (p.sdate && p.sdate > schedStartStr) ? p.sdate : schedStartStr;
+        var timeline = phases.concat(finalJoins ? [finalPh] : []);
+        var w = recips.map(function(r){
+          if(!r.deadline) return null;
+          var idx = timeline.indexOf(r);
+          var prev = idx > 0 ? timeline[idx-1].deadline : segStart;
+          if(prev < segStart) prev = segStart;
+          return Math.max(1, workdaysBetween(prev, r.deadline) + (idx === 0 ? 1 : 0));
+        });
+        var known = w.filter(function(x){ return x !== null; });
+        var avgW = known.length ? known.reduce(function(a,b){ return a+b; }, 0) / known.length : 1;
+        w = w.map(function(x){ return x === null ? avgW : x; });
+        var W = w.reduce(function(a,b){ return a+b; }, 0);
+        var given = 0;
+        recips.forEach(function(r, i){
+          var e = (i === recips.length-1) ? Math.round((spare - given)*100)/100 : Math.round(spare * w[i] / W * 100)/100;
+          r.est = e; given += e;
+        });
+        msAuto.push({p:p, items:autoPh.map(function(ph){ return {label:ph.label, est:ph.est}; })});
+      } else {
+        msNoRoom.push({p:p, labels:autoPh.map(function(ph){ return ph.label; })});
+      }
+      if(finalPh && !finalJoins){ finalPh = null; } // 最終截止日不晚於最後一個階段：不另開最終階段
+    } else if(finalPh){
+      finalPh.est = phases.length ? spare : effEst;
+    }
+    phases = phases.filter(function(ph){ return ph.est > 0; });
+    if(finalPh && finalPh.est > 0) phases.push(finalPh);
+    if(!phases.length){ spent.push(p); return; }
+
     // ---- 瀑布式扣抵已投入工時 ----
     var pool = p.hrs || 0;
     var unitsBefore = units.length;
@@ -10028,7 +10217,8 @@ function computeSchedule(extra, capOverride){
       units.push({
         pid: p.id, pname: p.name, phaseLabel: ph.label, phaseIdx: i,
         deadline: ph.deadline, hard: !!ph.hard,
-        remaining: Math.round(remaining*100)/100, total: ph.est,
+        remaining: Math.round(remaining*100)/100, total: Math.round(ph.est*100)/100,
+        prov: !!prov, auto: !!ph.auto,
         startConstraint: (p.sdate && p.sdate > schedStartStr) ? p.sdate : schedStartStr,
         firstDay: null, lastDay: null
       });
@@ -10070,7 +10260,7 @@ function computeSchedule(extra, capOverride){
     var dow = d.getDay();
     var workday = !isDayOff(ds, dow);
     if(workday){
-      var left = cap;
+      var left = Math.max(0, cap - reserveHrsOn(reserveList, ds)); // 常態任務先佔用
       var guard = 0;
       while(left > 0.01 && guard++ < 20){
         var elig = units.filter(function(u){ return unitEligible(u, ds); }).sort(priority);
@@ -10086,14 +10276,15 @@ function computeSchedule(extra, capOverride){
         if(!picked.firstDay) picked.firstDay = ds;
         picked.lastDay = ds;
         if(!allocByDate[ds]) allocByDate[ds] = [];
-        allocByDate[ds].push({pid:picked.pid, pname:picked.pname, phaseLabel:picked.phaseLabel, hrs:alloc, hard:picked.hard, deadline:picked.deadline});
+        allocByDate[ds].push({pid:picked.pid, pname:picked.pname, phaseLabel:picked.phaseLabel, hrs:alloc, hard:picked.hard, deadline:picked.deadline, tent:!!(picked.prov||picked.auto)});
         left -= alloc;
       }
     }
     d.setDate(d.getDate()+1);
     dayCount++;
   }
-  return {units:units, allocByDate:allocByDate, noEst:noEst, overSum:overSum, spent:spent};
+  return {units:units, allocByDate:allocByDate, noEst:noEst, overSum:overSum, spent:spent,
+          reserveList:reserveList, rsvMissing:rsvMissing, provisional:provisional, msAuto:msAuto, msNoRoom:msNoRoom};
 }
 
 /* ============================================================
@@ -10496,7 +10687,7 @@ function schedUnitRate(pid, extra){
   if(p.bill === 'hourly') return (p.hrate||0) > 0 ? toTWD(p.hrate, p.budgetCur||'TWD') : 0;
   if((p.budget||0) > 0){
     // 分母優先用總預估工時；沒填預估（多為已結案任務）退而用實際總工時
-    var base = (p.estHrs||0) > 0 ? p.estHrs : (p.hrs||0);
+    var base = (p.estHrs||0) > 0 ? p.estHrs : (SCHED_EFF_EST[pid] || p.hrs || 0);
     if(base > 0) return toTWD(p.budget, p.budgetCur||'TWD') / base;
   }
   return 0;
@@ -10510,10 +10701,11 @@ function computeSchedStats(R, extra){
   var winStartStr = toLocalDate(_s);
   var winEnd = new Date(_s); winEnd.setDate(winEnd.getDate()+30);
   var winEndStr = toLocalDate(winEnd);
-  var cap = effCap(), capWin = 0;
+  var cap = effCap(), capWin = 0, rsvList = schedReserveTasks();
   var dIt = new Date(_s);
   while(toLocalDate(dIt) < winEndStr){
-    if(!isDayOff(toLocalDate(dIt), dIt.getDay())) capWin += cap;
+    var dItStr = toLocalDate(dIt);
+    if(!isDayOff(dItStr, dIt.getDay())) capWin += Math.max(0, cap - reserveHrsOn(rsvList, dItStr));
     dIt.setDate(dIt.getDate()+1);
   }
   // 逐日分配 → 按月彙整產值與工時
@@ -10636,7 +10828,7 @@ function renderSched(){
           lines.push('<span class="text-slate-500">代價：不影響任何既有案子的完工日</span>');
         }
       }
-      lines.push('<div class="pt-1.5 mt-0.5 border-t border-slate-800/60 flex items-center gap-2 flex-wrap"><button class="btn btn-sm btn-solid" onclick="createTaskFromWhatIf()">✚ 代入建立任務</button><span class="text-[10px] text-slate-600">各階段自動轉為「階段截止日」、最後階段轉為任務截止日；建立後開啟詳情可補預算等資訊</span></div>');
+      lines.push('<div class="pt-1.5 mt-0.5 border-t border-slate-800/60 flex items-center gap-2 flex-wrap"><button class="btn btn-sm btn-solid" title="各階段轉為階段截止日、最後階段轉為任務截止日；建立後可在詳情補預算" onclick="createTaskFromWhatIf()">✚ 代入建立任務</button></div>');
       wiRes.innerHTML = '<div class="text-xs leading-relaxed bg-slate-950/50 border border-slate-800 rounded-lg px-3 py-2 flex flex-col gap-1">'+lines.map(function(l){return '<div>'+l+'</div>';}).join('')+'</div>';
       wiRes.style.display = '';
     }
@@ -10721,7 +10913,9 @@ function renderSched(){
         otBtn = ' <button type="button" class="text-[10px] text-amber-400/80 hover:text-amber-300 underline decoration-dotted ml-1" onclick="event.stopPropagation();showOvertime('+g.pid+','+u.phaseIdx+')" title="試算這個階段要加多少班才趕得上">趕工試算</button>';
       }
       cells += '<td class="text-xs '+(multi?'text-slate-400':'text-slate-600')+'">'+esc(phaseName)+(u.hard?' <span class="text-rose-400 text-[10px]">●硬</span>':'')+'</td>'
-        +'<td class="font-mono text-xs">'+formatHrs(u.total)+'</td>'
+        +'<td class="font-mono text-xs">'+(u.prov||u.auto
+            ? '<span class="text-amber-400/80 cursor-help" title="'+(u.prov?'暫估：未填預估，以同類已結案任務的實際工時中位數排入':'暫分配：此階段沒填工時，從剩餘預估依時間比例分配')+'">≈'+formatHrs(u.total)+'</span>'
+            : formatHrs(u.total))+'</td>'
         +'<td class="font-mono text-xs">'+(u.deadline||'<span class="text-slate-600">—</span>')+'</td>'
         +'<td class="font-mono text-xs">'+(u.firstDay||'—')+'</td>'
         +'<td class="font-mono text-xs">'+(u.lastDay||'—')+'</td>'
@@ -10736,7 +10930,27 @@ function renderSched(){
   var relaxCount = relaxGroups.length;
   var html = '';
   if(R.overSum.length){
-    html += '<div class="text-[11px] text-amber-400 bg-amber-950/20 border border-amber-900/40 rounded-lg px-3 py-2 mb-3">⚠ '+R.overSum.map(function(p){return esc(p.name);}).join('、')+'：階段<span class="text-amber-300/80">預估</span>加總超過任務總預估，已改用階段加總排程。建議至任務詳情把總預估更新為階段加總（詳情頁階段區的 ⟩ 按鈕可一鍵帶入）。</div>';
+    html += '<div class="text-[11px] text-amber-400 bg-amber-950/20 border border-amber-900/40 rounded-lg px-3 py-2 mb-3">⚠ '+R.overSum.map(function(p){return esc(p.name);}).join('、')+'：階段加總 ＞ 總預估，已改用階段加總排程'+infoTip('可在任務詳情的階段區一鍵把總預估改為階段加總', true)+'</div>';
+  }
+  if(R.msNoRoom.length){
+    html += '<div class="text-[11px] text-amber-400 bg-amber-950/20 border border-amber-900/40 rounded-lg px-3 py-2 mb-3">⚠ '+R.msNoRoom.map(function(x){
+      return '<span class="cursor-pointer underline decoration-dotted" onclick="openDetail('+x.p.id+')">'+esc(x.p.name)+'</span>（'+x.labels.map(esc).join('、')+'）';
+    }).join('、')+'：階段沒填工時、總預估已分配完，未納入排程</div>';
+  }
+  if(R.reserveList.length){
+    html += '<div class="text-[11px] text-slate-500 px-1 mb-2">常態保留：'+R.reserveList.map(function(p){
+      return '<span class="cursor-pointer underline decoration-dotted hover:text-slate-300" onclick="openDetail('+p.id+')">'+esc(p.name)+'</span> '+formatHrs(+p.reserveWk)+'/週';
+    }).join('、')+'</div>';
+  }
+  if(R.rsvMissing.length){
+    html += '<div class="text-[11px] text-slate-500 px-1 mb-2">常態任務未設每週保留：'+R.rsvMissing.map(function(p){
+      return '<span class="cursor-pointer underline decoration-dotted hover:text-slate-300" onclick="openDetail('+p.id+')">'+esc(p.name)+'</span>';
+    }).join('、')+'</div>';
+  }
+  if(R.msAuto.length){
+    html += '<div class="text-[11px] text-slate-500 px-1 mb-2">階段暫分配：'+R.msAuto.map(function(x){
+      return '<span class="cursor-pointer underline decoration-dotted hover:text-slate-300" onclick="openDetail('+x.p.id+')">'+esc(x.p.name)+'</span>（'+x.items.map(function(it){ return esc(it.label)+' ≈'+formatHrs(it.est); }).join('、')+'）';
+    }).join('、')+'</div>';
   }
   if(rows || relaxRows){
     var relaxCollapsed = localStorage.getItem('ft_relax_collapsed') !== '0'; // 預設摺疊
@@ -10749,48 +10963,61 @@ function renderSched(){
       bodyHtml += '<tr><td colspan="7" class="text-center text-xs text-emerald-400/80 py-3">✓ 目前沒有來不及或臨界的任務，全部從容</td></tr>';
     }
     if(relaxRows){
-      bodyHtml += '<tr class="relax-toggle-row"><td colspan="7" class="text-center py-2 cursor-pointer select-none text-[11px] text-slate-500 hover:text-slate-300" onclick="toggleRelaxRows()">'
-        + (relaxCollapsed ? '▾ 還有 '+relaxCount+' 筆從容的任務（點開查看）' : '▴ 收合從容任務')
+      bodyHtml += '<tr class="relax-toggle-row"><td colspan="7" class="text-center py-2 cursor-pointer select-none text-[11px] text-slate-500 hover:text-slate-300" title="只展開來不及或餘裕 ≤ '+attnThresh+' 工作天的任務；門檻可在 ⚙ 設定調整" onclick="toggleRelaxRows()">'
+      + (relaxCollapsed ? '▾ 還有 '+relaxCount+' 筆從容的任務' : '▴ 收合從容任務')
         + '</td></tr>';
     }
     html += '<div class="tbl-wrap mb-1"><table>'+thead+'<tbody>'+bodyHtml+'</tbody>'
       + (relaxRows ? '<tbody id="sched-relax-body" style="'+(relaxCollapsed?'display:none;':'')+'">'+relaxRows+'</tbody>' : '')
       + '</table></div>';
     html += '<div id="sched-ot-result" class="mb-2"></div>';
-    html += '<div class="text-[10px] text-slate-600 px-1 mb-3">預設只展開來不及或餘裕 ≤ '+attnThresh+' 工作天的任務；其餘從容任務已摺疊（門檻可在 ⚙ 設定調整）</div>';
-  } else {
+    } else {
     html += '<div class="text-center py-10 text-sm text-slate-500 bg-slate-900/40 border border-slate-800 rounded-xl mb-3">目前沒有可排程的任務<br><span class="text-xs text-slate-600">在任務詳情填寫「預估工時」即可加入試算</span></div>';
   }
   if(R.spent && R.spent.length){
-    html += '<div class="text-[11px] text-slate-500 px-1 mb-1">剩餘工時為 0（已投入 ≥ 預估或階段全數完成，不再排程）：'+R.spent.map(function(p){
+    html += '<div class="text-[11px] text-slate-500 px-1 mb-1"><span class="cursor-help" title="已投入 ≥ 預估，或階段全數完成，不再排程">剩餘 0h：</span>'+R.spent.map(function(p){
       return '<span class="cursor-pointer underline decoration-dotted hover:text-slate-300" onclick="openDetail('+p.id+')" title="已投入 '+formatHrs(p.hrs||0)+' / 預估 '+formatHrs(p.estHrs||0)+'">'+esc(p.name)+'</span>';
     }).join('、')+'<span class="text-slate-600">　→ 若還沒做完，請至詳情上調預估工時</span></div>';
   }
-  // 缺工時警示：只列「有截止日卻沒估工時」的任務（會從排程日曆消失，最危險）
+  // 缺工時警示：有截止日卻沒估工時的任務。
+  // 能用歷史中位數暫估的已排入日曆（虛線標示）；無法暫估的才會從排程消失，最危險。
   var noEstDl = R.noEst.filter(function(p){ return !!p.edate; });
-  if(noEstDl.length){
+  var provList = R.provisional || [];
+  if(noEstDl.length || provList.length){
     var collapsed = localStorage.getItem('ft_noest_collapsed') === '1';
+    var nTot = noEstDl.length + provList.length;
+    var title = nTot+' 筆有截止日的任務<span class="noest-em">未估工時</span>'
+      + (provList.length && !noEstDl.length ? '，已用歷史中位數暫排'
+        : (!provList.length ? '，不會排進日曆'
+        : '：'+provList.length+' 筆已暫排、'+noEstDl.length+' 筆無法暫估（不會排進日曆）'));
+    var warnRow = function(p, tag){
+      return '<div class="noest-row">'
+        + '<span class="noest-name" onclick="openDetail('+p.id+')" title="點擊開啟任務詳情">'+esc(p.name)+'</span>'
+        + tag
+        + '<span class="noest-dl">截止 '+esc(p.edate)+'</span>'
+        + '<input type="number" min="0" step="0.5" class="noest-inp" placeholder="工時" '
+        +   'onkeydown="if(event.key===\'Enter\')this.blur()" '
+        +   'onchange="setEstFromWarn('+p.id+',this.value)"> h'
+        + '</div>';
+    };
     html += '<div class="noest-warn">'
       + '<div class="noest-head" onclick="toggleNoEstWarn()">'
-      +   '<span class="noest-title">'+noEstDl.length+' 筆有截止日的任務<span class="noest-em">未估工時</span>，不會排進日曆</span>'
+      +   '<span class="noest-title">'+title+'</span>'
       +   '<span class="noest-toggle">'+(collapsed?'展開 ▾':'收合 ▴')+'</span>'
       + '</div>'
       + '<div class="noest-body" style="'+(collapsed?'display:none;':'')+'">'
+      + provList.map(function(x){
+          return warnRow(x.p, '<span class="noest-dl" title="依「'+esc(x.src)+'」'+x.n+' 件已結案任務的實際工時中位數">暫估 ≈'+formatHrs(x.est)+'</span>');
+        }).join('')
       + noEstDl.map(function(p){
-          return '<div class="noest-row">'
-            + '<span class="noest-name" onclick="openDetail('+p.id+')" title="點擊開啟任務詳情">'+esc(p.name)+'</span>'
-            + '<span class="noest-dl">截止 '+esc(p.edate)+'</span>'
-            + '<input type="number" min="0" step="0.5" class="noest-inp" placeholder="工時" '
-            +   'onkeydown="if(event.key===\'Enter\')this.blur()" '
-            +   'onchange="setEstFromWarn('+p.id+',this.value)"> h'
-            + '</div>';
+          return warnRow(p, '<span class="noest-dl text-amber-500/80" title="'+((+p.hrs||0) > 0 ? '已投入工時超過歷史中位數，暫估不適用' : '已結案樣本不足，無法暫估')+'">無法暫估</span>');
         }).join('')
       + '</div></div>';
   }
   // 其餘未估（無截止日）：維持原本低調提示，不打擾
   var noEstNoDl = R.noEst.filter(function(p){ return !p.edate; });
   if(noEstNoDl.length){
-    html += '<div class="text-[11px] text-slate-500 px-1 mb-1">未填預估工時（無截止日，不參與試算）：'+noEstNoDl.map(function(p){
+    html += '<div class="text-[11px] text-slate-500 px-1 mb-1"><span class="cursor-help" title="沒有截止日也沒填預估，不參與試算">未估、無截止日：</span>'+noEstNoDl.map(function(p){
       return '<span class="cursor-pointer underline decoration-dotted hover:text-slate-300" onclick="openDetail('+p.id+')">'+esc(p.name)+'</span>';
     }).join('、')+'</div>';
   }
@@ -10813,6 +11040,9 @@ function renderSched(){
     dlByDate[u.deadline].push(u);
   });
   var remMap = remByDate();
+  var _sf = new Date(); _sf.setHours(0,0,0,0);
+  if(new Date().getHours() >= getOffHour()) _sf.setDate(_sf.getDate()+1);
+  var schedFirstStr = toLocalDate(_sf);
   var weekDays=['日','一','二','三','四','五','六'];
   var g='<table class="cal-table"><thead><tr>';
   weekDays.forEach(function(w){g+='<th>'+w+'</th>';});
@@ -10845,14 +11075,21 @@ function renderSched(){
         g += '<div class="cal-ev" '+(u.pid===-1?'':'onclick="openDetail('+u.pid+')"')+' style="color:'+(u.hard?'#fb7185':pColor(u.pid))+';font-weight:600;font-size:9px;" title="'+esc(dlName+' 截止')+'">'+(late?'🚨':'◼')+' '+esc(dlName)+' 截止</div>';
       });
       var allocs = R.allocByDate[c.str]||[];
+      var rsvHrs = (!isOff && c.str >= schedFirstStr) ? reserveHrsOn(R.reserveList, c.str) : 0;
+      if(rsvHrs > 0){
+        var rsvNames = R.reserveList.filter(function(p){ return !(p.sdate && c.str < p.sdate) && !(p.edate && c.str > p.edate); })
+          .map(function(p){ return p.name+' '+formatHrs(+p.reserveWk/SCHED_WEEK_WORKDAYS); }).join('、');
+        g += '<div class="cal-ev sched-chip" style="border-left:2px solid #475569;cursor:default;" title="常態保留：'+esc(rsvNames)+'">'
+          + '<span style="color:#64748b">常態保留</span><span class="sched-hrs">'+(Math.round(rsvHrs*10)/10)+'h</span></div>';
+      }
       allocs.forEach(function(a){
         var isWI = a.pid === -1;
-        g += '<div class="cal-ev sched-chip'+(isWI?' sched-chip-wi':'')+'" '+(isWI?'':'onclick="openDetail('+a.pid+')"')+' style="border-left:2px '+(isWI?'dashed':'solid')+' '+pColor(a.pid)+';" title="'+esc(a.pname+(a.phaseLabel?' · '+a.phaseLabel:''))+' '+a.hrs+'h">'
+        g += '<div class="cal-ev sched-chip'+(isWI?' sched-chip-wi':'')+'" '+(isWI?'':'onclick="openDetail('+a.pid+')"')+' style="border-left:2px '+(isWI||a.tent?'dashed':'solid')+' '+pColor(a.pid)+';" title="'+esc(a.pname+(a.phaseLabel?' · '+a.phaseLabel:''))+' '+a.hrs+'h'+(a.tent?'（暫估）':'')+'">'
           + '<span style="color:'+pColor(a.pid)+'">'+esc(a.pname)+(a.phaseLabel?'<span style="opacity:.6"> · '+esc(a.phaseLabel)+'</span>':'')+'</span>'
           + '<span class="sched-hrs">'+(Math.round(a.hrs*10)/10)+'h</span></div>';
       });
-      if(allocs.length){
-        var dayTotal = allocs.reduce(function(s,a){return s+a.hrs;},0);
+      if(allocs.length || rsvHrs > 0){
+        var dayTotal = allocs.reduce(function(s,a){return s+a.hrs;},0) + rsvHrs;
         g += '<div class="sched-day-total">'+(Math.round(dayTotal*10)/10)+'h</div>';
       }
       g += '</td>';
@@ -10950,19 +11187,20 @@ function renderSched(){
         var hardLate = u.hard && u.deadline && u.lastDay && u.lastDay > u.deadline;
         if(cantfit || hardLate) lateCnt++;
       });
-      var warnTotal = lateCnt + noEstDl.length + R.overSum.length;
+      var warnTotal = lateCnt + noEstDl.length + R.overSum.length + provList.length + R.msNoRoom.length;
       var wParts = [];
       if(lateCnt) wParts.push('來不及 '+lateCnt);
       if(noEstDl.length) wParts.push('缺工時 '+noEstDl.length);
+      if(provList.length) wParts.push('暫估 '+provList.length);
+      if(R.msNoRoom.length) wParts.push('階段未納入 '+R.msNoRoom.length);
       if(R.overSum.length) wParts.push('預估不一致 '+R.overSum.length);
       cards.push({l:'警示', v: warnTotal ? '<span class="text-rose-400">⚠ '+warnTotal+'</span>' : '<span class="text-emerald-400">✓ 0</span>',
         sub: warnTotal ? wParts.join(' · ') : '無來不及／缺工時'});
 
       var html2 = '<div class="flex items-center justify-between flex-wrap gap-2 mt-4 mb-2">'
-        + '<div class="text-[11px] font-semibold text-slate-400">📊 排程統計</div>'
-        + '<div class="text-[10px] text-slate-600">口徑：已投入＝本月工時紀錄 × 等效時薪；剩餘＝排定工時 × 等效時薪（計件＝合約額 ÷ 總預估工時），一律換算 TWD'
-        + (SCHED_WHATIF ? '；<span class="text-slate-400">含新案試算'+(SCHED_WHATIF.fee>0?'（報酬 '+fmtNT(SCHED_WHATIF.fee)+'）':'（未填報酬，僅計工時排擠）')+'，綠/紅小字＝與現況的差額</span>' : '')
-        + '</div></div>';
+              + '<div class="text-[11px] font-semibold text-slate-400 flex items-center">📊 排程統計'+infoTip('已投入＝本月工時紀錄 × 等效時薪；剩餘＝排定工時 × 等效時薪（計件＝合約額 ÷ 總預估工時），一律換算 TWD。')+'</div>'
+      + (SCHED_WHATIF ? '<div class="text-[10px] text-slate-400 cursor-help" title="'+(SCHED_WHATIF.fee>0?'新案報酬 '+fmtNT(SCHED_WHATIF.fee):'未填報酬，僅計工時排擠')+'；綠/紅小字＝與現況的差額">含新案試算</div>' : '')
+      + '</div>';
       html2 += '<div class="sched-stats">' + cards.map(function(c){
         return '<div class="sched-stat"><div class="ss-l">'+c.l+'</div><div class="ss-v">'+c.v+'</div>'+(c.sub?'<div class="ss-sub">'+c.sub+'</div>':'')+'</div>';
       }).join('') + '</div>';
@@ -10985,7 +11223,7 @@ function renderSched(){
           + '<span class="text-slate-600">　→ 至詳情補合約總額／時薪即可納入</span></div>';
       }
       if(S.nbHrs > 0.01 && S.totHrs > 0){
-        html2 += '<div class="text-[11px] text-slate-600 px-1 mt-1">其中無償任務工時 '+formatHrs(S.nbHrs)+'（占 '+Math.round(S.nbHrs/S.totHrs*100)+'%），產值以 0 計，會拉低平均時薪</div>';
+        html2 += '<div class="text-[11px] text-slate-600 px-1 mt-1 cursor-help" title="無償任務產值以 0 計，會拉低平均時薪">含無償工時 '+formatHrs(S.nbHrs)+'（'+Math.round(S.nbHrs/S.totHrs*100)+'%）</div>';
       }
       stEl.innerHTML = html2;
     }
