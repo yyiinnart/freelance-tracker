@@ -483,7 +483,8 @@ html[data-mod-off~="cal"] [data-mod="cal"],
 html[data-mod-off~="tag"] [data-mod="tag"],
 html[data-mod-off~="fexp"] [data-mod="fexp"],
 html[data-mod-off~="aix"] [data-mod="aix"],
-html[data-mod-off~="thumb"] [data-mod="thumb"]{display:none !important;}
+html[data-mod-off~="thumb"] [data-mod="thumb"],
+html[data-mod-off~="batch"] [data-mod="batch"]{display:none !important;}
 .cfg-mode-3{grid-template-columns:repeat(3,1fr);}
 .cfg-tpl{all:unset;box-sizing:border-box;display:block;cursor:pointer;border:1px solid #334155;border-radius:10px;padding:10px 14px;transition:border-color .15s,background .15s;}
 .cfg-tpl:hover{border-color:#475569;}
@@ -647,6 +648,7 @@ html[data-mod-off~="thumb"] [data-mod="thumb"]{display:none !important;}
         <div class="flex flex-col gap-1 w-28"><label class="text-[10px] text-slate-500 uppercase tracking-wider">類型</label><select id="pj-type" class="inp py-2" onchange="onQuickTypeChange()"></select></div>
         <div class="flex flex-col gap-1 w-36" id="pj-grp-wrap" data-mod="grp"><label class="text-[10px] text-slate-500 uppercase tracking-wider">群組</label><select id="pj-grp" class="inp py-2"></select></div>
         <button class="btn btn-solid py-2 px-5 flex-shrink-0" onclick="addProj()">+ 建立</button>
+        <button class="btn py-2 px-3 flex-shrink-0 text-xs text-slate-400" data-mod="batch" onclick="openBatchCreate()" title="一次建立多張任務（可從試算表貼上）">批量</button>
         <button class="btn py-2 px-3 flex-shrink-0 text-xs text-slate-400" onclick="toggleCreateMore()" id="create-more-btn">更多設定 ▾</button>
       </div>
       <div id="create-more" class="hidden border-t border-slate-800 px-6 py-6">
@@ -2437,12 +2439,13 @@ var MODS = [
   {k:'tag',  name:'任務一覽',   desc:'「任務一覽」分頁'},
   {k:'fexp', name:'固定支出',   desc:'房租、保險、訂閱等每月自動帶入的支出'},
   {k:'aix',  name:'AI 匯出',    desc:'把工時與收支整理成文字，複製給 AI 分析'},
-  {k:'thumb',name:'階段縮圖',   desc:'在任務上貼草稿、完稿縮圖，並可在任務一覽用圖牆瀏覽舊案'}
+  {k:'thumb',name:'階段縮圖',   desc:'在任務上貼草稿、完稿縮圖，並可在任務一覽用圖牆瀏覽舊案'},
+  {k:'batch',name:'批量建立',   desc:'一次建立多張任務，可從試算表貼上'}
 ];
 var MOD_TPLS = [
-  {k:'lite', name:'輕量計時',   desc:'只留任務、計時與分析', mods:{grp:false,out:false,pay:false,cal:false,tag:false,fexp:false,aix:false,thumb:true}},
-  {k:'solo', name:'個人接案',   desc:'加上專案群組、收付款與排程', mods:{grp:true,out:false,pay:true,cal:true,tag:true,fexp:true,aix:true,thumb:true}},
-  {k:'full', name:'接案＋外包', desc:'全部功能，含外包、轉包與聯絡人', mods:{grp:true,out:true,pay:true,cal:true,tag:true,fexp:true,aix:true,thumb:true}}
+  {k:'lite', name:'輕量計時',   desc:'只留任務、計時與分析', mods:{grp:false,out:false,pay:false,cal:false,tag:false,fexp:false,aix:false,thumb:true,batch:false}},
+  {k:'solo', name:'個人接案',   desc:'加上專案群組、收付款與排程', mods:{grp:true,out:false,pay:true,cal:true,tag:true,fexp:true,aix:true,thumb:true,batch:true}},
+  {k:'full', name:'接案＋外包', desc:'全部功能，含外包、轉包與聯絡人', mods:{grp:true,out:true,pay:true,cal:true,tag:true,fexp:true,aix:true,thumb:true,batch:true}}
 ];
 // 需要模組才能進入的分頁
 var VIEW_MOD = {grp:'grp', vendor:'out', pay:'pay', cal:'cal', tag:'tag'};
@@ -2454,6 +2457,15 @@ function getMods(){
   var saved = raw ? safeJSONParse(raw, null) : null;
   if(saved && typeof saved === 'object'){
     MODS.forEach(function(x){ m[x.k] = saved[x.k] !== false; });
+    // 之後新增的模組（舊存檔裡沒有這個鍵）：原本套用某個模板的人，跟著該模板的預設；
+    // 例如原本是「輕量計時」，新模組就維持關閉，模板也不會因此變成自訂。
+    var missing = MODS.filter(function(x){ return !(x.k in saved); });
+    if(missing.length){
+      var tpl = MOD_TPLS.find(function(t){
+        return MODS.every(function(x){ return !(x.k in saved) || !!t.mods[x.k] === (saved[x.k] !== false); });
+      });
+      if(tpl) missing.forEach(function(x){ m[x.k] = !!tpl.mods[x.k]; });
+    }
   } else {
     // 舊版只有「工作模式」：專案管理＝全開；個人接案＝只關群組與外包（和舊版畫面一致）
     var mgr = wm === 'manager';
@@ -4302,7 +4314,7 @@ function editCat(id){
       '<div><label class="text-xs text-slate-400 block mb-1">顏色</label><select id="ec-color" class="inp">'+colorOpts+'</select></div>'+
     '</div>'+
     '<div class="border-t border-slate-700/50 pt-4">'+
-      '<div class="text-[10px] font-semibold text-blue-400 uppercase tracking-wider mb-3">快速建立模板預設值 <span class="text-slate-600 normal-case font-normal">（僅影響新建任務，不改舊紀錄）</span></div>'+
+      '<div class="text-[10px] font-semibold text-blue-400 uppercase tracking-wider mb-3 flex items-center">快速建立模板預設值'+infoTip('僅影響新建任務（含批量建立、後續任務），不改舊紀錄')+'</div>'+
       '<div class="grid grid-cols-2 gap-3">'+
         '<div><label class="text-xs text-slate-500 block mb-1">預設群組</label><select id="ec-grp" class="inp">'+grpOpts+'</select></div>'+
         '<div><label class="text-xs text-slate-500 block mb-1">計費模式</label><select id="ec-bill" class="inp">'+billOpts+'</select></div>'+
@@ -4310,6 +4322,11 @@ function editCat(id){
         '<div><label class="text-xs text-slate-500 block mb-1">幣別</label><select id="ec-budgetCur" class="inp">'+curOpts+'</select></div>'+
         '<div><label class="text-xs text-slate-500 block mb-1">執行方式</label><select id="ec-exec" class="inp">'+execOpts+'</select></div>'+
         '<div><label class="text-xs text-slate-500 block mb-1">預設天數 <span class="text-slate-600">（開始日→截止日）</span></label><input id="ec-days" type="number" min="1" class="inp" value="'+(c.defaultDays||'')+'" placeholder="留空不帶入"></div>'+
+      '</div>'+
+      '<div class="mt-3">'+
+        '<label class="text-xs text-slate-500 mb-1 flex items-center">預設階段'+infoTip('建立任務時自動帶入，工時加總即為總預估。有起訖日時，階段日期會平均排在期間內（軟截止）。')+'</label>'+
+        '<div id="ec-ph-rows" class="flex flex-col gap-1.5">'+(c.tplPhases||[]).map(function(x){ return ecPhRowHtml(x.name, x.est); }).join('')+'</div>'+
+        '<button type="button" class="text-[11px] text-slate-500 hover:text-sky-400 mt-1.5" onclick="ecAddPhRow()">＋ 階段</button>'+
       '</div>'+
     '</div>'+
   '</div>';
@@ -4324,9 +4341,25 @@ function editCat(id){
     c.tplBudgetCur=document.getElementById('ec-budgetCur').value||'TWD';
     c.tplExec=document.getElementById('ec-exec').value||null;
     var d=parseInt(document.getElementById('ec-days').value);
-    c.defaultDays=isNaN(d)||d<1?null:d;
+        c.defaultDays=isNaN(d)||d<1?null:d;
+    var phs=Array.prototype.map.call(document.querySelectorAll('#ec-ph-rows .ec-ph-row'), function(r){
+      return {name:r.querySelector('select').value, est:Math.max(0, parseFloat(r.querySelector('input').value)||0)};
+    }).filter(function(x){ return x.name; });
+    if(phs.length) c.tplPhases=phs; else delete c.tplPhases;
     save();rCats();syncSel();
   },'儲存');
+}
+function ecPhRowHtml(name, est){
+  return '<div class="ec-ph-row flex items-center gap-2">'
+    + '<select class="inp py-1 text-xs flex-1">'+phaseSelectOptions(name||'')+'</select>'
+    + '<input type="number" min="0" step="0.5" class="inp py-1 text-xs w-20 text-center font-mono" placeholder="工時" value="'+((+est||0)>0?est:'')+'">'
+    + '<span class="text-[10px] text-slate-600">h</span>'
+    + '<button type="button" class="text-slate-600 hover:text-red-400 text-xs px-1" onclick="this.parentNode.remove()" title="移除">✕</button>'
+    + '</div>';
+}
+function ecAddPhRow(){
+  var box=document.getElementById('ec-ph-rows'); if(!box) return;
+  box.insertAdjacentHTML('beforeend', ecPhRowHtml('', ''));
 }
 function addCat() {
   var n = document.getElementById('cat-name').value.trim();
@@ -4697,11 +4730,43 @@ function onQuickSdateChange(){
     if(labelEl) labelEl.textContent='截止日期';
   }
 }
+/* ---- 業務類型模板的預設階段（c.tplPhases = [{name, est}]）----
+   有起訖日：階段日期平均排在期間內，最後一段＝截止日，皆為軟截止；沒有日期則只帶名稱。
+   withEst=false 時只帶名稱（例如批量建立時那一行自己指定了總預估）。 */
+function tplPhaseMilestones(cat, sdate, edate, withEst){
+  var ph = (cat && cat.tplPhases) || [];
+  if(!ph.length) return [];
+  var dates = [];
+  if(sdate && edate && edate >= sdate){
+    var s0 = new Date(sdate+'T00:00:00'), e0 = new Date(edate+'T00:00:00');
+    var span = Math.round((e0 - s0) / 86400000);
+    ph.forEach(function(x, i){
+      var d = new Date(s0); d.setDate(d.getDate() + Math.round(span * (i+1) / ph.length));
+      dates.push(toLocalDate(d));
+    });
+  }
+  return ph.map(function(x, i){
+    var m = {name:x.name, date:dates[i]||'', done:false, hard:false};
+    if(withEst && (+x.est||0) > 0) m.estHrs = +x.est;
+    return m;
+  });
+}
+function tplPhaseEst(cat){
+  return ((cat && cat.tplPhases) || []).reduce(function(s, x){ return s + (+x.est||0); }, 0);
+}
+function applyTplPhases(np, cat, withEst){
+  var ms = tplPhaseMilestones(cat, np.sdate, np.edate, withEst);
+  if(!ms.length) return;
+  np.milestones = ms;
+  var te = tplPhaseEst(cat);
+  if(withEst && te > 0 && !(np.estHrs > 0)) np.estHrs = te;
+}
+
 function addProj(){
   var n=document.getElementById('pj-name').value.trim();if(!n)return;
   var sdateVal=document.getElementById('pj-sdate').value;
   var edateVal=document.getElementById('pj-edate').value;
-  PJ.unshift({
+  var np = {
     id:nextNumId(),
     name:n,
     gid:document.getElementById('pj-grp').value||'',
@@ -4725,9 +4790,11 @@ function addProj(){
     vendorCost:+document.getElementById('pj-vcost').value||0,
     vendorCostCur:document.getElementById('pj-vcur').value||'TWD',
     vendorPaid:false,
-    upstreamReceived:false,
+        upstreamReceived:false,
     deliverySt:'wip'
-  });
+  };
+  applyTplPhases(np, CATS.find(function(c){ return c.id === np.type; }), true);
+  PJ.unshift(np);
   save();rProj();rGrp();syncSel();
   document.getElementById('pj-name').value='';
   document.getElementById('pj-budget').value='';
@@ -4743,6 +4810,150 @@ function addProj(){
   if(nbEl){nbEl.checked=false;toggleNonBillable('pj');}
   var bcEl=document.getElementById('pj-budgetCur');
   if(bcEl) syncTaskCur('pj', bcEl.value||'TWD');
+}
+
+/* ---- 後續任務：以已完成的卡為基礎開新卡，兩張卡互相連結（新卡記 prevId）----
+   延用類型、群組、計費、幣別、時薪、標籤、外包對象、聯絡資訊、任務型態；
+   不帶入工時、收款、金額、日期、備註與完成狀態。
+   階段：業務類型有預設階段就用預設（含工時）；否則沿用舊卡的階段名稱（不含工時、日期）。 */
+function followUpPhaseNames(src){
+  var cat = CATS.find(function(c){ return c.id === src.type; });
+  if(cat && cat.tplPhases && cat.tplPhases.length) return {fromTpl:true, names:cat.tplPhases.map(function(x){ return x.name; })};
+  var seen = {}, names = [];
+  (src.milestones||[]).forEach(function(m){
+    if(m.name && !seen[m.name]){ seen[m.name] = 1; names.push(m.name); }
+  });
+  return {fromTpl:false, names:names};
+}
+function openFollowUp(pid){
+  var src = pBy(pid); if(!src) return;
+  var ph = followUpPhaseNames(src);
+  var html = '<div class="flex flex-col gap-3">'
+    + '<div><label class="text-xs text-slate-500 mb-1 flex items-center">新任務名稱'+infoTip('延用類型、群組、計費、幣別、標籤、外包對象與聯絡資訊；工時、收款、金額、日期與備註不帶入。兩張卡會互相連結。')+'</label>'
+    + '<input id="fu-name" class="inp" value="'+esc(src.name)+'" onkeydown="if(event.key===\'Enter\')modalConfirm()"></div>'
+    + (ph.names.length ? '<div class="text-[11px] text-slate-500">帶入階段：'+ph.names.map(esc).join('、')+(ph.fromTpl?'<span class="text-slate-600">（類型預設）</span>':'')+'</div>' : '')
+    + '</div>';
+  openModal('開後續任務', html, function(){
+    var name = document.getElementById('fu-name').value.trim();
+    if(!name) return false;
+    var cat = CATS.find(function(c){ return c.id === src.type; });
+    var np = {
+      id:nextNumId(), name:name, gid:src.gid||'', bill:src.bill||'piece', type:src.type||'',
+      budget:(cat && cat.tplBudget) || 0, budgetCur:src.budgetCur||'TWD',
+      st:'active', sdate:'', edate:'', tags:(src.tags||[]).slice(),
+      hrs:0, earned:0, hrate:src.hrate||0, notes:'', contact:src.contact||'',
+      nonBillable:!!src.nonBillable, execMode:src.execMode||'self',
+      vendorName:src.vendorName||'', vendorId:src.vendorId||'', vendorCost:0, vendorCostCur:src.vendorCostCur||'TWD',
+      vendorPaid:false, upstreamReceived:false, deliverySt:'wip',
+      prevId: src.id
+    };
+    if(isRecurring(src)){ np.recurring = true; if(+src.reserveWk > 0) np.reserveWk = src.reserveWk; }
+    if(ph.fromTpl) applyTplPhases(np, cat, true);
+    else if(ph.names.length) np.milestones = ph.names.map(function(n){ return {name:n, date:'', done:false, hard:false}; });
+    PJ.unshift(np);
+    save(); rProj(); rGrp(); syncSel();
+    setTimeout(function(){ openDetail(np.id); }, 0);
+  }, '建立');
+  setTimeout(function(){ var el = document.getElementById('fu-name'); if(el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }, 30);
+}
+
+/* ---- 批量建立：每行一張「名稱, 預估工時, 截止日, 金額」，後三欄可省略 ----
+   分隔：Tab（從試算表貼上）、半形或全形逗號。日期欄不論放在哪一格都認得；
+   第一格是數字＝預估工時，之後的數字＝金額。 */
+function parseBatchDate(t){
+  var m = t.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})$/);
+  var y, mo, d;
+  if(m){ y = +m[1]; mo = +m[2]; d = +m[3]; }
+  else {
+    m = t.match(/^(\d{1,2})[\/\-.](\d{1,2})$/);
+    if(!m) return null;
+    y = new Date().getFullYear(); mo = +m[1]; d = +m[2];
+  }
+  if(mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+  return y + '-' + String(mo).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+}
+function parseBatchLines(txt){
+  var rows = [], bad = [];
+  String(txt||'').split(/\r?\n/).forEach(function(line, i){
+    if(!line.trim()) return;
+    var cells = line.split(/\t|,|，/).map(function(x){ return x.trim(); });
+    var name = cells.shift();
+    if(!name){ bad.push(i+1); return; }
+    var r = {name:name, est:0, edate:'', budget:0}, ok = true;
+    cells.forEach(function(c, k){
+      if(!c) return;
+      var dt = parseBatchDate(c);
+      if(dt){ if(!r.edate) r.edate = dt; return; }
+      var n = parseFloat(c.replace(/[hH小時$]|NT|TWD/g, ''));
+      if(isNaN(n) || n < 0){ ok = false; return; }
+      if(k === 0) r.est = n; else if(!r.budget) r.budget = n;
+    });
+    if(!ok) bad.push(i+1);
+    rows.push(r);
+  });
+  return {rows:rows, bad:bad};
+}
+function batchPreview(){
+  var el = document.getElementById('bc-prev'); if(!el) return;
+  var pr = parseBatchLines(document.getElementById('bc-text').value);
+  if(!pr.rows.length){ el.textContent = ''; return; }
+  var cat = CATS.find(function(c){ return c.id === (document.getElementById('bc-type')||{}).value; });
+  var te = tplPhaseEst(cat);
+  var tot = pr.rows.reduce(function(s, r){ return s + (r.est > 0 ? r.est : te); }, 0);
+  el.innerHTML = '<span class="text-slate-400">'+pr.rows.length+' 張</span>'
+    + (tot > 0 ? ' · 共 '+formatHrs(tot) : '')
+    + (pr.bad.length ? '<span class="text-amber-400/90"> · 第 '+pr.bad.join('、')+' 行有看不懂的欄位，已略過該欄</span>' : '');
+}
+function batchTypeChange(){
+  var cat = CATS.find(function(c){ return c.id === document.getElementById('bc-type').value; });
+  var g = document.getElementById('bc-grp');
+  if(g && cat && cat.tplGrp) g.value = cat.tplGrp;
+  batchPreview();
+}
+function openBatchCreate(){
+  var curType = (document.getElementById('pj-type')||{}).value || '';
+  var curGrp = (document.getElementById('pj-grp')||{}).value || '';
+  var typeOpts = CATS.map(function(c){ return '<option value="'+c.id+'" '+(c.id===curType?'selected':'')+'>'+esc(c.name)+'</option>'; }).join('');
+  var grpOpts = '<option value="">無群組</option>' + GRPS.filter(function(g){ return g.st !== 'done'; }).map(function(g){
+    return '<option value="'+g.id+'" '+(g.id===curGrp?'selected':'')+'>'+esc(g.name)+'</option>';
+  }).join('');
+  var html = '<div class="flex flex-col gap-3">'
+    + '<div class="grid grid-cols-2 gap-3">'
+    +   '<div><label class="text-xs text-slate-500 block mb-1">類型</label><select id="bc-type" class="inp" onchange="batchTypeChange()">'+typeOpts+'</select></div>'
+    +   '<div data-mod="grp"><label class="text-xs text-slate-500 block mb-1">群組</label><select id="bc-grp" class="inp">'+grpOpts+'</select></div>'
+    + '</div>'
+    + '<div><div class="flex items-center justify-between gap-2 mb-1">'
+    +   '<label class="text-xs text-slate-500 flex items-center">任務清單'+infoTip('可用逗號或 Tab 分隔，能直接從試算表貼上。類型的預設階段、計費與幣別會一併帶入；有填工時的那一行，階段只帶名稱。')+'</label>'
+    +   '<span class="text-[10px] text-slate-600">每行一張：<span class="text-slate-400">名稱</span>, 工時, 截止日, 金額（只有名稱必填）</span>'
+    + '</div>'
+    + '<textarea id="bc-text" class="inp w-full text-xs font-mono" rows="8" oninput="batchPreview()" placeholder="任務名稱 A, 16h, 11/20, 5000&#10;任務名稱 B, 8h, 11/28&#10;任務名稱 C"></textarea>'
+    + '<div id="bc-prev" class="text-[11px] text-slate-500 mt-1 min-h-[1em]"></div></div>'
+    + '</div>';
+  openModal('批量建立任務', html, function(){
+    var pr = parseBatchLines(document.getElementById('bc-text').value);
+    if(!pr.rows.length) return false;
+    var typeId = document.getElementById('bc-type').value;
+    var gid = document.getElementById('bc-grp').value || '';
+    var cat = CATS.find(function(c){ return c.id === typeId; }) || {};
+    var made = pr.rows.map(function(r){
+      var np = {
+        id:nextNumId(), name:r.name, gid:gid, bill:cat.tplBill||'piece', type:typeId,
+        budget:r.budget || cat.tplBudget || 0, budgetCur:cat.tplBudgetCur||'TWD',
+        st:'active', sdate:'', edate:r.edate, tags:[], hrs:0, earned:0, hrate:0,
+        notes:'', contact:'', nonBillable:false, execMode:cat.tplExec||'self',
+        vendorName:'', vendorId:'', vendorCost:0, vendorCostCur:'TWD',
+        vendorPaid:false, upstreamReceived:false, deliverySt:'wip'
+      };
+      if(r.est > 0) np.estHrs = r.est;
+      applyTplPhases(np, cat, !(r.est > 0));
+      return np;
+    });
+    for(var i = made.length - 1; i >= 0; i--) PJ.unshift(made[i]);
+    save(); rProj(); rGrp(); syncSel();
+    showToast('已建立 '+made.length+' 張任務');
+  }, '建立');
+  batchTypeChange();
+  if(curGrp){ var g = document.getElementById('bc-grp'); if(g) g.value = curGrp; }
 }
 
 function openProgressModal(id) {
@@ -4955,11 +5166,22 @@ function openDetail(id){
         <input class="bg-transparent text-lg font-bold text-slate-100 hover:bg-slate-800/50 border border-transparent hover:border-slate-700/50 rounded outline-none px-2 py-1 -ml-2 w-full transition-colors leading-tight"
                value="${esc(p.name)}" onchange="updateProjField(${id}, 'name', this.value)">
         <div class="flex items-center gap-2 flex-shrink-0 mt-0.5">
+          ${p.st==='done'?`<button class="btn btn-sm bg-transparent border-slate-700 text-slate-500 hover:text-blue-400 hover:bg-slate-800 transition-colors" onclick="openFollowUp(${id})" title="以這張卡為基礎開新任務，兩張卡互相連結">↪ 後續任務</button>`:''}
           <button class="btn btn-sm bg-transparent border-slate-700 text-slate-500 hover:text-blue-400 hover:bg-slate-800 transition-colors" data-mod="aix" onclick="copyTaskExport(${id}, this)" title="依模板複製這個任務的全期資料，貼給 AI 分析">📋 複製分析</button>
           <button class="btn btn-sm bg-slate-800/60 border-slate-700/50 text-slate-400 hover:text-slate-200 hover:bg-slate-700" onclick="closeDetail()">✕ 關閉</button>
         </div>
       </div>
 
+            ${(function(){
+        var prev = p.prevId ? pBy(p.prevId) : null;
+        var next = PJ.filter(function(x){ return x.prevId === p.id; });
+        if(!prev && !next.length) return '';
+        var lk = function(x){ return '<span class="text-slate-300 hover:text-sky-300 underline decoration-dotted cursor-pointer" onclick="openDetail('+x.id+')">'+esc(x.name)+'</span>'; };
+        return '<div class="text-[11px] text-slate-500 -mt-3 mb-4 px-1 flex flex-wrap gap-x-4 gap-y-1">'
+          + (prev ? '<span>延續自 '+lk(prev)+'</span>' : '')
+          + (next.length ? '<span>後續 '+next.map(lk).join('、')+'</span>' : '')
+          + '</div>';
+      })()}
       <div class="grid grid-cols-2 gap-y-4 gap-x-4 mb-6 px-1">
         <div>
           <label class="text-[10px] text-slate-500 mb-1 block">狀態</label>
