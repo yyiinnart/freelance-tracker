@@ -273,6 +273,28 @@ tbody tr:hover td{background:#131f2e;}
 .week-divider .wk-range{font-size:10px;color:#64748b;margin-left:8px;}
 .week-divider .wk-stats{font-size:11px;color:#cbd5e1;font-family:monospace;display:flex;gap:12px;}
 .week-divider .wk-stats b{color:#fff;font-weight:600;}
+/* 週工時卡 */
+.wkc-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px;}
+.wkc-nav{display:flex;align-items:center;gap:6px;}
+.wkc-nav .nb{width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;border:1px solid #334155;background:#1e293b;color:#cbd5e1;font-size:11px;}
+.wkc-nav .nb:hover:not(:disabled){background:#334155;}
+.wkc-nav .nb:disabled{opacity:.35;cursor:default;}
+.wkc-nav .nb:focus-visible,.wkc-today:focus-visible{outline:2px solid #60a5fa;outline-offset:2px;}
+.wkc-range{min-width:104px;text-align:center;font-size:13px;font-weight:600;color:#e2e8f0;font-variant-numeric:tabular-nums;}
+.wkc-tag{font-size:11px;color:#60a5fa;min-width:24px;}
+.wkc-today{font-size:11px;color:#60a5fa;padding:4px 8px;border-radius:6px;}
+.wkc-today:hover{background:#1e293b;}
+.wkc-stats{display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px 36px;margin-bottom:18px;}
+.wkc-main .v{font-size:24px;font-weight:600;color:#f1f5f9;font-variant-numeric:tabular-nums;line-height:1.2;}
+.wkc-main .v.hit{color:#34d399;}
+.wkc-main .of{font-size:13px;color:#64748b;margin-left:6px;}
+.wkc-prog{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:11px;color:#64748b;font-variant-numeric:tabular-nums;}
+.wkc-prog .bar{width:140px;height:4px;border-radius:2px;background:#1e293b;overflow:hidden;}
+.wkc-prog .bar i{display:block;height:100%;background:#3b82f6;}
+.wkc-prog .bar.hit i{background:#10b981;}
+.wkc-s .k{font-size:11px;color:#64748b;}
+.wkc-s .v{font-size:15px;font-weight:600;color:#e2e8f0;font-variant-numeric:tabular-nums;margin-top:2px;}
+
 
 /* 展開箭頭動畫 */
 .chevron{transition:transform .2s;display:inline-block;}
@@ -1171,15 +1193,22 @@ html[data-mod-off~="batch"] [data-mod="batch"]{display:none !important;}
   </div>
 
 <div id="v-dash" class="hidden">
-    <div class="hint-bar">綜覽接案產值、工時分佈與金流狀況。頂部顯示本週即時配速，下方可依<strong>月份篩選</strong>聚焦單月數據。「現金流與獲利」面板可點擊<strong>當月總支出</strong>填入該月消費（房租、保險、訂閱等<strong>固定支出</strong>在設定頁設定一次即自動帶入），系統會自動算出「淨結餘（實收−支出）」判斷賺得夠不夠。「📋 複製 AI 分析」可先選模板：<strong>通用</strong>看近 3 個月總體概況，或挑專題（收支、工時、估時、獲利、排程）只整理那一面的數據，方便貼給 AI 助理深入分析。各模板的內文可按旁邊的 ⚙ 到設定頁修改。</div>
-    <!-- 置頂：即時配速區 (不受下方月份篩選影響) -->
+    <div class="hint-bar">綜覽接案產值、工時分佈與金流狀況。頂部可切換週次查看每週工時，下方可依<strong>月份篩選</strong>聚焦單月數據。「現金流與獲利」面板可點擊<strong>當月總支出</strong>填入該月消費（房租、保險、訂閱等<strong>固定支出</strong>在設定頁設定一次即自動帶入），系統會自動算出「淨結餘（實收−支出）」判斷賺得夠不夠。「📋 複製 AI 分析」可先選模板：<strong>通用</strong>看近 3 個月總體概況，或挑專題（收支、工時、估時、獲利、排程）只整理那一面的數據，方便貼給 AI 助理深入分析。各模板的內文可按旁邊的 ⚙ 到設定頁修改。</div>
+    <!-- 置頂：週工時（不受下方月份篩選影響） -->
     <div class="bg-slate-900 rounded-xl border border-slate-800 p-5 mb-8 relative overflow-hidden shadow-lg shadow-blue-900/5">
       <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-indigo-500"></div>
-      <div class="flex items-center justify-between mb-4">
-        <h3 id="week-title" class="text-sm font-semibold text-blue-400 flex items-center gap-2">⚡ 即時配速與本週工時</h3>
-        <span id="week-range" class="text-[11px] text-slate-500 flex items-center"></span>
+      <div class="wkc-head">
+        <div class="flex items-center flex-wrap gap-y-2"><h3 class="text-sm font-semibold text-blue-400">週工時</h3><span id="wkc-pace"></span></div>
+        <div class="wkc-nav">
+          <button type="button" class="wkc-today" id="wkc-today" onclick="dashWeekStep(0)">回本週</button>
+          <button type="button" class="nb" onclick="dashWeekStep(-1)" aria-label="上一週">◀</button>
+          <span class="wkc-range" id="wkc-range"></span>
+          <button type="button" class="nb" id="wkc-next" onclick="dashWeekStep(1)" aria-label="下一週">▶</button>
+          <span class="wkc-tag" id="wkc-tag"></span>
+        </div>
       </div>
-      <div style="height:220px;position:relative"><canvas id="c-week"></canvas></div>
+      <div id="wkc-stats" class="wkc-stats"></div>
+      <div style="height:200px;position:relative"><canvas id="c-week"></canvas></div>
     </div>
 
     <!-- 視覺分隔線 -->
@@ -7885,6 +7914,119 @@ function dashMonthStep(dir){
   renderDash();
 }
 
+/* ===== 週工時卡：可切換週次（一週＝週一到週日，一律從完整 DLOGS 計算） ===== */
+var DASH_WEEK_OFF = 0; // 0＝本週，-1＝上週…
+
+function hrsMondayOf(ds){
+  var d = new Date(ds + 'T00:00:00'), dw = d.getDay();
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() - (dw === 0 ? 6 : dw - 1));
+}
+function hrsAddDays(d, n){ return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
+function hrsMD(ds){ return (+ds.slice(5, 7)) + '/' + (+ds.slice(8, 10)); }
+
+function hrsDayIndex(){
+  var nb = {}; PJ.forEach(function(p){ if(p.nonBillable) nb[p.id] = true; });
+  var idx = {};
+  DLOGS.forEach(function(l){
+    var h = +l.hrs || 0; if(h <= 0) return;
+    var r = idx[l.date] || (idx[l.date] = {hrs:0, bill:0, other:0});
+    r.hrs += h; if(nb[l.pid]) r.other += h; else r.bill += h;
+  });
+  return idx;
+}
+// 單週統計；上班日依週末與休假設定，今天有紀錄才算進分母
+function hrsWeekStat(monday, idx, todayStr){
+  var w = {mon:toLocalDate(monday), days:[], total:0, bill:0, other:0, workdays:0, workdaysAll:0, logged:0};
+  for(var i = 0; i < 7; i++){
+    var d = hrsAddDays(monday, i), ds = toLocalDate(d), r = idx[ds], h = r ? r.hrs : 0;
+    var off = isDayOff(ds, d.getDay());
+    w.days.push({ds:ds, hrs:h, off:off, today:ds === todayStr});
+    w.total += h; if(r){ w.bill += r.bill; w.other += r.other; }
+    if(h > 0) w.logged++;
+    if(!off){ w.workdaysAll++; if(ds < todayStr || (ds === todayStr && h > 0)) w.workdays++; }
+  }
+  w.sun = w.days[6].ds;
+  w.current = w.mon <= todayStr && todayStr <= w.sun;
+  w.restWeek = w.workdaysAll === 0 && w.total === 0;
+  w.avg = w.workdays > 0 ? w.total / w.workdays : null;
+  return w;
+}
+// 近 4 個已結束的完整週平均（略過整週排休、不早於第一筆紀錄）
+function hrsRecentAvg(idx, todayStr){
+  var dates = Object.keys(idx).sort(); if(!dates.length) return null;
+  var mon = hrsMondayOf(todayStr), sum = 0, n = 0;
+  for(var k = 1; k <= 16 && n < 4; k++){
+    var w = hrsWeekStat(hrsAddDays(mon, -7 * k), idx, todayStr);
+    if(w.sun < dates[0]) break;
+    if(w.restWeek) continue;
+    sum += w.total; n++;
+  }
+  return n ? sum / n : null;
+}
+
+function dashWeekStep(dir){
+  DASH_WEEK_OFF = dir === 0 ? 0 : Math.min(0, DASH_WEEK_OFF + dir);
+  renderWeekCard();
+}
+
+function renderWeekCard(){
+  var canvas = document.getElementById('c-week'); if(!canvas) return;
+  var today = toLocalDate(), idx = hrsDayIndex();
+  var mon = hrsAddDays(hrsMondayOf(today), 7 * DASH_WEEK_OFF);
+  var w = hrsWeekStat(mon, idx, today), pw = hrsWeekStat(hrsAddDays(mon, -7), idx, today);
+  var target = getWeeklyTarget(), cap = getDayCap();
+
+  document.getElementById('wkc-range').textContent = hrsMD(w.mon) + ' – ' + hrsMD(w.sun);
+  document.getElementById('wkc-next').disabled = DASH_WEEK_OFF >= 0;
+  document.getElementById('wkc-today').style.visibility = DASH_WEEK_OFF === 0 ? 'hidden' : 'visible';
+  document.getElementById('wkc-tag').textContent = DASH_WEEK_OFF === 0 ? '本週' : DASH_WEEK_OFF === -1 ? '上週' : '';
+
+  // 進度與配速徽章（沿用原本樣式，只在本週顯示；剩餘天數改算上班日，門檻用每日上限）
+  var pct = target > 0 ? w.total / target * 100 : 0, pace = '';
+  if(w.current){
+    var remain = target - w.total;
+    var left = w.days.filter(function(d){ return !d.off && d.ds >= today; }).length;
+    var req = left > 0 ? remain / left : remain;
+    var RED = 'ml-3 px-2.5 py-1 rounded text-xs font-bold bg-red-950 text-red-400 border border-red-500 shadow-[0_0_8px_rgba(239,68,68,0.3)]';
+    if(remain <= 0) pace = '<span class="ml-3 px-2.5 py-1 rounded text-xs font-bold bg-emerald-950 text-emerald-400 border border-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.2)]">✔ 已達標</span>';
+    else if(left === 0) pace = '<span class="' + RED + '">⚠️ 落後：還差 ' + remain.toFixed(1) + 'h</span>';
+    else if(req > cap + 0.05) pace = '<span class="' + RED + '">⚠️ 落後：需日均 ' + req.toFixed(1) + 'h</span>';
+    else pace = '<span class="ml-3 px-2.5 py-1 rounded text-xs font-bold bg-blue-950/60 border border-blue-500 text-blue-300 shadow-[0_0_8px_rgba(59,130,246,0.2)]">⚡ 配速：需日均 ' + req.toFixed(1) + 'h</span>';
+  }
+  document.getElementById('wkc-pace').innerHTML = pace;
+  // 較前週：本週比上週同期
+  var base = pw.total, dLabel = '較前週';
+  if(w.current){
+    var ti = w.days.findIndex(function(d){ return d.today; });
+    base = pw.days.slice(0, ti + 1).reduce(function(s, d){ return s + d.hrs; }, 0);
+    dLabel = '較上週同期';
+  }
+  var dlt = w.total - base;
+  var dltTxt = Math.abs(dlt) < 0.05 ? '±0' : (dlt > 0 ? '+' : '−') + formatHrs(Math.abs(dlt));
+  var ra = hrsRecentAvg(idx, today);
+  var hit = target > 0 && w.total >= target;
+
+  document.getElementById('wkc-stats').innerHTML =
+      '<div class="wkc-main">'
+    +   '<div><span class="v' + (hit ? ' hit' : '') + '">' + formatHrs(w.total) + '</span><span class="of">/ ' + target + 'h</span></div>'
+    +   '<div class="wkc-prog"><span class="bar' + (hit ? ' hit' : '') + '"><i style="width:' + Math.min(100, pct).toFixed(1) + '%"></i></span><span class="pc">' + Math.round(pct) + '%</span></div>'
+    + '</div>'
+    + '<div class="wkc-s"><div class="k">上班日均</div><div class="v">' + (w.avg === null ? '—' : formatHrs(w.avg)) + '</div></div>'
+    + '<div class="wkc-s"><div class="k">' + dLabel + '</div><div class="v">' + dltTxt + '</div></div>'
+    + '<div class="wkc-s"><div class="k">近 4 週均</div><div class="v">' + (ra === null ? '—' : formatHrs(ra)) + '</div></div>';
+
+  var data = w.days.map(function(d){ return Math.round(d.hrs * 100) / 100; });
+  var colors = w.days.map(function(d){ return d.today ? '#60a5fa' : (d.hrs > 0 ? '#3b82f6' : '#1e293b'); });
+  var labels = w.days.map(function(d, i){ return [['一','二','三','四','五','六','日'][i], hrsMD(d.ds)]; });
+  if(CH.week) CH.week.destroy();
+  CH.week = new Chart(canvas, {type:'bar',
+    data:{labels:labels, datasets:[{data:data, backgroundColor:colors, borderRadius:6, barPercentage:0.6}]},
+    options:{responsive:true, maintainAspectRatio:false, animation:{duration:200},
+      plugins:{legend:{display:false}, tooltip:{callbacks:{title:function(c){ return w.days[c[0].dataIndex].ds; }, label:function(c){ return formatHrs(c.raw); }}}},
+      scales:{x:{grid:{display:false}, ticks:{color:function(c){ var d = w.days[c.index]; return d && d.off ? '#475569' : '#94a3b8'; }, font:{size:12}}},
+              y:{grid:{color:'rgba(255,255,255,.05)'}, suggestedMax:cap, beginAtZero:true, ticks:{color:'#64748b', callback:function(v){ return v + 'h'; }}}}}});
+}
+
 function renderDash(){
   rAIXSel();
   renderEstAcc();
@@ -7981,44 +8123,7 @@ function renderDash(){
   document.getElementById('dash-cf').innerHTML=sc(mon?'當月實收合計':'歷史實收合計',formatMultiCurMap(rMap))+expCard+netCard+sc('目前總待收帳款',formatMultiCurMap(arMap))+vendorCostHtml;
 
 
-  if(CH.week)CH.week.destroy();
-  var today=new Date();
-  var dayOfWeek=today.getDay();
-  var diffToMon=dayOfWeek===0?6:dayOfWeek-1;
-  var monday=new Date(today);monday.setDate(today.getDate()-diffToMon);
-  var weekLabels=['一','二','三','四','五','六','日'];
-  var weekDates=[];var weekData=[];
-  for(var wi=0;wi<7;wi++){
-    var wd=new Date(monday);wd.setDate(monday.getDate()+wi);
-    var ds=toLocalDate(wd);
-    weekDates.push(ds);
-    weekData.push(Math.round(DLOGS.filter(l=>l.date===ds).reduce((s,l)=>s+l.hrs,0)*100)/100);
-  }
-  var weekTotal=weekData.reduce((s,v)=>s+v,0);
-  var wTarget = getWeeklyTarget();
-  var remainHrs = wTarget - weekTotal;
-  var isoDay = dayOfWeek === 0 ? 7 : dayOfWeek;
-  var daysLeft = 7 - isoDay + 1; 
-  var reqAvg = remainHrs > 0 ? (remainHrs / daysLeft) : 0;
-  
-  var pacingHtml = '';
-  if (remainHrs <= 0) {
-      pacingHtml = '<span class="ml-3 px-2.5 py-1 rounded text-xs font-bold bg-emerald-950 text-emerald-400 border border-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.2)]">✔ 已達標</span>';
-  } else if (reqAvg > 8) {
-      pacingHtml = '<span class="ml-3 px-2.5 py-1 rounded text-xs font-bold bg-red-950 text-red-400 border border-red-500 shadow-[0_0_8px_rgba(239,68,68,0.3)]">⚠️ 落後：需日均 '+reqAvg.toFixed(1)+'h</span>';
-  } else {
-      pacingHtml = '<span class="ml-3 px-2.5 py-1 rounded text-xs font-bold bg-blue-950/60 border border-blue-500 text-blue-300 shadow-[0_0_8px_rgba(59,130,246,0.2)]">⚡ 配速：需日均 '+reqAvg.toFixed(1)+'h</span>';
-  }
-
-  document.getElementById('week-range').innerHTML=weekDates[0]+' ~ '+weekDates[6]+' (共 '+formatHrs(weekTotal)+')' + pacingHtml;
-  var weekColors=weekData.map(function(v,i){
-    if(weekDates[i]===toLocalDate(today))return '#60a5fa';
-    return v>0?'#3b82f6':'#1e293b';
-  });
-  if(CH.week){
-  CH.week.destroy();
-}
-  CH.week=new Chart(document.getElementById('c-week'),{type:'bar',data:{labels:weekLabels,datasets:[{data:weekData,backgroundColor:weekColors,borderRadius:6,barPercentage:0.6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return formatHrs(ctx.raw);}}}},scales:{x:{grid:{display:false},ticks:{color:'#94a3b8',font:{size:13,weight:'bold'}}},y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#64748b',callback:function(v){return v+'h';}},beginAtZero:true}}}});
+  renderWeekCard();
 
   if(CH.month) CH.month.destroy();
     var mTitle = document.getElementById('month-chart-title');
@@ -8201,7 +8306,7 @@ function openDashSettings() {
   var cfg = getDashConfig();
   // 即時配速為置頂固定面板（不參與排序），單獨一個開關
   var pacingRow = '<label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white bg-slate-950/40 border border-slate-800 rounded-lg px-3 py-2">'
-    + '<input type="checkbox" id="dc-pacing" class="accent-blue-500 w-4 h-4" '+(cfg.pacing!==false?'checked':'')+'> ⚡ 即時配速與本週工時 <span class="text-[10px] text-slate-600 ml-auto">置頂固定</span></label>';
+    + '<input type="checkbox" id="dc-pacing" class="accent-blue-500 w-4 h-4" '+(cfg.pacing!==false?'checked':'')+'> ⚡ 週工時 <span class="text-[10px] text-slate-600 ml-auto">置頂固定</span></label>';
 
   // 可排序面板清單：依目前順序，每列含拖曳把手＋顯示勾選
   var rows = cfg.order.map(function(k){
@@ -8333,7 +8438,7 @@ function renderDailyTimeline(){
   document.getElementById('dl-empty').style.display=filtered.length?'none':'block';
   
   // 渲染下方的每日列表 (加入效能防護限制)
-  var lastWeekKey=null;
+  var lastWeekKey=null, _wIdx=hrsDayIndex(), _wToday=toLocalDate();
   var renderDates = sortedDates;
   var isClipped = false;
   
@@ -8352,16 +8457,17 @@ function renderDailyTimeline(){
     var weekHeader='';
     if(wi.key!==lastWeekKey){
       lastWeekKey=wi.key;
-      var agg=weekAgg[wi.key];
-      var dayCnt=agg.days.size;
-      var avg=dayCnt>0?(agg.hrs+agg.otherHrs)/dayCnt:0;
+      var ws=hrsWeekStat(new Date(wi.mondayStr+'T00:00:00'), _wIdx, _wToday);
+      var agg={hrs:ws.bill, otherHrs:ws.other};
+      var dayCnt=ws.logged;
+      var avg=ws.avg||0;
       var otherPart=agg.otherHrs>0?'<span class=\"text-slate-500\">+ 其他 '+formatHrs(agg.otherHrs)+'</span>':'';
       weekHeader='<div class=\"week-divider\">'+
         '<div><span class=\"wk-label\"> '+wi.label+'</span><span class=\"wk-range\">'+wi.range+'</span></div>'+
         '<div class=\"wk-stats\">'+
           '<span>總計 <b>'+formatHrs(agg.hrs)+'</b></span>'+
           '<span>'+dayCnt+' 天</span>'+
-          '<span>均 <b>'+formatHrs(avg)+'</b></span>'+
+          '<span>上班日均 <b>'+formatHrs(avg)+'</b></span>'+
           (otherPart?'<span>'+otherPart+'</span>':'')+
         '</div>'+
       '</div>';
