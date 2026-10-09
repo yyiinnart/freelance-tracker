@@ -194,6 +194,11 @@ tbody tr:hover td{background:#131f2e;}
 .cal-rem-add{position:absolute;top:2px;right:2px;width:16px;height:16px;line-height:14px;text-align:center;border-radius:4px;font-size:13px;color:#64748b;background:#0d1526;border:1px solid #1e293b;cursor:pointer;opacity:0;transition:opacity .12s;z-index:2;}
 .cal-table td:hover .cal-rem-add{opacity:1;}
 .cal-rem-add:hover{color:#fbbf24;border-color:#d97706;background:#1c1917;}
+.cal-rem.rem-ghost{opacity:.32;background:transparent;border-left-style:dashed;cursor:default;}
+.cal-rem.rem-ghost:hover{filter:none;}
+.cal-rem[draggable="true"]{cursor:grab;}
+.cal-rem .rem-rep{flex-shrink:0;opacity:.7;}
+.cal-table td.rem-drop-over{box-shadow:inset 0 0 0 2px #d97706;}
 .rem-banner{display:flex;align-items:flex-start;gap:10px;background:#1c1917;border:1px solid #78350f;border-left:3px solid #d97706;border-radius:10px;padding:10px 14px;margin-bottom:16px;}
 .rem-banner .rb-item{display:flex;align-items:center;gap:6px;font-size:13px;color:#fcd34d;}
 .rem-banner .rb-chk{cursor:pointer;font-size:15px;color:#a16207;flex-shrink:0;}
@@ -7985,13 +7990,24 @@ function renderWeekCard(){
   var pct = target > 0 ? w.total / target * 100 : 0, pace = '';
   if(w.current){
     var remain = target - w.total;
-    var left = w.days.filter(function(d){ return !d.off && d.ds >= today; }).length;
-    var req = left > 0 ? remain / left : remain;
+    // 剩餘天數從今天算起；過了下班時間改從明天算（與排程試算同一個設定）
+    var pastOff = new Date().getHours() >= getOffHour();
+    var avail = w.days.filter(function(d){ return d.ds > today || (d.ds === today && !pastOff); });
+    var work = avail.filter(function(d){ return !d.off; });
     var RED = 'ml-3 px-2.5 py-1 rounded text-xs font-bold bg-red-950 text-red-400 border border-red-500 shadow-[0_0_8px_rgba(239,68,68,0.3)]';
+    var BLUE = 'ml-3 px-2.5 py-1 rounded text-xs font-bold bg-blue-950/60 border border-blue-500 text-blue-300 shadow-[0_0_8px_rgba(59,130,246,0.2)]';
+    var paceTag = function(req, n, prefix){
+      var over = req > cap + 0.05;
+      return '<span class="' + (over ? RED : BLUE) + '"' + (over ? ' title="超過每日上限 ' + formatHrs(cap) + '"' : '') + '>'
+        + (over ? '⚠️ ' : '⚡ ') + prefix + '需日均 ' + formatHrs(req) + ' · 剩 ' + n + ' 天</span>';
+    };
     if(remain <= 0) pace = '<span class="ml-3 px-2.5 py-1 rounded text-xs font-bold bg-emerald-950 text-emerald-400 border border-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.2)]">✔ 已達標</span>';
-    else if(left === 0) pace = '<span class="' + RED + '">⚠️ 落後：還差 ' + remain.toFixed(1) + 'h</span>';
-    else if(req > cap + 0.05) pace = '<span class="' + RED + '">⚠️ 落後：需日均 ' + req.toFixed(1) + 'h</span>';
-    else pace = '<span class="ml-3 px-2.5 py-1 rounded text-xs font-bold bg-blue-950/60 border border-blue-500 text-blue-300 shadow-[0_0_8px_rgba(59,130,246,0.2)]">⚡ 配速：需日均 ' + req.toFixed(1) + 'h</span>';
+    else if(work.length) pace = paceTag(remain / work.length, work.length, '');
+    else if(avail.length){
+      var allWknd = avail.every(function(d){ var k = new Date(d.ds + 'T00:00:00').getDay(); return k === 0 || k === 6; });
+      pace = paceTag(remain / avail.length, avail.length, allWknd ? '週末' : '休假日');
+    }
+    else pace = '<span class="' + RED + '">本週差 ' + formatHrs(remain) + '</span>';
   }
   document.getElementById('wkc-pace').innerHTML = pace;
   // 較前週：本週比上週同期
@@ -10710,19 +10726,132 @@ function remByDate(){
   REM.forEach(function(r){ if(!m[r.date]) m[r.date]=[]; m[r.date].push(r); });
   return m;
 }
-function addReminder(dateStr){
-  var text = prompt('新增提醒（'+dateStr+'）\n例如：催稿、聯絡某某窗口', '');
-  if(text === null) return;
-  text = text.trim();
-  if(!text) return;
-  REM.push({ id: Date.now()+Math.floor(Math.random()*1000), date: dateStr, text: text, done:false, doneAt:null });
-  save(); renderCal(); renderRemToday();
+/* 重複規則 rep：{t:'d'|'w'|'w2'|'m', days:[0-6], anchor:'YYYY-MM-DD'(週一，每兩週用), dom:號碼(每月用)}
+   完成時依規則自動產生下一次（照排程推算；過期才勾則跳到今天以後），完成那筆的 rep 移交給下一筆 */
+var REM_DOW = ['日','一','二','三','四','五','六'];
+function remDate(ds){ return new Date(ds + 'T00:00:00'); }
+function remMonday(ds){ var d = remDate(ds), k = d.getDay(); d.setDate(d.getDate() + (k === 0 ? -6 : 1 - k)); return d; }
+function remMatches(rep, d){
+  var dow = d.getDay();
+  if(rep.t === 'd') return true;
+  if(rep.t === 'w' || rep.t === 'w2'){
+    if((rep.days || []).indexOf(dow) < 0) return false;
+    if(rep.t === 'w') return true;
+    var wk = Math.round((remMonday(toLocalDate(d)) - remMonday(rep.anchor)) / (7 * 864e5));
+    return wk % 2 === 0;
+  }
+  if(rep.t === 'm'){
+    var last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    return d.getDate() === Math.min(rep.dom || 1, last);
+  }
+  return false;
+}
+function remNextDate(rep, fromDs){
+  if(!rep) return null;
+  var today = toLocalDate(), d = remDate(fromDs);
+  for(var i = 0; i < 800; i++){
+    d.setDate(d.getDate() + 1);
+    var ds = toLocalDate(d);
+    if(ds < today) continue;
+    if(remMatches(rep, d)) return ds;
+  }
+  return null;
+}
+function remRepLabel(rep){
+  if(!rep) return '';
+  if(rep.t === 'd') return '每天';
+  if(rep.t === 'm') return '每月 ' + rep.dom + ' 號';
+  var days = (rep.days || []).slice().sort(function(a, b){ return ((a + 6) % 7) - ((b + 6) % 7); }).map(function(k){ return REM_DOW[k]; }).join('、');
+  return (rep.t === 'w2' ? '每兩週' : '每週') + days;
+}
+function addReminder(dateStr){ remOpenEditor(null, dateStr); }
+function editReminder(id){ remOpenEditor(id); }
+function remOpenEditor(id, dateStr){
+  var r = id != null ? REM.find(function(x){ return x.id === id; }) : null;
+  if(id != null && !r) return;
+  var date = r ? r.date : dateStr;
+  var rep = r && r.rep ? r.rep : null;
+  var t = rep ? rep.t : '';
+  var days = rep && rep.days ? rep.days : [remDate(date).getDay()];
+  var opt = function(v, l){ return '<option value="' + v + '"' + (t === v ? ' selected' : '') + '>' + l + '</option>'; };
+  var html = '<div class="flex flex-col gap-3">'
+    + '<div><label class="text-xs text-slate-500 block mb-1">內容</label>'
+    +   '<input id="rem-txt" class="inp" value="' + esc(r ? r.text : '') + '" placeholder="例如：催稿、聯絡窗口" onkeydown="if(event.key===\'Enter\'&&!event.isComposing){event.preventDefault();modalConfirm();}"></div>'
+    + '<div class="grid grid-cols-2 gap-3">'
+    +   '<div><label class="text-xs text-slate-500 block mb-1">日期</label><input id="rem-date" type="date" class="inp" value="' + date + '" onchange="remSyncDow()"></div>'
+    +   '<div><label class="text-xs text-slate-500 block mb-1">重複</label><select id="rem-rep" class="inp" onchange="remSyncDow()">'
+    +     opt('', '不重複') + opt('d', '每天') + opt('w', '每週') + opt('w2', '每兩週') + opt('m', '每月') + '</select></div>'
+    + '</div>'
+    + '<div id="rem-dows" class="flex gap-1"' + (t === 'w' || t === 'w2' ? '' : ' style="display:none"') + '>'
+    +   [1,2,3,4,5,6,0].map(function(k){
+          return '<button type="button" class="pdd-q' + (days.indexOf(k) >= 0 ? ' on' : '') + '" data-dow="' + k + '" onclick="this.classList.toggle(\'on\')">' + REM_DOW[k] + '</button>';
+        }).join('')
+    + '</div>'
+    + (r ? '<div class="pt-1"><button type="button" class="text-xs text-rose-400 hover:underline" onclick="closeModal();delReminder(' + r.id + ')">刪除這則提醒</button></div>' : '')
+    + '</div>';
+  openModal(r ? '編輯提醒' : '新增提醒', html, function(){
+    var text = document.getElementById('rem-txt').value.trim();
+    var nd = document.getElementById('rem-date').value;
+    if(!text){ document.getElementById('rem-txt').focus(); return false; }
+    if(!nd) return false;
+    var nt = document.getElementById('rem-rep').value, nrep = null;
+    if(nt){
+      nrep = {t:nt};
+      var same = rep && rep.t === nt && r && r.date === nd; // 沒動日期與類型就沿用原本基準，避免小月把 31 號改成 30 號
+      if(nt === 'w' || nt === 'w2'){
+        nrep.days = Array.prototype.map.call(document.querySelectorAll('#rem-dows .pdd-q.on'), function(b){ return +b.getAttribute('data-dow'); });
+        if(!nrep.days.length) nrep.days = [remDate(nd).getDay()];
+        if(nt === 'w2') nrep.anchor = same && rep.anchor ? rep.anchor : toLocalDate(remMonday(nd));
+      }
+      if(nt === 'm') nrep.dom = same && rep.dom ? rep.dom : remDate(nd).getDate();
+    }
+    if(r){
+      r.text = text; r.date = nd;
+      if(nrep) r.rep = nrep; else delete r.rep;
+    } else {
+      var n = { id: Date.now()+Math.floor(Math.random()*1000), date: nd, text: text, done:false, doneAt:null };
+      if(nrep) n.rep = nrep;
+      REM.push(n);
+    }
+    save(); renderCal(); renderRemToday();
+  }, '儲存');
+  setTimeout(function(){ var el = document.getElementById('rem-txt'); if(el){ el.focus(); el.select(); } }, 30);
+}
+// 切換重複類型或日期時：每週類才顯示星期，且只勾一天時跟著日期換
+function remSyncDow(){
+  var t = document.getElementById('rem-rep').value, box = document.getElementById('rem-dows');
+  if(!box) return;
+  box.style.display = (t === 'w' || t === 'w2') ? '' : 'none';
+  var on = box.querySelectorAll('.pdd-q.on'), ds = document.getElementById('rem-date').value;
+  if(ds && on.length <= 1){
+    var k = remDate(ds).getDay();
+    box.querySelectorAll('.pdd-q').forEach(function(b){ b.classList.toggle('on', +b.getAttribute('data-dow') === k); });
+  }
 }
 function toggleReminder(id){
   var r = REM.find(function(x){ return x.id === id; });
   if(!r) return;
-  r.done = !r.done;
-  r.doneAt = r.done ? toLocalDate() : null;
+  if(!r.done){
+    r.done = true; r.doneAt = toLocalDate();
+    if(r.rep){
+      var nd = remNextDate(r.rep, r.date);
+      if(nd){
+        var n = { id: Date.now()+Math.floor(Math.random()*1000), date: nd, text: r.text, done:false, doneAt:null, rep: r.rep };
+        REM.push(n);
+        r.nextId = n.id;
+        delete r.rep;
+        showToast('已完成，下一次：' + (+nd.slice(5,7)) + '/' + (+nd.slice(8,10)), 'green');
+      }
+    }
+  } else {
+    r.done = false; r.doneAt = null;
+    // 取消勾選：收回剛產生、還沒完成的下一次，規則交回這一筆
+    if(r.nextId){
+      var i = REM.findIndex(function(x){ return x.id === r.nextId; });
+      if(i >= 0 && !REM[i].done){ if(REM[i].rep) r.rep = REM[i].rep; REM.splice(i, 1); }
+      delete r.nextId;
+    }
+  }
   save(); renderCal(); renderRemToday();
 }
 function delReminder(id){
@@ -10731,15 +10860,42 @@ function delReminder(id){
   REM.splice(i,1);
   save(); renderCal(); renderRemToday();
 }
-function editReminder(id){
-  var r = REM.find(function(x){ return x.id === id; });
-  if(!r) return;
-  var nt = prompt('編輯提醒（'+r.date+'）\n清空並確定即可刪除此提醒', r.text);
-  if(nt === null) return;
-  nt = nt.trim();
-  if(!nt){ delReminder(id); return; }
-  r.text = nt;
+// 拖曳改期（桌機捷徑）
+var _remDrag = null, _remOver = null;
+function remDragStart(e, id){
+  _remDrag = id;
+  try{ e.dataTransfer.setData('text/ft-rem', String(id)); e.dataTransfer.effectAllowed = 'move'; }catch(err){}
+}
+function remDragEnd(){ _remDrag = null; if(_remOver){ _remOver.classList.remove('rem-drop-over'); _remOver = null; } }
+function remDragOver(e){
+  if(_remDrag == null) return;
+  e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+  var td = e.currentTarget;
+  if(_remOver !== td){ if(_remOver) _remOver.classList.remove('rem-drop-over'); td.classList.add('rem-drop-over'); _remOver = td; }
+}
+function remDrop(e, ds){
+  if(_remDrag == null) return;
+  e.preventDefault();
+  var r = REM.find(function(x){ return x.id === _remDrag; });
+  remDragEnd();
+  if(!r || r.date === ds) return;
+  r.date = ds;
   save(); renderCal(); renderRemToday();
+}
+// 日曆上淡淡標出之後幾次（只顯示，不能點）
+function remGhosts(endStr){
+  var m = {};
+  REM.forEach(function(r){
+    if(r.done || !r.rep) return;
+    var cur = r.date;
+    for(var i = 0; i < 6; i++){
+      var nd = remNextDate(r.rep, cur);
+      if(!nd || nd > endStr) break;
+      (m[nd] = m[nd] || []).push(r);
+      cur = nd;
+    }
+  });
+  return m;
 }
 // 首頁：只跳「今天」未完成的提醒
 function renderRemToday(){
@@ -10752,7 +10908,7 @@ function renderRemToday(){
   var items = todays.map(function(r){
     return '<div class="rb-item">'
       + '<span class="rb-chk" onclick="toggleReminder('+r.id+')" title="標記完成">○</span>'
-      + '<span>'+esc(r.text)+'</span></div>';
+      + '<span>'+(r.rep?'↻ ':'')+esc(r.text)+'</span></div>';
   }).join('');
   box.innerHTML = '<div class="rem-banner">'
     + '<span style="font-size:15px;line-height:1.4;flex-shrink:0;">📌</span>'
@@ -11368,6 +11524,7 @@ function renderSched(){
     dlByDate[u.deadline].push(u);
   });
   var remMap = remByDate();
+  var remGhostMap = remGhosts(cells[41].str);
   var _sf = new Date(); _sf.setHours(0,0,0,0);
   if(new Date().getHours() >= getOffHour()) _sf.setDate(_sf.getDate()+1);
   var schedFirstStr = toLocalDate(_sf);
@@ -11387,16 +11544,20 @@ function renderSched(){
       var isWorkWknd = isWorkingWeekend(c.str, dow);
       var tdCls = (isToday?' today':'') + (c.inMonth?'':' other-month') + (isVac?' vacation-day':'') + (isOff&&c.inMonth&&!isVac?' sched-off':'');
       var numCls = 'cal-day-num' + (isToday?' today':'') + (c.inMonth?'':' other-month');
-      g += '<td class="'+tdCls.trim()+'">';
+      g += '<td class="'+tdCls.trim()+'" ondragover="remDragOver(event)" ondrop="remDrop(event,\''+c.str+'\')">';
       g += '<div class="cal-rem-add" onclick="addReminder(\''+c.str+'\')" title="在此日新增提醒">＋</div>';
       g += '<div class="'+numCls+'" onclick="toggleVacation(\''+c.str+'\')" title="'+(isWorkWknd?'此週末已排工，點擊恢復休假':'點擊設定/取消休假')+'">'+c.date.getDate()+'</div>';
       (remMap[c.str]||[]).forEach(function(r){
         var over = !r.done && c.str < todayStr;
         var cls = 'cal-rem' + (r.done?' rem-done':'') + (over?' rem-over':'');
-        g += '<div class="'+cls+'" title="'+esc(r.text)+'（點圈圈完成／點文字編輯）">'
+        g += '<div class="'+cls+'" draggable="true" ondragstart="remDragStart(event,'+r.id+')" ondragend="remDragEnd()" title="'+esc(r.text+(r.rep?'（'+remRepLabel(r.rep)+'）':''))+'（點圈圈完成／點文字編輯／拖到別天改期）">'
           + '<span class="rem-chk" onclick="event.stopPropagation();toggleReminder('+r.id+')">'+(r.done?'✓':'○')+'</span>'
+          + (r.rep?'<span class="rem-rep">↻</span>':'')
           + '<span class="rem-txt" onclick="event.stopPropagation();editReminder('+r.id+')">'+esc(r.text)+'</span>'
           + '</div>';
+      });
+      (remGhostMap[c.str]||[]).forEach(function(r){
+        g += '<div class="cal-rem rem-ghost" title="'+esc(r.text+'（'+remRepLabel(r.rep)+'，完成上一次後出現）')+'"><span class="rem-rep">↻</span><span class="rem-txt">'+esc(r.text)+'</span></div>';
       });
       (dlByDate[c.str]||[]).forEach(function(u){
         var late = u.lastDay && u.deadline && u.lastDay > u.deadline;
