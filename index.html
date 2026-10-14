@@ -1800,7 +1800,7 @@ html[data-mod-off~="batch"] [data-mod="batch"]{display:none !important;}
             <div class="flex-1">
               <p class="text-sm font-bold text-slate-200 mb-1">已經在用舊版腳本？更新以備份縮圖與大圖（選用）</p>
               <div class="text-xs text-slate-500 leading-relaxed space-y-2">
-                <p>不更新也能正常同步，縮圖只會存在這台電腦。想把縮圖與大圖也備份到 Drive（大圖會存在 Drive 的 fullsize 資料夾，點縮圖旁的「大圖」按鈕即可開啟）：</p>
+                <p>不更新也能正常同步，縮圖只會存在這台電腦。想把縮圖與大圖也備份到 Drive（大圖會存在 Drive 的 fullsize 資料夾，在燈箱裡放大檢視）：</p>
                 <p>① 在步驟 2 直接按「📋 複製 Code.gs」，選擇沿用目前的安全碼，貼上覆蓋 Apps Script 裡原本的內容並儲存。</p>
                 <p>② 到「部署」→「管理部署作業」→ 按鉛筆圖示編輯 →「版本」選<strong class="text-slate-300">新版本</strong>→ 部署。這樣網址不會變，工具裡不用改任何設定。</p>
                 <p class="text-slate-600">若改用「新增部署」會產生新的網址，就需要回到左側重新填入。更新後按左側「重新檢查」，看到「已啟用」即完成。</p>
@@ -1959,6 +1959,7 @@ function copyFullHTML() {
 // Code.gs 範本 (純資料 API，不負責渲染頁面)
 // v2：新增縮圖備份。沒帶 action 的請求維持 v1 行為，舊版前端照常可用。
 // v3：新增檢視用大圖備份（fullsize 資料夾）。
+// v4：新增 viewGet，讓網頁內的燈箱可以直接讀取大圖。
 // 注意：此範本放在樣板字串裡，GAS 程式碼內不可出現反斜線、反引號與「錢字號＋左大括號」。
 function copyScriptTemplate(){
   var token = document.getElementById('token-preview').value;
@@ -1973,7 +1974,7 @@ function copyScriptTemplate(){
 
   const code = 
 `var AUTH_TOKEN = '${token}';
-var API_VERSION = 3;
+var API_VERSION = 4;
 
 // Drive 結構：Freelance Tracker Sync/ ── data.json、thumbnails/、fullsize/
 var ROOT_FOLDER = 'Freelance Tracker Sync';
@@ -1989,9 +1990,10 @@ function doGet(e){
   if(!e.parameter.token || e.parameter.token !== AUTH_TOKEN) return errorRes('驗證失敗');
   var a = e.parameter.action || '';
   try {
-    if(a === 'info') return jsonRes({ok:true, api:API_VERSION, features:['thumb','view']});
+    if(a === 'info') return jsonRes({ok:true, api:API_VERSION, features:['thumb','view','viewGet']});
     if(a === 'thumbList') return jsonRes({ok:true, keys:thumbList()});
     if(a === 'thumbGet') return jsonRes({ok:true, items:thumbGet(String(e.parameter.keys || '').split(',').slice(0, 30))});
+    if(a === 'viewGet') return jsonRes({ok:true, item:viewGet(String(e.parameter.key || ''))});
     if(a) return errorRes('不支援的動作：' + a);
     return loadDataRes(e.parameter.since || '');
   } catch(err) { return errorRes(err.message); }
@@ -2156,6 +2158,16 @@ function viewFolder(create){
   });
 }
 
+function viewGet(key){
+  if(!isThumbKey(key)) return null;
+  var fd = viewFolder(false);
+  if(!fd) return null;
+  var files = liveFilesByName(fd, key);
+  if(!files.length) return null;
+  var b = files[0].getBlob();
+  return {type:b.getContentType(), b64:Utilities.base64Encode(b.getBytes())};
+}
+
 function viewPut(p){
   if(!isThumbKey(p.key)) throw new Error('大圖代號不正確');
   if(!/^image[/](webp|jpeg|png)$/.test(p.type || '')) throw new Error('大圖格式不支援');
@@ -2166,7 +2178,7 @@ function viewPut(p){
 }`;
 
   navigator.clipboard.writeText(code);
-  alert('已複製 Code.gs 程式碼（v3，含縮圖與大圖備份）\n\n資料會放在 Google Drive 的「Freelance Tracker Sync」資料夾；用過舊版的話，第一次連線時會自動把舊檔案搬進去。');
+  alert('已複製 Code.gs 程式碼（v4，含縮圖、大圖備份與燈箱檢視）\n\n資料會放在 Google Drive 的「Freelance Tracker Sync」資料夾；用過舊版的話，第一次連線時會自動把舊檔案搬進去。');
 }
 function saveHintVisibility(){
   var show = document.getElementById('toggle-hints').checked;
@@ -12799,9 +12811,31 @@ setTimeout(tgCheck, 1500);
 .tk-acts button{font-size:10px;color:#64748b;padding:2px 5px;border-radius:4px;background:transparent}
 .tk-acts button:hover{color:#e2e8f0;background:rgba(51,65,85,.6)}
 .tk-acts button.tk-del:hover{color:#f87171}
-.tk-fslot{display:inline-flex}
-.tk-acts a.tk-ico{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;color:#60a5fa;border-radius:4px;text-decoration:none}
-.tk-acts a.tk-ico:hover{color:#93c5fd;background:rgba(51,65,85,.6)}
+.tk-wimg{cursor:zoom-in}
+.tk-wtile .tk-wcap{cursor:pointer}
+.tk-acts button.tk-lbbtn{color:#60a5fa}
+.tk-acts button.tk-lbbtn:hover{color:#93c5fd}
+#tk-lb{position:fixed;inset:0;z-index:9980;display:none;flex-direction:column;background:rgba(2,6,23,.95);color:#e2e8f0;outline:none;padding-top:env(safe-area-inset-top,0px)}
+#tk-lb.show{display:flex}
+.tk-lb-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;flex-shrink:0}
+.tk-lb-title{min-width:0;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.tk-lb-name{font-size:14px;font-weight:600;color:#f1f5f9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:46vw}
+.tk-lb-stage{font-size:12px;color:#93c5fd;white-space:nowrap}
+.tk-lb-note{font-size:11px;color:#fbbf24}
+.tk-lb-btns{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.tk-lb-btns button,.tk-lb-btns a{font-size:12px;color:#cbd5e1;background:rgba(30,41,59,.9);border:1px solid #334155;border-radius:8px;padding:4px 10px;text-decoration:none;cursor:pointer;white-space:nowrap}
+.tk-lb-btns button:hover,.tk-lb-btns a:hover{color:#fff;border-color:#64748b}
+.tk-lb-stagebox{position:relative;flex:1;min-height:0;margin:0 14px;overflow:hidden;display:flex;border-radius:10px;touch-action:pan-y}
+.tk-lb-stagebox img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;user-select:none;-webkit-user-drag:none}
+.tk-lb-stagebox.can-zoom img{cursor:zoom-in}
+.tk-lb-stagebox.zoom{overflow:auto}
+.tk-lb-stagebox.zoom img{position:static;width:auto;height:auto;max-width:none;max-height:none;margin:auto;flex-shrink:0;cursor:zoom-out}
+.tk-lb-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;padding:10px 14px 4px;flex-shrink:0}
+.tk-lb-chips button{font-size:12px;color:#cbd5e1;background:rgba(15,23,42,.9);border:1px solid #334155;border-radius:999px;padding:3px 12px;cursor:pointer}
+.tk-lb-chips button i{font-style:normal;color:#64748b;margin-right:5px;font-size:10px}
+.tk-lb-chips button.on{border-color:#60a5fa;color:#fff}
+.tk-lb-chips button:hover{border-color:#94a3b8}
+.tk-lb-hint{font-size:11px;color:#64748b;text-align:center;padding:2px 14px calc(10px + env(safe-area-inset-bottom,0px));flex-shrink:0}
 .tk-acts button.tk-ico{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;padding:0}
 .tk-path{display:flex;align-items:center;gap:2px;padding:0 7px 8px}
 .tk-path input{flex:1;min-width:0;background:transparent;border:1px solid transparent;border-radius:4px;padding:2px 4px;font-size:10px;color:#94a3b8;outline:none}
@@ -12884,7 +12918,7 @@ var ThumbKit = (function(){
   var dbPromise = null;
   var urls = {};        // key → objectURL（記憶體快取，重繪時直接用）
   var missing = {};     // key → 'absent' | 'fetching' | 'gone'
-  var cloud = { url:null, state:null, promise:null, view:false };
+  var cloud = { url:null, state:null, promise:null, view:false, viewGet:false };
   var uploadChain = Promise.resolve();
   var hydrateQueued = false, fetchTimer = null, statusTimer = null, persistAsked = false;
 
@@ -13057,8 +13091,8 @@ var ThumbKit = (function(){
     var pr = fetch(getAuthUrl(url) + '&action=info', { method:'GET' })
       .then(function(r){ return r.json(); })
       .then(function(d){
-        cloud.view = false;
-        if(d && d.ok === true && +d.api >= 2 && Array.isArray(d.features) && d.features.indexOf('thumb') >= 0){ cloud.view = d.features.indexOf('view') >= 0; return 'ok'; }
+        cloud.view = false; cloud.viewGet = false;
+        if(d && d.ok === true && +d.api >= 2 && Array.isArray(d.features) && d.features.indexOf('thumb') >= 0){ cloud.view = d.features.indexOf('view') >= 0; cloud.viewGet = d.features.indexOf('viewGet') >= 0; return 'ok'; }
         if(d && d.ok === true) return 'old';   // 舊版腳本忽略 action、直接回主資料
         return 'auth';
       }, function(){ return 'error'; })
@@ -13138,9 +13172,8 @@ var ThumbKit = (function(){
   /* ---------- 檢視用大圖 ---------- */
   function driveUrl(id){ return 'https://drive.google.com/file/d/' + encodeURIComponent(id) + '/view'; }
   var ICO_FULL = '<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 2.5h4v4M13.5 2.5L9 7M6.5 13.5h-4v-4M2.5 13.5L7 9"/></svg>';
-  function fullBtn(t){
-    if(!t || !t.fid) return '';
-    return '<a class="tk-ico" href="' + esc(driveUrl(t.fid)) + '" target="_blank" rel="noopener" title="開啟大圖（Google Drive，需登入同一個 Google 帳號）" aria-label="開啟大圖">' + ICO_FULL + '</a>';
+  function lbBtn(pid, key){
+    return '<button type="button" class="tk-ico tk-lbbtn" onclick="ThumbKit.openLB(' + pid + ',\'' + esc(key) + '\')" title="放大檢視（可切換階段比較前後）" aria-label="放大檢視">' + ICO_FULL + '</button>';
   }
   function targetByKey(key){
     var list = (typeof PJ !== 'undefined' ? PJ : []);
@@ -13157,8 +13190,6 @@ var ThumbKit = (function(){
     if(!t) return false;
     t.fid = id;
     save();
-    // 只換按鈕、不整個重繪，避免打斷正在輸入的欄位
-    Array.prototype.forEach.call(document.querySelectorAll('.tk-fslot[data-fkey="' + key + '"]'), function(el){ el.innerHTML = fullBtn(t); });
     return true;
   }
   function storeView(key, blob){
@@ -13456,7 +13487,7 @@ var ThumbKit = (function(){
       + (s.sub ? '<div class="tk-sub" title="' + esc(s.sub) + '">' + esc(s.sub) + '</div>' : '')
       + '</div><div class="tk-acts">'
       + (key
-          ? '<span class="tk-fslot" data-fkey="' + esc(key) + '">' + fullBtn(s.t) + '</span>'
+          ? lbBtn(p.id, key)
             + '<button type="button" class="tk-ico" onclick="ThumbKit.pick(' + a + ')" title="換圖" aria-label="換圖">' + ICO_SWAP + '</button>'
             + '<button type="button" class="tk-ico tk-del" onclick="ThumbKit.clear(' + a + ')" title="移除縮圖" aria-label="移除縮圖">' + ICO_DEL + '</button>'
           : '<button type="button" onclick="ThumbKit.pick(' + a + ')" title="從電腦選擇圖片">選檔</button>')
@@ -13470,8 +13501,8 @@ var ThumbKit = (function(){
   /* ---------- 任務一覽：表格縮圖、放大預覽、圖牆 ---------- */
   function stagesOf(p){
     var out = [];
-    (p.milestones || []).forEach(function(m){ if(m && m.thumb) out.push({ key:m.thumb, label:m.name || '階段' }); });
-    if(p.thumb) out.push({ key:p.thumb, label:(p.milestones || []).length ? '其他' : '任務縮圖' });
+    (p.milestones || []).forEach(function(m){ if(m && m.thumb) out.push({ key:m.thumb, label:m.name || '階段', fid:m.fid || '' }); });
+    if(p.thumb) out.push({ key:p.thumb, label:(p.milestones || []).length ? '其他' : '任務縮圖', fid:p.fid || '' });
     return out;
   }
   function listHTML(p){
@@ -13503,7 +13534,7 @@ var ThumbKit = (function(){
         }).join('') + '</div>'
       : '';
     return '<div class="tk-wtile" onclick="openDetail(' + p.id + ')" title="' + esc(p.name) + '">'
-      + '<div class="tk-wimg"><img data-thumb="' + esc(cover.key) + '" alt=""><span class="tk-ph"></span>'
+      + '<div class="tk-wimg" onclick="event.stopPropagation();ThumbKit.wallOpen(this,' + p.id + ')"><img data-thumb="' + esc(cover.key) + '" alt=""><span class="tk-ph"></span>'
       + (st.length > 1 ? '<span class="tk-wcount">' + st.length + '</span>' : '')
       + chips + '</div>'
       + '<div class="tk-wcap"><div class="tk-wname">' + esc(p.name) + '</div>'
@@ -13605,6 +13636,226 @@ var ThumbKit = (function(){
   window.addEventListener('scroll', hidePeek, true);
   document.addEventListener('mousedown', hidePeek, true);
 
+  /* ---------- 燈箱：原地放大、切換階段比較前後 ---------- */
+  var LB_CACHE = 24;
+  var vurls = {}, vorder = [], vpend = {};
+  var lb = null, lbEl = null, lbSid = 0, lbOpener = null, lbTouchX = null;
+
+  function dropView(k){
+    if(vurls[k]){ URL.revokeObjectURL(vurls[k]); delete vurls[k]; }
+    var i = vorder.indexOf(k); if(i >= 0) vorder.splice(i, 1);
+  }
+  // 取得大圖的本機網址（記憶體快取，關頁就清掉；不寫進 IndexedDB，避免吃容量）
+  function getView(key, fid){
+    if(vurls[key]) return Promise.resolve(vurls[key]);
+    if(vpend[key]) return vpend[key];
+    if(!fid || !getScriptUrl()) return Promise.resolve(null);
+    var pr = cloudCheck(false).then(function(st){
+      if(st !== 'ok' || !cloud.viewGet) return null;
+      return cloudCall('GET', 'viewGet', { key:key });
+    }).then(function(d){
+      var it = d && d.item;
+      if(!it || !it.b64) return null;
+      var u = URL.createObjectURL(b64ToBlob(it.b64, it.type));
+      vurls[key] = u; vorder.push(key);
+      var keep = {};
+      if(lb) lb.stages.forEach(function(s){ keep[s.key] = 1; });
+      for(var i = 0; vorder.length > LB_CACHE && i < vorder.length; ){
+        var k = vorder[i];
+        if(keep[k]){ i++; continue; }
+        dropView(k);
+      }
+      return u;
+    }).catch(function(e){ console.warn('[大圖] 讀取失敗', key, e); return null; })
+      .then(function(r){ delete vpend[key]; return r; });
+    vpend[key] = pr;
+    return pr;
+  }
+  function thumbUrl(key){
+    if(urls[key]) return Promise.resolve(urls[key]);
+    return idbGet(key).then(function(rec){
+      if(!rec || !rec.blob) return null;
+      if(!urls[key]) urls[key] = URL.createObjectURL(rec.blob);
+      return urls[key];
+    }).catch(function(){ return null; });
+  }
+
+  function lbBuild(){
+    if(lbEl) return lbEl;
+    lbEl = document.createElement('div');
+    lbEl.id = 'tk-lb'; lbEl.tabIndex = -1;
+    lbEl.setAttribute('role', 'dialog'); lbEl.setAttribute('aria-modal', 'true'); lbEl.setAttribute('aria-label', '大圖檢視');
+    lbEl.innerHTML =
+        '<div class="tk-lb-bar">'
+      +   '<div class="tk-lb-title"><span class="tk-lb-name"></span><span class="tk-lb-stage"></span><span class="tk-lb-note"></span></div>'
+      +   '<div class="tk-lb-btns"><a class="tk-lb-drive" target="_blank" rel="noopener" style="display:none" title="在 Google Drive 開啟（需登入同一個 Google 帳號）">在 Drive 開啟</a>'
+      +   '<button type="button" data-act="detail">開啟任務</button><button type="button" data-act="close" aria-label="關閉">✕</button></div>'
+      + '</div>'
+      + '<div class="tk-lb-stagebox"><img alt=""></div>'
+      + '<div class="tk-lb-chips"></div>'
+      + '<div class="tk-lb-hint"></div>';
+    document.body.appendChild(lbEl);
+    lbEl.addEventListener('click', lbClick);
+    var box = lbEl.querySelector('.tk-lb-stagebox');
+    box.addEventListener('touchstart', function(e){ lbTouchX = (e.touches && e.touches.length === 1) ? e.touches[0].clientX : null; }, { passive:true });
+    box.addEventListener('touchend', function(e){
+      if(lbTouchX == null || !lb || lb.zoom) return;
+      var dx = (e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientX : lbTouchX) - lbTouchX;
+      lbTouchX = null;
+      if(Math.abs(dx) > 50) lbStep(dx < 0 ? 1 : -1);
+    }, { passive:true });
+    return lbEl;
+  }
+
+  function lbOpen(pid, key){
+    if(!enabled()) return;
+    var p = (typeof pBy === 'function') ? pBy(pid) : null;
+    var stages = p ? stagesOf(p) : [];
+    if(!stages.length) return;
+    var i = 0;
+    stages.forEach(function(s, n){ if(s.key === key) i = n; });
+    lbBuild();
+    lbOpener = document.activeElement;
+    lb = { sid:++lbSid, tok:0, pid:pid, name:p.name || '', stages:stages, i:-1, prev:-1, zoom:false, big:false,
+           box:lbEl.querySelector('.tk-lb-stagebox'), img:lbEl.querySelector('.tk-lb-stagebox img') };
+    var chips = lbEl.querySelector('.tk-lb-chips');
+    chips.innerHTML = stages.length > 1 ? stages.map(function(s, n){
+      return '<button type="button" data-i="' + n + '"><i>' + (n < 9 ? (n + 1) : '') + '</i>' + esc(s.label) + '</button>';
+    }).join('') : '';
+    lbEl.querySelector('.tk-lb-name').textContent = lb.name;
+    lbEl.querySelector('.tk-lb-hint').textContent = (stages.length > 1 ? '← → 或數字鍵切換階段　空白鍵：回到上一張　' : '') + '點圖：放大到 100%　Esc：關閉';
+    lbEl.classList.add('show');
+    document.body.style.overflow = 'hidden';
+    try{ lbEl.focus({ preventScroll:true }); }catch(e){ lbEl.focus(); }
+    lbShow(i);
+    // 當前這張處理完再依序把其他階段的大圖抓進記憶體，之後切換就是瞬間
+    var sid = lb.sid;
+    getView(lb.stages[lb.i].key, lb.stages[lb.i].fid).then(function(){
+      var order = lb ? lb.stages.map(function(s, n){ return n; }).filter(function(n){ return n !== lb.i; }) : [];
+      var chain = Promise.resolve();
+      order.forEach(function(n){
+        chain = chain.then(function(){
+          if(!lb || lb.sid !== sid) return;
+          return getView(lb.stages[n].key, lb.stages[n].fid);
+        });
+      });
+    });
+  }
+  function lbClose(){
+    if(!lb) return;
+    lb = null;
+    lbEl.classList.remove('show');
+    lbEl.querySelector('.tk-lb-stagebox').classList.remove('zoom', 'can-zoom');
+    lbEl.querySelector('.tk-lb-stagebox img').removeAttribute('src');
+    document.body.style.overflow = '';
+    if(lbOpener && lbOpener.isConnected && lbOpener.focus){ try{ lbOpener.focus({ preventScroll:true }); }catch(e){} }
+    lbOpener = null;
+  }
+  function lbNote(t){ if(lbEl) lbEl.querySelector('.tk-lb-note').textContent = t || ''; }
+
+  function lbCenter(){
+    var b = lb.box, im = lb.img;
+    if(!im.offsetWidth || !im.offsetHeight) return null;
+    return { x:(b.scrollLeft + b.clientWidth / 2) / im.offsetWidth, y:(b.scrollTop + b.clientHeight / 2) / im.offsetHeight };
+  }
+  function lbSetCenter(c){
+    var b = lb.box, im = lb.img;
+    b.scrollLeft = c.x * im.offsetWidth - b.clientWidth / 2;
+    b.scrollTop = c.y * im.offsetHeight - b.clientHeight / 2;
+  }
+  function lbApplyZoom(ctr){
+    if(!lb) return;
+    var z = lb.zoom && lb.big;
+    lb.box.classList.toggle('zoom', z);
+    lb.box.classList.toggle('can-zoom', lb.big);
+    if(z && ctr) lbSetCenter(ctr);
+  }
+  function lbSetImg(url, isBig, tok, ctr){
+    if(!lb || tok !== lb.tok) return;
+    lb.big = isBig;
+    var im = lb.img;
+    if(im.getAttribute('src') === url){ lbApplyZoom(ctr); return; }
+    im.onload = function(){ if(lb && tok === lb.tok) lbApplyZoom(ctr); };
+    im.src = url;
+  }
+  function lbShow(i){
+    if(!lb || i < 0 || i >= lb.stages.length) return;
+    if(lb.i >= 0 && i !== lb.i) lb.prev = lb.i;
+    var ctr = (lb.zoom && lb.big) ? lbCenter() : null;   // 放大狀態下換階段，維持看的是同一個位置
+    lb.i = i;
+    var s = lb.stages[i], tok = ++lb.tok;
+    lbEl.querySelector('.tk-lb-stage').textContent = s.label + (lb.stages.length > 1 ? '　' + (i + 1) + ' / ' + lb.stages.length : '');
+    Array.prototype.forEach.call(lbEl.querySelectorAll('.tk-lb-chips button'), function(b){
+      b.classList.toggle('on', +b.getAttribute('data-i') === i);
+    });
+    var dl = lbEl.querySelector('.tk-lb-drive');
+    if(s.fid){ dl.href = driveUrl(s.fid); dl.style.display = ''; } else { dl.removeAttribute('href'); dl.style.display = 'none'; }
+    if(vurls[s.key]){ lbNote(''); lbSetImg(vurls[s.key], true, tok, ctr); return; }
+    lb.big = false; lbApplyZoom(null);
+    lbNote(s.fid ? '載入大圖…' : '');
+    thumbUrl(s.key).then(function(u){ if(u && lb && tok === lb.tok && !lb.big) lbSetImg(u, false, tok, null); });
+    getView(s.key, s.fid).then(function(u){
+      if(!lb || tok !== lb.tok) return;
+      if(u){ lbNote(''); lbSetImg(u, true, tok, ctr); return; }
+      lbNote(!s.fid ? '這張只有縮圖（重新貼上這張圖就會產生大圖）'
+           : (!cloud.viewGet ? '請先更新 Apps Script，才能在這裡看大圖' : '大圖載入失敗，目前顯示的是縮圖'));
+    });
+  }
+  function lbStep(d){
+    if(!lb) return;
+    var n = lb.stages.length;
+    if(n < 2) return;
+    lbShow((lb.i + d + n) % n);
+  }
+  function lbToggleZoom(e){
+    if(!lb || !lb.big){ return; }
+    var im = lb.img;
+    if(lb.zoom){
+      lb.zoom = false; lbApplyZoom(null); return;
+    }
+    var r = im.getBoundingClientRect(), nw = im.naturalWidth, nh = im.naturalHeight;
+    if(!nw || !nh || !r.width || !r.height) return;
+    var sc = Math.min(r.width / nw, r.height / nh), dw = nw * sc, dh = nh * sc;
+    if(sc >= 0.95) return;                         // 已經接近原尺寸，放大沒有意義
+    var ox = r.left + (r.width - dw) / 2, oy = r.top + (r.height - dh) / 2;
+    var fx = Math.min(1, Math.max(0, (e.clientX - ox) / dw)), fy = Math.min(1, Math.max(0, (e.clientY - oy) / dh));
+    lb.zoom = true;
+    lbApplyZoom({ x:fx, y:fy });
+  }
+  function lbClick(e){
+    var t = e.target;
+    if(!lb) return;
+    if(t === lbEl){ lbClose(); return; }
+    var act = t.closest ? t.closest('[data-act]') : null;
+    if(act){
+      if(act.getAttribute('data-act') === 'close') lbClose();
+      else if(act.getAttribute('data-act') === 'detail'){ var pid = lb.pid; lbClose(); if(typeof openDetail === 'function') openDetail(pid); }
+      return;
+    }
+    var chip = t.closest ? t.closest('.tk-lb-chips button') : null;
+    if(chip){ lbShow(+chip.getAttribute('data-i')); return; }
+    if(t === lb.img) lbToggleZoom(e);
+  }
+  function lbKey(e){
+    if(!lb || e.ctrlKey || e.metaKey || e.altKey) return;
+    var k = e.key, handled = true;
+    if(k === 'Escape') lbClose();
+    else if(k === 'ArrowRight' || k === 'ArrowDown') lbStep(1);
+    else if(k === 'ArrowLeft' || k === 'ArrowUp') lbStep(-1);
+    else if(k === 'Home') lbShow(0);
+    else if(k === 'End') lbShow(lb.stages.length - 1);
+    else if(k === ' ' || k === 'Spacebar'){ if(lb.prev >= 0) lbShow(lb.prev); else lbStep(1); }
+    else if(/^[1-9]$/.test(k)){ if(+k <= lb.stages.length) lbShow(+k - 1); }
+    else handled = false;
+    if(handled){ e.preventDefault(); e.stopPropagation(); if(e.stopImmediatePropagation) e.stopImmediatePropagation(); }
+  }
+  window.addEventListener('keydown', lbKey, true);
+  // 圖牆：從圖片區點開，起始階段就是目前顯示的那張
+  function wallOpen(box, pid){
+    var img = box && box.querySelector('img');
+    lbOpen(pid, img ? img.getAttribute('data-thumb') : '');
+  }
+
   /* ---------- 操作 ---------- */
   function dropFor(pid, slot){
     return document.querySelector('.tk-drop[data-pid="' + pid + '"][data-slot="' + slot + '"]');
@@ -13646,7 +13897,7 @@ var ThumbKit = (function(){
     var refs = refSet();
     var dead = (keys || []).filter(function(k){ return k && !refs[k]; });
     if(!dead.length) return Promise.resolve();
-    dead.forEach(function(k){ if(urls[k]){ URL.revokeObjectURL(urls[k]); delete urls[k]; } delete missing[k]; });
+    dead.forEach(function(k){ if(urls[k]){ URL.revokeObjectURL(urls[k]); delete urls[k]; } dropView(k); delete missing[k]; });
     var local = Promise.all(dead.map(function(k){ return idbDel(k).catch(function(){}); }));
     var remote = getScriptUrl()
       ? cloudCall('POST', 'thumbDel', null, { keys:dead }).catch(function(){})
@@ -13740,7 +13991,7 @@ var ThumbKit = (function(){
     none:      ['未連線',     'slate',   '縮圖只存在這台電腦的瀏覽器。要備份到 Drive，請先在上方連線雲端。'],
     unchecked: ['尚未檢查',   'slate',   '用到縮圖時會自動檢查 Apps Script 是否支援縮圖備份。'],
     checking:  ['檢查中',     'slate',   '正在確認 Apps Script 版本…'],
-    ok:        ['已啟用',     'emerald', '新增的縮圖會自動備份到 Google Drive 的「Freelance Tracker Sync」資料夾；若腳本是 v3，也會另存一份檢視用大圖，點縮圖旁的「大圖」按鈕開啟。'],
+    ok:        ['已啟用',     'emerald', '新增的縮圖會自動備份到 Google Drive 的「Freelance Tracker Sync」資料夾；若腳本是最新版，也會另存一份檢視用大圖，可在燈箱裡放大檢視、切換階段比較。'],
     old:       ['需更新腳本', 'amber',   '目前的 Apps Script 是舊版：主資料照常同步，縮圖只存本機。依右側步驟 5 更新後即可備份縮圖與大圖。'],
     auth:      ['驗證失敗',   'rose',    '安全碼不符，無法確認腳本版本，縮圖暫時只存本機。'],
     error:     ['連不上',     'rose',    '暫時連不上 Apps Script，縮圖先存本機，之後可按「補傳未備份」。']
@@ -13893,7 +14144,7 @@ var ThumbKit = (function(){
     detailHTML:detailHTML, rowHTML:rowHTML, cardHTML:cardHTML, listHTML:listHTML, keysOfAny:function(p){ return enabled() && !!coverOf(p); },
     renderTagView:renderTagView, setTagView:setTagView, tagViewIsWall:function(){ return getTagView() === 'wall'; }, toggleWallEmpty:toggleWallEmpty, wallStage:wallStage, unhide:unhide, renderHideSettings:renderHideSettings, hideFromSettings:hideFromSettings, hydrateSoon:hydrateSoon, keysOf:keysOf, forget:forget,
     pick:pick, onKey:onKey, onDragOver:onDragOver, onDragLeave:onDragLeave, onDrop:onDrop,
-    clear:clear, setPath:setPath, copyPath:copyPath,
+    clear:clear, setPath:setPath, copyPath:copyPath, openLB:lbOpen, wallOpen:wallOpen,
     recheck:recheck, pushUnsynced:pushUnsynced, restoreAll:restoreAll, cleanup:cleanup
   };
 })();
