@@ -1798,9 +1798,9 @@ html[data-mod-off~="batch"] [data-mod="batch"]{display:none !important;}
           <div class="flex gap-6 pt-4 border-t border-slate-900" data-mod="thumb">
             <div class="step-num bg-slate-800 text-slate-400">5</div>
             <div class="flex-1">
-              <p class="text-sm font-bold text-slate-200 mb-1">已經在用舊版腳本？更新以備份縮圖（選用）</p>
+              <p class="text-sm font-bold text-slate-200 mb-1">已經在用舊版腳本？更新以備份縮圖與大圖（選用）</p>
               <div class="text-xs text-slate-500 leading-relaxed space-y-2">
-                <p>不更新也能正常同步，縮圖只會存在這台電腦。想把縮圖也備份到 Drive：</p>
+                <p>不更新也能正常同步，縮圖只會存在這台電腦。想把縮圖與大圖也備份到 Drive（大圖會存在 Drive 的 fullsize 資料夾，點縮圖旁的「大圖」按鈕即可開啟）：</p>
                 <p>① 在步驟 2 直接按「📋 複製 Code.gs」，選擇沿用目前的安全碼，貼上覆蓋 Apps Script 裡原本的內容並儲存。</p>
                 <p>② 到「部署」→「管理部署作業」→ 按鉛筆圖示編輯 →「版本」選<strong class="text-slate-300">新版本</strong>→ 部署。這樣網址不會變，工具裡不用改任何設定。</p>
                 <p class="text-slate-600">若改用「新增部署」會產生新的網址，就需要回到左側重新填入。更新後按左側「重新檢查」，看到「已啟用」即完成。</p>
@@ -1958,6 +1958,7 @@ function copyFullHTML() {
 
 // Code.gs 範本 (純資料 API，不負責渲染頁面)
 // v2：新增縮圖備份。沒帶 action 的請求維持 v1 行為，舊版前端照常可用。
+// v3：新增檢視用大圖備份（fullsize 資料夾）。
 // 注意：此範本放在樣板字串裡，GAS 程式碼內不可出現反斜線、反引號與「錢字號＋左大括號」。
 function copyScriptTemplate(){
   var token = document.getElementById('token-preview').value;
@@ -1972,12 +1973,13 @@ function copyScriptTemplate(){
 
   const code = 
 `var AUTH_TOKEN = '${token}';
-var API_VERSION = 2;
+var API_VERSION = 3;
 
-// Drive 結構：Freelance Tracker Sync/ ── data.json、thumbnails/
+// Drive 結構：Freelance Tracker Sync/ ── data.json、thumbnails/、fullsize/
 var ROOT_FOLDER = 'Freelance Tracker Sync';
 var DATA_NAME = 'data.json';
 var THUMB_NAME = 'thumbnails';
+var VIEW_NAME = 'fullsize';
 // 舊版名稱：第一次執行時自動搬進新資料夾並改名，資料與版本紀錄完整保留
 var LEGACY_FILE = '接案追蹤器_資料.json';
 var LEGACY_THUMB = '接案追蹤器_縮圖';
@@ -1987,7 +1989,7 @@ function doGet(e){
   if(!e.parameter.token || e.parameter.token !== AUTH_TOKEN) return errorRes('驗證失敗');
   var a = e.parameter.action || '';
   try {
-    if(a === 'info') return jsonRes({ok:true, api:API_VERSION, features:['thumb']});
+    if(a === 'info') return jsonRes({ok:true, api:API_VERSION, features:['thumb','view']});
     if(a === 'thumbList') return jsonRes({ok:true, keys:thumbList()});
     if(a === 'thumbGet') return jsonRes({ok:true, items:thumbGet(String(e.parameter.keys || '').split(',').slice(0, 30))});
     if(a) return errorRes('不支援的動作：' + a);
@@ -2002,6 +2004,7 @@ function doPost(e){
   try {
     var p = JSON.parse(e.postData.contents);
     if(a === 'thumbPut'){ thumbPut(p); return jsonRes({ok:true}); }
+    if(a === 'viewPut'){ return jsonRes({ok:true, id:viewPut(p)}); }
     if(a === 'thumbDel'){ return jsonRes({ok:true, deleted:thumbDel(p.keys || [])}); }
     if(a) return errorRes('不支援的動作：' + a);
     // 防呆：不像主資料的內容一律拒絕，避免誤蓋
@@ -2134,16 +2137,36 @@ function thumbList(){
 
 // 刪除＝移到 Drive 垃圾桶，30 天內可救回
 function thumbDel(keys){
-  var fd = thumbFolder(), n = 0;
+  var fd = thumbFolder(), vd = viewFolder(false), n = 0;
   keys.forEach(function(k){
     if(!isThumbKey(k)) return;
     liveFilesByName(fd, k).forEach(function(f){ f.setTrashed(true); n++; });
+    if(vd) liveFilesByName(vd, k).forEach(function(f){ f.setTrashed(true); });
   });
   return n;
+}
+
+// ===== 大圖（檢視用，每張一個檔，放在 fullsize 資料夾，檔名與縮圖代號相同）=====
+function viewFolder(create){
+  return byCachedId('viewFolderId', true, function(){
+    var root = rootFolder();
+    var fd = firstLive(root.getFoldersByName(VIEW_NAME));
+    if(fd) return fd;
+    return create ? root.createFolder(VIEW_NAME) : null;
+  });
+}
+
+function viewPut(p){
+  if(!isThumbKey(p.key)) throw new Error('大圖代號不正確');
+  if(!/^image[/](webp|jpeg|png)$/.test(p.type || '')) throw new Error('大圖格式不支援');
+  if(!p.b64 || p.b64.length > 8000000) throw new Error('大圖檔案過大');
+  var fd = viewFolder(true);
+  liveFilesByName(fd, p.key).forEach(function(f){ f.setTrashed(true); });
+  return fd.createFile(Utilities.newBlob(Utilities.base64Decode(p.b64), p.type, p.key)).getId();
 }`;
 
   navigator.clipboard.writeText(code);
-  alert('已複製 Code.gs 程式碼（v2，含縮圖備份）\n\n資料會放在 Google Drive 的「Freelance Tracker Sync」資料夾；用過舊版的話，第一次連線時會自動把舊檔案搬進去。');
+  alert('已複製 Code.gs 程式碼（v3，含縮圖與大圖備份）\n\n資料會放在 Google Drive 的「Freelance Tracker Sync」資料夾；用過舊版的話，第一次連線時會自動把舊檔案搬進去。');
 }
 function saveHintVisibility(){
   var show = document.getElementById('toggle-hints').checked;
@@ -2473,7 +2496,7 @@ var MODS = [
   {k:'tag',  name:'任務一覽',   desc:'「任務一覽」分頁'},
   {k:'fexp', name:'固定支出',   desc:'房租、保險、訂閱等每月自動帶入的支出'},
   {k:'aix',  name:'AI 匯出',    desc:'把工時與收支整理成文字，複製給 AI 分析'},
-  {k:'thumb',name:'階段縮圖',   desc:'在任務上貼草稿、完稿縮圖，並可在任務一覽用圖牆瀏覽舊案'},
+  {k:'thumb',name:'階段縮圖',   desc:'在任務上貼草稿、完稿縮圖，可備份大圖到 Drive 點開檢視，並可在任務一覽用圖牆瀏覽舊案'},
   {k:'batch',name:'批量建立',   desc:'一次建立多張任務，可從試算表貼上'}
 ];
 var MOD_TPLS = [
@@ -3391,8 +3414,8 @@ function mergePhaseNames(variantNorms, target){
             keep.done = !!keep.done && !!m.done; // 全完成才算完成
             // 縮圖／歸檔位置：keep 沒有就接手；兩邊都有縮圖時，被合併那張移到任務層（「其他」格），不讓它消失
             if(m.thumb){
-              if(!keep.thumb) keep.thumb = m.thumb;
-              else if(m.thumb !== keep.thumb && !p.thumb) p.thumb = m.thumb;
+              if(!keep.thumb){ keep.thumb = m.thumb; if(m.fid) keep.fid = m.fid; }
+              else if(m.thumb !== keep.thumb && !p.thumb){ p.thumb = m.thumb; if(m.fid) p.fid = m.fid; }
             }
             if(m.path && !keep.path) keep.path = m.path;
             dedupCount++;
@@ -12776,6 +12799,9 @@ setTimeout(tgCheck, 1500);
 .tk-acts button{font-size:10px;color:#64748b;padding:2px 5px;border-radius:4px;background:transparent}
 .tk-acts button:hover{color:#e2e8f0;background:rgba(51,65,85,.6)}
 .tk-acts button.tk-del:hover{color:#f87171}
+.tk-fslot{display:inline-flex}
+.tk-acts a.tk-ico{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;color:#60a5fa;border-radius:4px;text-decoration:none}
+.tk-acts a.tk-ico:hover{color:#93c5fd;background:rgba(51,65,85,.6)}
 .tk-acts button.tk-ico{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;padding:0}
 .tk-path{display:flex;align-items:center;gap:2px;padding:0 7px 8px}
 .tk-path input{flex:1;min-width:0;background:transparent;border:1px solid transparent;border-radius:4px;padding:2px 4px;font-size:10px;color:#94a3b8;outline:none}
@@ -12850,12 +12876,15 @@ var ThumbKit = (function(){
   var DB_NAME = 'ft_thumbs', STORE = 'thumbs';
   var MAX_EDGE = 480, WEBP_Q = 0.74, JPEG_Q = 0.82;
   var FETCH_BATCH = 15;
+  var VIEW_MAX = 3 * 1024 * 1024;   // 檢視用大圖壓完的上限；超過就逐步降畫質／尺寸
+  var VIEW_TRIES = [[2048, 0.85], [2048, 0.72], [1600, 0.7], [1280, 0.62]];
+  var viewHint = false;
   var WEBP = (function(){ try{ return document.createElement('canvas').toDataURL('image/webp').indexOf('data:image/webp') === 0; }catch(e){ return false; } })();
 
   var dbPromise = null;
   var urls = {};        // key → objectURL（記憶體快取，重繪時直接用）
   var missing = {};     // key → 'absent' | 'fetching' | 'gone'
-  var cloud = { url:null, state:null, promise:null };
+  var cloud = { url:null, state:null, promise:null, view:false };
   var uploadChain = Promise.resolve();
   var hydrateQueued = false, fetchTimer = null, statusTimer = null, persistAsked = false;
 
@@ -12944,28 +12973,52 @@ var ThumbKit = (function(){
     if(window.createImageBitmap) return createImageBitmap(file).catch(function(){ return decodeImg(file); });
     return decodeImg(file);
   }
+  // 縮到指定長邊並編碼；來源由呼叫端負責釋放
+  function renderBlob(src, w0, h0, maxEdge, wq, jq){
+    var sc = Math.min(1, maxEdge / Math.max(w0, h0));
+    var tw = Math.max(1, Math.round(w0 * sc)), th = Math.max(1, Math.round(h0 * sc));
+    // 先逐次減半，再縮到目標尺寸：線稿、細節比一次縮到位乾淨
+    var cur = src, cw = w0, ch = h0;
+    while(cw / 2 >= tw && ch / 2 >= th){
+      var c = mkCanvas(Math.round(cw / 2), Math.round(ch / 2));
+      c.getContext('2d').drawImage(cur, 0, 0, c.width, c.height);
+      cur = c; cw = c.width; ch = c.height;
+    }
+    var out = mkCanvas(tw, th), g = out.getContext('2d');
+    g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+    if(!WEBP){ g.fillStyle = '#0f172a'; g.fillRect(0, 0, tw, th); } // JPEG 沒有透明，墊深色底
+    g.drawImage(cur, 0, 0, tw, th);
+    return new Promise(function(res, rej){
+      out.toBlob(function(b){ b ? res({ blob:b, w:tw, h:th }) : rej(new Error('encode')); },
+        WEBP ? 'image/webp' : 'image/jpeg', WEBP ? wq : jq);
+    });
+  }
   function makeThumb(file){
     return decode(file).then(function(src){
       var w0 = src.width, h0 = src.height;
-      if(!w0 || !h0) throw new Error('empty');
-      var sc = Math.min(1, MAX_EDGE / Math.max(w0, h0));
-      var tw = Math.max(1, Math.round(w0 * sc)), th = Math.max(1, Math.round(h0 * sc));
-      // 先逐次減半，再縮到目標尺寸：線稿、細節比一次縮到位乾淨
-      var cur = src, cw = w0, ch = h0;
-      while(cw / 2 >= tw && ch / 2 >= th){
-        var c = mkCanvas(Math.round(cw / 2), Math.round(ch / 2));
-        c.getContext('2d').drawImage(cur, 0, 0, c.width, c.height);
-        cur = c; cw = c.width; ch = c.height;
+      var done = function(){ if(src.close) src.close(); };
+      if(!w0 || !h0){ done(); throw new Error('empty'); }
+      return renderBlob(src, w0, h0, MAX_EDGE, WEBP_Q, JPEG_Q).then(function(r){ done(); return r; }, function(e){ done(); throw e; });
+    });
+  }
+  // 檢視用大圖：長邊 2048，超過 3MB 就逐步降畫質／尺寸；仍然太大才放棄
+  function makeView(file){
+    return decode(file).then(function(src){
+      var w0 = src.width, h0 = src.height;
+      var done = function(){ if(src.close) src.close(); };
+      if(!w0 || !h0){ done(); throw new Error('empty'); }
+      function attempt(i){
+        var t = VIEW_TRIES[i];
+        return renderBlob(src, w0, h0, t[0], t[1], t[1]).then(function(r){
+          if(r.blob.size > VIEW_MAX && i < VIEW_TRIES.length - 1) return attempt(i + 1);
+          return r;
+        });
       }
-      var out = mkCanvas(tw, th), g = out.getContext('2d');
-      g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
-      if(!WEBP){ g.fillStyle = '#0f172a'; g.fillRect(0, 0, tw, th); } // JPEG 沒有透明，墊深色底
-      g.drawImage(cur, 0, 0, tw, th);
-      if(src.close) src.close();
-      return new Promise(function(res, rej){
-        out.toBlob(function(b){ b ? res({ blob:b, w:tw, h:th }) : rej(new Error('encode')); },
-          WEBP ? 'image/webp' : 'image/jpeg', WEBP ? WEBP_Q : JPEG_Q);
-      });
+      return attempt(0).then(function(r){
+        done();
+        if(r.blob.size > VIEW_MAX) throw new Error('view-too-large');
+        return r;
+      }, function(e){ done(); throw e; });
     });
   }
   function blobToB64(blob){
@@ -13004,7 +13057,8 @@ var ThumbKit = (function(){
     var pr = fetch(getAuthUrl(url) + '&action=info', { method:'GET' })
       .then(function(r){ return r.json(); })
       .then(function(d){
-        if(d && d.ok === true && +d.api >= 2 && Array.isArray(d.features) && d.features.indexOf('thumb') >= 0) return 'ok';
+        cloud.view = false;
+        if(d && d.ok === true && +d.api >= 2 && Array.isArray(d.features) && d.features.indexOf('thumb') >= 0){ cloud.view = d.features.indexOf('view') >= 0; return 'ok'; }
         if(d && d.ok === true) return 'old';   // 舊版腳本忽略 action、直接回主資料
         return 'auth';
       }, function(){ return 'error'; })
@@ -13039,22 +13093,100 @@ var ThumbKit = (function(){
     uploadChain = uploadChain.then(function(){ return uploadOne(key); }).catch(function(){});
     return uploadChain;
   }
+  function putThumbStep(key, rec){
+    return blobToB64(rec.blob)
+      .then(function(b64){ return cloudCall('POST', 'thumbPut', null, { key:key, type:rec.blob.type || rec.type, b64:b64 }); })
+      .then(function(){
+        return idbGet(key).then(function(cur){
+          if(cur && cur.at === rec.at){ cur.synced = true; return idbPut(key, cur).then(function(){ return true; }); }
+          return false; // 上傳途中又被換成新圖，留給下一輪
+        });
+      });
+  }
+  // 大圖：上傳成功後把本機暫存的 view 丟掉（不佔 IndexedDB），Drive 檔案 ID 記進該階段的 fid
+  function putViewStep(key, rec){
+    if(!refSet()[key]) return Promise.resolve(false);  // 圖已被換掉或任務已刪除，不必上傳
+    return blobToB64(rec.view)
+      .then(function(b64){ return cloudCall('POST', 'viewPut', null, { key:key, type:rec.view.type || 'image/webp', b64:b64 }); })
+      .then(function(d){
+        if(!d.id) throw new Error('沒有收到大圖檔案 ID');
+        return idbGet(key).then(function(cur){
+          if(!cur || !refSet()[key]){            // 上傳途中被換掉或移除：把剛傳上去的檔案收回
+            cloudCall('POST', 'thumbDel', null, { keys:[key] }).catch(function(){});
+            return false;
+          }
+          delete cur.view;
+          return idbPut(key, cur).then(function(){ return setFileId(key, d.id); });
+        });
+      });
+  }
   function uploadOne(key){
     return cloudCheck(false).then(function(st){
       if(st !== 'ok') return false;
       return idbGet(key).then(function(rec){
-        if(!rec || !rec.blob || rec.synced) return false;
-        return blobToB64(rec.blob)
-          .then(function(b64){ return cloudCall('POST', 'thumbPut', null, { key:key, type:rec.blob.type || rec.type, b64:b64 }); })
-          .then(function(){
-            return idbGet(key).then(function(cur){
-              if(cur && cur.at === rec.at){ cur.synced = true; return idbPut(key, cur).then(function(){ return true; }); }
-              return false; // 上傳途中又被換成新圖，留給下一輪
-            });
-          });
+        if(!rec || !rec.blob) return false;
+        var step = rec.synced ? Promise.resolve(false) : putThumbStep(key, rec);
+        return step.then(function(a){
+          if(!rec.view || !cloud.view) return a;
+          return putViewStep(key, rec).then(function(b){ return a || b; });
+        });
       });
     }).catch(function(e){ console.warn('[縮圖] 上傳失敗', key, e); return false; })
       .then(function(r){ renderStatusSoon(); return r; });
+  }
+
+  /* ---------- 檢視用大圖 ---------- */
+  function driveUrl(id){ return 'https://drive.google.com/file/d/' + encodeURIComponent(id) + '/view'; }
+  var ICO_FULL = '<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 2.5h4v4M13.5 2.5L9 7M6.5 13.5h-4v-4M2.5 13.5L7 9"/></svg>';
+  function fullBtn(t){
+    if(!t || !t.fid) return '';
+    return '<a class="tk-ico" href="' + esc(driveUrl(t.fid)) + '" target="_blank" rel="noopener" title="開啟大圖（Google Drive，需登入同一個 Google 帳號）" aria-label="開啟大圖">' + ICO_FULL + '</a>';
+  }
+  function targetByKey(key){
+    var list = (typeof PJ !== 'undefined' ? PJ : []);
+    for(var i = 0; i < list.length; i++){
+      var p = list[i];
+      if(p.thumb === key) return p;
+      var ms = p.milestones || [];
+      for(var j = 0; j < ms.length; j++){ if(ms[j] && ms[j].thumb === key) return ms[j]; }
+    }
+    return null;
+  }
+  function setFileId(key, id){
+    var t = targetByKey(key);
+    if(!t) return false;
+    t.fid = id;
+    save();
+    // 只換按鈕、不整個重繪，避免打斷正在輸入的欄位
+    Array.prototype.forEach.call(document.querySelectorAll('.tk-fslot[data-fkey="' + key + '"]'), function(el){ el.innerHTML = fullBtn(t); });
+    return true;
+  }
+  function storeView(key, blob){
+    return idbGet(key).then(function(rec){
+      if(!rec) return;                       // 縮圖已被移除
+      rec.view = blob;
+      return idbPut(key, rec);
+    });
+  }
+  // 縮圖存好之後，在背景再壓一份大圖：暫存在該縮圖的本機紀錄裡，上傳成功就刪掉，失敗會留著等補傳
+  function attachView(key, file){
+    cloudCheck(false).then(function(st){
+      if(st !== 'ok') return;
+      if(!cloud.view){
+        if(!viewHint){ viewHint = true; showToast('縮圖已備份。要連大圖一起備份，請先更新 Apps Script（設定頁步驟 5）', 'amber'); }
+        return;
+      }
+      return makeView(file).then(function(v){
+        uploadChain = uploadChain
+          .then(function(){ return storeView(key, v.blob); })
+          .then(function(){ return uploadOne(key); })
+          .catch(function(){});
+        return uploadChain;
+      });
+    }).catch(function(e){
+      console.warn('[大圖] 處理失敗', key, e);
+      if(e && e.message === 'view-too-large') showToast('這張圖壓縮後仍太大，沒有備份大圖（縮圖不受影響）', 'amber');
+    });
   }
 
   function fetchKeys(keys){
@@ -13324,7 +13456,8 @@ var ThumbKit = (function(){
       + (s.sub ? '<div class="tk-sub" title="' + esc(s.sub) + '">' + esc(s.sub) + '</div>' : '')
       + '</div><div class="tk-acts">'
       + (key
-          ? '<button type="button" class="tk-ico" onclick="ThumbKit.pick(' + a + ')" title="換圖" aria-label="換圖">' + ICO_SWAP + '</button>'
+          ? '<span class="tk-fslot" data-fkey="' + esc(key) + '">' + fullBtn(s.t) + '</span>'
+            + '<button type="button" class="tk-ico" onclick="ThumbKit.pick(' + a + ')" title="換圖" aria-label="換圖">' + ICO_SWAP + '</button>'
             + '<button type="button" class="tk-ico tk-del" onclick="ThumbKit.clear(' + a + ')" title="移除縮圖" aria-label="移除縮圖">' + ICO_DEL + '</button>'
           : '<button type="button" onclick="ThumbKit.pick(' + a + ')" title="從電腦選擇圖片">選檔</button>')
       + '</div></div>'
@@ -13494,12 +13627,12 @@ var ThumbKit = (function(){
       return idbPut(key, rec).then(function(){
         urls[key] = URL.createObjectURL(r.blob);
         delete missing[key]; delete retried[key];
-        t.thumb = key;
+        t.thumb = key; delete t.fid;
         save(); requestPersist();
         rerenderActive();
         showToast(oldKey ? '✓ 已更新縮圖' : '✓ 已加入縮圖', 'green');
         if(oldKey) forget([oldKey]);
-        if(getScriptUrl()) queueUpload(key);
+        if(getScriptUrl()){ queueUpload(key); attachView(key, file); }
         renderStatusSoon();
       });
     }).catch(function(e){
@@ -13576,7 +13709,7 @@ var ThumbKit = (function(){
     var label = String(slot) === 'p' ? '這個任務' : ('「' + (t.name || '這個階段') + '」');
     if(!confirm('移除' + label + '的縮圖？\n（歸檔位置會保留）')) return;
     var key = t.thumb;
-    delete t.thumb;
+    delete t.thumb; delete t.fid;
     save(); rerenderActive();
     forget([key]);
     showToast('已移除縮圖', 'blue');
@@ -13607,8 +13740,8 @@ var ThumbKit = (function(){
     none:      ['未連線',     'slate',   '縮圖只存在這台電腦的瀏覽器。要備份到 Drive，請先在上方連線雲端。'],
     unchecked: ['尚未檢查',   'slate',   '用到縮圖時會自動檢查 Apps Script 是否支援縮圖備份。'],
     checking:  ['檢查中',     'slate',   '正在確認 Apps Script 版本…'],
-    ok:        ['已啟用',     'emerald', '新增的縮圖會自動備份到 Google Drive 的「Freelance Tracker Sync」資料夾。'],
-    old:       ['需更新腳本', 'amber',   '目前的 Apps Script 是舊版：主資料照常同步，縮圖只存本機。依右側步驟 5 更新後即可備份。'],
+    ok:        ['已啟用',     'emerald', '新增的縮圖會自動備份到 Google Drive 的「Freelance Tracker Sync」資料夾；若腳本是 v3，也會另存一份檢視用大圖，點縮圖旁的「大圖」按鈕開啟。'],
+    old:       ['需更新腳本', 'amber',   '目前的 Apps Script 是舊版：主資料照常同步，縮圖只存本機。依右側步驟 5 更新後即可備份縮圖與大圖。'],
     auth:      ['驗證失敗',   'rose',    '安全碼不符，無法確認腳本版本，縮圖暫時只存本機。'],
     error:     ['連不上',     'rose',    '暫時連不上 Apps Script，縮圖先存本機，之後可按「補傳未備份」。']
   };
@@ -13633,11 +13766,14 @@ var ThumbKit = (function(){
     if(!hasRefs()){ stats.textContent = '目前沒有任何縮圖。'; return; }
     var refs = refSet();
     idbEntries().then(function(list){
-      var local = {}, unsynced = 0, orphan = 0;
+      var local = {}, unsynced = 0, orphan = 0, vpend = 0;
       list.forEach(function(e){
         local[e.key] = 1;
         if(!refs[e.key]) orphan++;
-        else if(e.rec && !e.rec.synced) unsynced++;
+        else {
+          if(e.rec && !e.rec.synced) unsynced++;
+          if(e.rec && e.rec.view) vpend++;
+        }
       });
       var refKeys = Object.keys(refs);
       var present = refKeys.filter(function(k){ return local[k]; }).length;
@@ -13645,6 +13781,7 @@ var ThumbKit = (function(){
       if(st === 'ok') parts.push(unsynced ? unsynced + ' 張尚未備份' : '全部已備份');
       else if(unsynced) parts.push(unsynced + ' 張只存本機');
       if(refKeys.length - present) parts.push('缺 ' + (refKeys.length - present) + ' 張');
+      if(st === 'ok' && vpend) parts.push(vpend + ' 張大圖待上傳');
       var txt = parts.join('，') + '。';
       if(orphan) txt += '另有 ' + orphan + ' 張沒有被任何任務使用。';
       stats.textContent = txt;
@@ -13670,7 +13807,7 @@ var ThumbKit = (function(){
       if(st !== 'ok'){ if(manual) needCloud(st); return; }
       var refs = refSet();
       return idbEntries().then(function(list){
-        var keys = list.filter(function(e){ return refs[e.key] && e.rec && !e.rec.synced; }).map(function(e){ return e.key; });
+        var keys = list.filter(function(e){ return refs[e.key] && e.rec && (!e.rec.synced || (e.rec.view && cloud.view)); }).map(function(e){ return e.key; });
         if(!keys.length){ if(manual) showToast('所有縮圖都已備份', 'green'); return; }
         if(manual) showToast('開始補傳 ' + keys.length + ' 張縮圖…', 'blue');
         var ok = 0;
