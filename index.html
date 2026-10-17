@@ -1276,7 +1276,11 @@ html[data-mod-off~="batch"] [data-mod="batch"]{display:none !important;}
       <div data-panel="pie" class="dash-panel mb-6">
         <div class="bg-slate-900 rounded-xl border border-slate-800 p-5">
           <h3 class="text-sm font-semibold text-slate-300 mb-4 flex items-center justify-between">
-            <span class="flex items-center gap-3">專案時間分佈
+            <span class="flex items-center gap-3"><span id="pie-title">專案產值分佈</span>
+              <span class="flex items-center gap-1 bg-slate-800/60 rounded-lg p-0.5" id="pie-metric-seg">
+                <button type="button" id="pie-met-val" class="pie-mode-btn" onclick="setPieMetric('val')" title="以產值計算佔比，與「產值與效率」同一套認列口徑">產值</button>
+                <button type="button" id="pie-met-hrs" class="pie-mode-btn" onclick="setPieMetric('hrs')" title="以工時計算佔比">工時</button>
+              </span>
               <span class="flex items-center gap-1 bg-slate-800/60 rounded-lg p-0.5" id="pie-mode-seg">
                 <button type="button" id="pie-mode-task" class="pie-mode-btn" onclick="setPieMode('task')" title="依單一任務統計工時佔比">任務</button>
                 <button type="button" id="pie-mode-grp" data-mod="grp" class="pie-mode-btn" onclick="setPieMode('grp')" title="依專案群組彙整工時（未歸屬群組的任務列為「未分組」）">群組</button>
@@ -8250,6 +8254,8 @@ function renderDash(){
 }
 
 // 專案時間分佈：獨立渲染（切換模式時只重畫此圖，不重建整個分析頁，避免捲動位置跳動）
+function getPieMetric(){return localStorage.getItem('ft_pieMetric')==='hrs'?'hrs':'val';}
+function setPieMetric(m){localStorage.setItem('ft_pieMetric',m);renderPie();}
 function renderPie(){
   var mon=document.getElementById('f-month').value;
   var fLogs=mon?DLOGS.filter(l=>l.date.indexOf(mon)===0):DLOGS;
@@ -8262,17 +8268,29 @@ function renderPie(){
     PJ.filter(p=>(p.hrs||0)>0).forEach(p=>{pieData[p.id]=p.hrs;});
   }
   var pMode=getPieMode();
+  var metric=getPieMetric();
   var basePc=['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#84cc16','#f97316','#ec4899','#64748b'];
-  var pk,pd,pc;
+  // 每個任務一筆 {pid, v:圖表數值, h:工時}；金額模式的 v 為產值（TWD），與「產值與效率」同源（calcValRec）
+  var items=[], skipH=0;
+  var VR=(metric==='val')?calcValRec(mon):null;
+  Object.keys(pieData).forEach(function(pid){
+    var h=pieData[pid], v=h;
+    if(metric==='val'){
+      var r=VR.byPid[pid];
+      v=(r&&!r.missing)?Math.round(toTWD(r.rec,r.cur)):0;
+    }
+    if(v>0) items.push({pid:+pid,v:v,h:h}); else skipH+=h;
+  });
+  var pk,pd,ph,pc;
   if(pMode==='task'){
-    var pieEntries=Object.keys(pieData).map(pid=>({pid:+pid,hrs:pieData[pid]})).filter(e=>e.hrs>0).sort((a,b)=>b.hrs-a.hrs).slice(0,10);
-    pk=pieEntries.map(e=>pname(e.pid)); pd=pieEntries.map(e=>Math.round(e.hrs*100)/100);
+    var pieEntries=items.sort((a,b)=>b.v-a.v).slice(0,10);
+    pk=pieEntries.map(e=>pname(e.pid)); pd=pieEntries.map(e=>Math.round(e.v*100)/100); ph=pieEntries.map(e=>e.h);
     pc=pk.map((k,i)=>basePc[i%basePc.length]);
   } else {
-    // 依群組或業務類型彙整：把每筆 pid 工時映射到對應的分類鍵
+    // 依群組或業務類型彙整：把每筆 pid 映射到對應的分類鍵
     var agg={}, colorOf={};
-    Object.keys(pieData).forEach(function(pid){
-      var p=pBy(+pid), key;
+    items.forEach(function(it){
+      var p=pBy(it.pid), key;
       if(pMode==='grp'){
         key=(p&&p.gid&&grpName(p.gid))?grpName(p.gid):'未分組';
       } else {
@@ -8280,25 +8298,59 @@ function renderPie(){
         key=c?c.name:'未知';
         if(c&&!(key in colorOf))colorOf[key]=(BC[c.color]||BC.gray).text;
       }
-      if(!agg[key])agg[key]=0;
-      agg[key]+=pieData[pid];
+      if(!agg[key])agg[key]={v:0,h:0};
+      agg[key].v+=it.v; agg[key].h+=it.h;
     });
-    var aggEntries=Object.keys(agg).map(k=>({k:k,hrs:agg[k]})).filter(e=>e.hrs>0).sort((a,b)=>b.hrs-a.hrs);
-    pk=aggEntries.map(e=>e.k); pd=aggEntries.map(e=>Math.round(e.hrs*100)/100);
+    var aggEntries=Object.keys(agg).map(k=>({k:k,v:agg[k].v,h:agg[k].h})).sort((a,b)=>b.v-a.v);
+    pk=aggEntries.map(e=>e.k); pd=aggEntries.map(e=>Math.round(e.v*100)/100); ph=aggEntries.map(e=>e.h);
     pc=pMode==='cat'?pk.map((k,i)=>colorOf[k]||basePc[i%basePc.length]):pk.map((k,i)=>basePc[i%basePc.length]);
   }
   var pieTotal=pd.reduce(function(s,v){return s+v;},0);
   var piePct=function(v){return pieTotal>0?Math.round(v/pieTotal*1000)/10:0;};
-  // 更新模式切換按鈕狀態（solo 模式隱藏群組選項）
+  var fmtV=metric==='val'?function(v){return fmtMoney(v,'TWD');}:formatHrs;
+  // 更新標題與切換按鈕狀態（solo 模式隱藏群組選項）
+  var tt=document.getElementById('pie-title'); if(tt)tt.textContent=metric==='val'?'專案產值分佈':'專案時間分佈';
   ['task','grp','cat'].forEach(function(k){
     var b=document.getElementById('pie-mode-'+k); if(!b)return;
     b.classList.toggle('active',k===pMode);
   });
+  ['val','hrs'].forEach(function(k){
+    var b=document.getElementById('pie-met-'+k); if(!b)return;
+    b.classList.toggle('active',k===metric);
+  });
+  // 自製 HTML 提示框：Chart.js 內建提示框畫在 canvas 內，名稱一長就被裁切；這個可換行、不受畫布限制
+  function pieTip(ctx){
+    var el=document.getElementById('pie-tip');
+    if(!el){
+      el=document.createElement('div'); el.id='pie-tip';
+      el.style.cssText='position:fixed;z-index:9999;display:none;pointer-events:none;max-width:300px;padding:8px 10px;border-radius:8px;background:rgba(2,6,23,.96);border:1px solid #1e293b;color:#e2e8f0;font-size:12px;line-height:1.5;box-shadow:0 6px 20px rgba(0,0,0,.5);';
+      document.body.appendChild(el);
+    }
+    var tt=ctx.tooltip;
+    if(!tt||tt.opacity===0||!tt.dataPoints||!tt.dataPoints.length){el.style.display='none';return;}
+    var i=tt.dataPoints[0].dataIndex;
+    var head='<div style="display:flex;align-items:flex-start;gap:6px;font-weight:600;word-break:break-all;white-space:normal"><span style="flex-shrink:0;width:9px;height:9px;margin-top:4px;border-radius:2px;background:'+pc[i%pc.length]+'"></span><span>'+esc(pk[i])+'</span></div>';
+    var l1=metric==='val'
+      ?'<div style="margin-top:4px">產值 <b>'+fmtV(pd[i])+'</b> <span style="color:#94a3b8">· '+piePct(pd[i])+'%</span></div><div style="color:#94a3b8">工時 '+formatHrs(ph[i])+'</div>'
+      :'<div style="margin-top:4px">工時 <b>'+formatHrs(pd[i])+'</b> <span style="color:#94a3b8">· '+piePct(pd[i])+'%</span></div>';
+    el.innerHTML=head+l1;
+    el.style.display='block';
+    var r=ctx.chart.canvas.getBoundingClientRect();
+    var x=r.left+tt.caretX, y=r.top+tt.caretY, w=el.offsetWidth, h=el.offsetHeight;
+    var left=x+14, top=y+14;
+    if(left+w>window.innerWidth-8) left=Math.max(8,x-14-w);
+    if(top+h>window.innerHeight-8) top=Math.max(8,y-14-h);
+    el.style.left=left+'px'; el.style.top=top+'px';
+  }
   if(CH.pie)CH.pie.destroy();
   if(pd.length>0){
-    CH.pie=new Chart(document.getElementById('c-pie'),{type:'doughnut',data:{labels:pk,datasets:[{data:pd,backgroundColor:pc,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.label+': '+formatHrs(ctx.raw)+' ('+piePct(ctx.raw)+'%)'}}},cutout:'65%'}});
+    CH.pie=new Chart(document.getElementById('c-pie'),{type:'doughnut',data:{labels:pk,datasets:[{data:pd,backgroundColor:pc,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{enabled:false,external:pieTip}},cutout:'65%'}});
   }
-  document.getElementById('pie-leg').innerHTML=pk.length?pk.map((k,i)=>'<div class="flex items-center justify-between"><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full flex-shrink-0" style="background:'+pc[i%pc.length]+'"></span><span class="truncate w-40" title="'+esc(k)+'">'+esc(k)+'</span></div><span class="font-mono text-slate-300">'+formatHrs(pd[i])+' <span class="text-slate-600 text-[10px]">'+piePct(pd[i])+'%</span></span></div>').join(''):'<div class="text-center text-slate-600 py-2">無工時資料</div>';
+  var leg=document.getElementById('pie-leg');
+  leg.innerHTML=pk.length?pk.map((k,i)=>'<div class="flex items-center justify-between"><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full flex-shrink-0" style="background:'+pc[i%pc.length]+'"></span><span class="truncate w-40" title="'+esc(k)+'">'+esc(k)+'</span></div><span class="font-mono text-slate-300">'+fmtV(pd[i])+' <span class="text-slate-600 text-[10px]">'+(metric==='val'?formatHrs(ph[i])+' · ':'')+piePct(pd[i])+'%</span></span></div>').join(''):'<div class="text-center text-slate-600 py-2">'+(metric==='val'?'無產值資料':'無工時資料')+'</div>';
+  if(metric==='val'&&skipH>0&&pk.length){
+    leg.innerHTML+='<div class="text-[10px] text-slate-600 mt-1">不含無償、外包零產值或未填報價的任務（共 '+formatHrs(skipH)+'，產值計 0）</div>';
+  }
 }
 
 // 可排序面板的標準順序（與 HTML 預設一致）
