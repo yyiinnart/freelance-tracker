@@ -2468,17 +2468,17 @@ function showValDetail(){
       +d.missing.map(function(it){return row(it,formatHrs(it.hrs)+' · '+it.reason);}).join('')+'</div>';
   }
   if(d.est.length){
-    html+='<div class="text-xs font-semibold text-slate-400 mb-1.5 flex items-center">進行中任務的估算認列'+(d.mon?infoTip('完工比例法優先，未填預估工時者採快照分攤'):'')+'</div>';
+    html+='<div class="text-xs font-semibold text-slate-400 mb-1.5 flex items-center">進行中任務的暫估分攤'+(d.mon?infoTip('按最新工時分攤，進行中以預估與實際工時取較大值'):'')+'</div>';
     html+='<div class="rounded-lg border border-slate-800 overflow-hidden">'
       +d.est.map(function(it){return row(it,'≈ '+fmtMoney(it.amt,it.cur)+(d.mon&&it.m?' <span class="text-slate-600">('+it.m+' '+it.pct+'%)</span>':''));}).join('')+'</div>';
   }
   if(d.over&&d.over.length){
-    html+='<div class="text-xs font-semibold text-rose-400/90 mt-4 mb-1.5 flex items-center">⏱ 已超過預估工時'+infoTip('認列封頂，本期工時不再產生產值；報價或估時需檢討')+'</div>';
+    html+='<div class="text-xs font-semibold text-rose-400/90 mt-4 mb-1.5 flex items-center">⏱ 已超過預估工時'+infoTip('返修與超時會攤薄全案時薪，歷史月份同步重算；請檢討報價或估時')+'</div>';
     html+='<div class="rounded-lg border border-rose-500/20 bg-rose-500/5 overflow-hidden">'
-      +d.over.map(function(it){return row(it,formatHrs(it.hrs)+' · 進度 '+it.pct+'%');}).join('')+'</div>';
+      +d.over.map(function(it){return row(it,formatHrs(it.hrs)+' · 工時／預估 '+it.pct+'%');}).join('')+'</div>';
   }
   if(d.snap&&d.snap.length){
-    html+='<div class="text-xs font-semibold text-slate-500 mt-4 mb-1.5 flex items-center">未填預估工時'+infoTip('每月產值先按時數平均分攤：之後每登一筆新工時，過去月份的數字都會跟著重算。補填後月報數字才會固定。')+'</div>';
+    html+='<div class="text-xs font-semibold text-slate-500 mt-4 mb-1.5 flex items-center">未填預估工時'+infoTip('每月產值先按時數平均分攤：之後每登一筆新工時，過去月份的數字都會跟著重算。補填後可避免進行中案件過早分攤全部報價。')+'</div>';
     html+='<div class="rounded-lg border border-slate-800/60 overflow-hidden">'
       +d.snap.map(function(it){return row(it,formatHrs(it.hrs));}).join('')+'</div>';
   }
@@ -4012,6 +4012,8 @@ function updateProjField(id, field, value) {
   
   if (['budget', 'hrate', 'vendorCost', 'earned', 'estHrs'].indexOf(field) !== -1) {
     p[field] = parseFloat(value) || 0;
+  } else if (field === 'st') {
+    setProjectStatus(p,value);
   } else if (field === 'nonBillable') {
     p[field] = value;
   } else {
@@ -5133,7 +5135,7 @@ function editProj(id) {
     p.budget=+document.getElementById('ep-budget').value||0;p.budgetCur=document.getElementById('ep-budgetCur').value||'TWD';
     p.hrate=+document.getElementById('ep-hrate').value||0;
     
-    p.st=document.getElementById('ep-st').value;
+    setProjectStatus(p,document.getElementById('ep-st').value);
     
     if(p.nonBillable){ p.budget=0; p.hrate=0; }
     recalcProjectMoney(p, oldMoney);
@@ -5187,7 +5189,7 @@ function quickComplete(id) {
     var p = pBy(id); if(!p) return;
     if(p.st !== 'done') {
         var oldMoney = {budget:p.budget, hrate:p.hrate, earned:p.earned, bill:p.bill, st:p.st};
-        p.st = 'done';
+        setProjectStatus(p,'done');
         recalcProjectMoney(p, oldMoney);
         save(); rProj(); rGrp(); syncSel();
     }
@@ -5196,7 +5198,7 @@ function quickComplete(id) {
 function quickReopen(id) {
     var p = pBy(id); if(!p) return;
     if(p.st === 'done') {
-        p.st = 'active';
+        setProjectStatus(p,'active');
         save(); rProj(); rGrp(); syncSel();
     }
 }
@@ -5272,6 +5274,8 @@ function openDetail(id){
         </div>
 
         <div>
+          <label class="text-[10px] text-slate-500 mb-1 block">首次結案日（舊資料可補填）</label>
+          <input type="date" class="inp mb-2" value="${esc(p.completedAt||'')}" onchange="updateProjField(${id}, 'completedAt', this.value)">
           <label class="text-[10px] text-slate-500 mb-1 block">累計工時</label>
           <div class="text-base font-bold text-blue-300 leading-none">${formatHrs(p.hrs||0)}</div>
         </div>
@@ -5321,7 +5325,7 @@ function openDetail(id){
               } else {
                 var pe=(p.st==='active'&&p.edate&&selfExec)?schedProvisionalEst(p):null;
                 var provOk=pe&&pe.est>(+p.hrs||0);
-                var tip='未填預估工時的影響：1. 排程試算'+(!selfExec?'不適用（委外／轉包）':(provOk?'暫以「'+pe.src+'」'+pe.n+' 件已結案任務的實際工時中位數 '+formatHrs(pe.est)+' 排入，可能與實際落差很大':(p.edate?'無法暫估（已結案樣本不足，或已投入超過中位數），不會排進日曆':'需有截止日才能暫估，目前不參與試算')))+'；'+(p.bill!=='hourly'?'2. 每月產值只能按時數平均分攤，之後每登一筆新工時，過去月份的產值數字都會跟著重算。補填後改用完工比例法，月報數字才會固定。':'');
+                var tip='未填預估工時的影響：1. 排程試算'+(!selfExec?'不適用（委外／轉包）':(provOk?'暫以「'+pe.src+'」'+pe.n+' 件已結案任務的實際工時中位數 '+formatHrs(pe.est)+' 排入，可能與實際落差很大':(p.edate?'無法暫估（已結案樣本不足，或已投入超過中位數），不會排進日曆':'需有截止日才能暫估，目前不參與試算')))+'；'+(p.bill!=='hourly'?'2. 每月產值只能按時數平均分攤，之後每登一筆新工時，過去月份的產值數字都會跟著重算。補填後以預估與實際工時取較大值暫估，歷史仍會隨超時重算。':'');
                 estNote = `<span class="text-[10px] text-red-400/90 ml-1 cursor-help" title="${esc(tip)}">⚠ 尚未填寫${provOk?'（排程暫估 ≈'+formatHrs(pe.est)+'）':''} ⓘ</span>`;
               }
               out += `<div class="text-slate-500">預估工時</div>
@@ -5562,7 +5566,7 @@ ${dayLogs.map(l => `
         <div class="flex items-center gap-3 min-w-0">
             <span class="text-blue-300 font-mono text-xs w-10 text-right flex-shrink-0">${formatHrs(l.hrs)}</span>
             ${l.ms ? `<span class="text-[10px] text-violet-300/90 bg-violet-950/30 border border-violet-900/40 rounded px-1.5 py-0.5 flex-shrink-0">◇ ${esc(l.ms)}</span>` : ''}
-            <span class="text-slate-500 text-xs truncate">${esc(l.note || '計時器自動記錄')}</span>
+            <span class="text-slate-500 text-xs truncate">${reworkLabel(l)+esc(l.note || '計時器自動記錄')}</span>
         </div>
         <div class="flex items-center gap-1.5 flex-shrink-0">
             <button class="text-blue-400 hover:text-blue-300 px-1" onclick="editLog(${l.id},${id})">✎</button>
@@ -5895,6 +5899,7 @@ function addLogManual(pid){
   var html=`<div class="flex flex-col gap-3">
     <div><label class="text-xs text-slate-500 block mb-1">日期</label><input id="ml-date" type="date" class="inp" value="${today}"></div>
     <div><label class="text-xs text-slate-500 block mb-1">時數</label>${hmField('ml', 1)}</div>
+    ${reworkField('ml','')}
     ${msField}
     <div><label class="text-xs text-slate-500 block mb-1">備註</label><input id="ml-note" type="text" class="inp" placeholder="例如：漏登工時、外部會議..."></div>
   </div>`;
@@ -5909,6 +5914,7 @@ function addLogManual(pid){
       pid: pid, 
       hrs: newHrs, 
       note: document.getElementById('ml-note').value.trim(),
+      workKind: document.getElementById('ml-work').value,
       ms: msEl ? (msEl.value || null) : null
     });
     
@@ -5929,6 +5935,7 @@ function editLog(logId,pid){
   var html=`<div class="flex flex-col gap-3">
     <div><label class="text-xs text-slate-500 block mb-1">日期</label><input id="el-date" type="date" class="inp" value="${log.date}"></div>
     <div><label class="text-xs text-slate-500 block mb-1">時數</label>${hmField('el', log.hrs)}</div>
+    ${reworkField('el',log.workKind||'')}
     ${msField}
     <div><label class="text-xs text-slate-500 block mb-1">備註</label><input id="el-note" type="text" class="inp" value="${esc(log.note||'')}"></div>
   </div>`;
@@ -5937,6 +5944,7 @@ function editLog(logId,pid){
     log.date=document.getElementById('el-date').value||log.date;
     log.hrs=newHrs;
     log.note=document.getElementById('el-note').value.trim();
+    log.workKind=document.getElementById('el-work').value;
     var msEl=document.getElementById('el-ms');
     if(msEl) log.ms = msEl.value || null;
     
@@ -5967,7 +5975,8 @@ function compressLogs(pid) {
     
     // 以下為使用者點擊「確認執行」後才會跑的壓縮邏輯
     var byDate = {};
-    logs.forEach(l => {
+    logs.forEach(source => {
+      var l=Object.assign({},source,{date:source.date+'|'+(source.workKind||'')});
       if(!byDate[l.date]) byDate[l.date] = { hrs: 0, notes: [], ms: l.ms||null, msNorm: normPhase(l.ms||''), msMixed: false };
       byDate[l.date].hrs += l.hrs;
       // 階段一致才保留；同日不同階段標記（正規化後）則視為混合，壓平後清空
@@ -5983,7 +5992,8 @@ function compressLogs(pid) {
       var finalNote = byDate[d].notes.length ? byDate[d].notes.join(' / ') : '計時器自動記錄';
       DLOGS.push({ 
         id: nextNumId(), 
-        date: d, 
+        date: d.split('|')[0],
+          workKind: d.split('|')[1]||'',
         pid: pid, 
         hrs: Math.round(byDate[d].hrs * 100) / 100, 
         note: finalNote,
@@ -6007,7 +6017,7 @@ function compressAllLogs() {
   }
   var keyCount = {};
   DLOGS.forEach(l => {
-    var k = l.pid + '|' + l.date;
+    var k = l.pid + '|' + l.date + '|' + (l.workKind||'');
     keyCount[k] = (keyCount[k] || 0) + 1;
   });
   var afterCount = Object.keys(keyCount).length;
@@ -6023,7 +6033,8 @@ function compressAllLogs() {
           + '<span class="text-rose-400">⚠️ 注意：此動作無法復原，個別計時紀錄將被合併為單日總和。</span>';
   openModal('批量壓平所有工時', msg, function() {
     var byPid = {};
-    DLOGS.forEach(l => {
+    DLOGS.forEach(source => {
+      var l=Object.assign({},source,{date:source.date+'|'+(source.workKind||'')});
       if(!byPid[l.pid]) byPid[l.pid] = {};
       var d = byPid[l.pid];
       if(!d[l.date]) d[l.date] = { hrs: 0, notes: [], ms: l.ms||null, msNorm: normPhase(l.ms||''), msMixed: false };
@@ -6041,7 +6052,8 @@ function compressAllLogs() {
         var finalNote = byDate[d].notes.length ? byDate[d].notes.join(' / ') : '計時器自動記錄';
         newLogs.push({
           id: nextNumId(),
-          date: d,
+          date: d.split('|')[0],
+        workKind: d.split('|')[1]||'',
           pid: isNaN(pid) ? pid : Number(pid),
           hrs: Math.round(byDate[d].hrs * 100) / 100,
           note: finalNote,
@@ -6521,101 +6533,87 @@ function toggleDoneProj(){
   if(lbl) lbl.textContent=cur?'收合 ▴':'展開 ▾';
 }
 
-/* ===== 產值認列共用引擎 =====
-   「收付款」分頁與「分析匯出」共用這一套演算法，只差在口徑：
-   ・分析匯出（經營評估視角）＝ rec（含估算）＝ conf + est
-   ・收付款（保守對帳視角）＝ conf（僅已確認金額）
-   → 兩面板同月差額恆等於估算部分（estMap），可互相驗算。
-   認列規則（依優先序）：
-   1. 時薪制：本期工時 × 時薪（天然正確）。
-   2. 論件＋有填預估工時 → 完工比例法：累計認列 = 總值 × min(1, 累計工時÷預估工時)，
-      本期認列 = 期末累計 − 期初累計。已認列的歷史月份不會回溯變動；
-      超過預估工時後認列封頂，本期工時不再增加產值（超時警報）；
-      已完成任務在最後活動月補認列剩餘差額，確保總和 = 總值。
-   3. 論件＋未填預估工時 → 快照分攤：總值 × (本期工時 ÷ 至今累計工時)，
-      會隨後續進度回溯變動（次級算法，入口有提醒補填）。
-   已確認/估算拆分：各月認列額按「已確認金額 ÷ 任務總值」的比例拆成 conf 與 est。 */
+/* ===== 按最新工時分攤產值：各頁與匯出共用 =====
+   已結案（含重開）：確認總額按全案實際工時分攤。
+   進行中：分母取 max(預估工時, 實際工時)，未填預估則按實際工時暫估。
+   全部期間等於各月合計；零工時案件尚未產生工作產值。
+   確認金額不是實收；新增返修會重算歷史月份，但不改合約與金流。 */
+function valueBasis(p, totalHours){
+  var h=Math.max(0,+totalHours||0), completed=p.st==='done'||!!p.completedAt||!!p.hasCompleted;
+  var confirmed=Math.max(0,+p.earned||0);
+  var total=completed&&confirmed>0?confirmed:Math.max(confirmed,+p.budget||0);
+  var base=completed?h:Math.max(h,+p.estHrs||0);
+  return {total:total,confirmed:Math.min(total,confirmed),base:base,completed:completed};
+}
 function calcValRec(mon){
   var recMap={TWD:0,USD:0,CNY:0,JPY:0}, estMap={TWD:0,USD:0,CNY:0,JPY:0}, confMap={TWD:0,USD:0,CNY:0,JPY:0};
-  var byPid={};
-  var detail={mon:mon||'',est:[],missing:[],zeroOut:[],snap:[],over:[]};
-  // 任務估算總值：時薪制＝工時×時薪；論件＝已確認 earned 與報價 budget 取大（進行中以報價估算）
-  var taskEstTotal=function(p){
-    if(p.nonBillable) return 0;
-    if(p.bill==='hourly') return Math.round((p.hrs||0)*(p.hrate||0)*100)/100;
-    return Math.max(p.earned||0, p.budget||0);
-  };
-  var monH={},cumBefore={},totH={},lastMon={};
+  var byPid={}, detail={mon:mon||'',est:[],missing:[],zeroOut:[],snap:[],over:[]};
+  var monH={},totH={};
   DLOGS.forEach(function(l){
-    totH[l.pid]=(totH[l.pid]||0)+l.hrs;
-    var m=l.date.slice(0,7);
-    if(!lastMon[l.pid]||m>lastMon[l.pid])lastMon[l.pid]=m;
-    if(mon){
-      if(m===mon)monH[l.pid]=(monH[l.pid]||0)+l.hrs;
-      else if(m<mon)cumBefore[l.pid]=(cumBefore[l.pid]||0)+l.hrs;
-    }
+    var h=Math.max(0,+l.hrs||0);
+    totH[l.pid]=(totH[l.pid]||0)+h;
+    if(mon&&(l.date||'').slice(0,7)===mon) monH[l.pid]=(monH[l.pid]||0)+h;
   });
   PJ.forEach(function(p){
     if(p.nonBillable)return;
-    var mh=mon?(monH[p.id]||0):0;
-    var estT=taskEstTotal(p);
-    var scopeH=mon?mh:(totH[p.id]||p.hrs||0);
-    if(mon){ if(mh<=0)return; } else { if(scopeH<=0&&estT<=0)return; }
-    var conf=(p.bill==='hourly')?estT:(p.earned||0);
+    var totalHours=totH[p.id]||0, scopeH=mon?(monH[p.id]||0):totalHours;
+    if(scopeH<=0)return;
+    var hourly=p.bill==='hourly', basis=valueBasis(p,totalHours);
+    var total=hourly?totalHours*Math.max(0,+p.hrate||0):basis.total;
     var cur=p.budgetCur||'TWD';
-    var row={pid:p.id,name:p.name,cur:cur,isPiece:p.bill!=='hourly',hrs:scopeH,
-             totHrs:totH[p.id]||p.hrs||0,earned:p.earned||0,budget:p.budget||0,
-             hrate:p.hrate||0,rec:0,conf:0,est:0,method:'',compPct:null,missing:false};
-    if(estT<=0){
-      // 外包／轉包任務的 0 報價可能是刻意無毛利，不當作漏填，另列資訊區
+    var row={pid:p.id,name:p.name,cur:cur,isPiece:!hourly,hrs:scopeH,
+      totHrs:totalHours,earned:p.earned||0,budget:p.budget||0,hrate:p.hrate||0,
+      rec:0,conf:0,est:0,method:hourly?'計時':(basis.completed?'實際分攤':'暫估分攤'),
+      compPct:null,missing:false};
+    if(total<=0){
       if(p.execMode&&p.execMode!=='self'){
         detail.zeroOut.push({id:p.id,name:p.name,hrs:scopeH,mode:p.execMode==='resell'?'轉包':'外包'});
-      } else {
-        detail.missing.push({id:p.id,name:p.name,hrs:scopeH,reason:p.bill==='hourly'?'未填時薪':'未填報價'});
+      }else{
         row.missing=true;
-        byPid[p.id]=row;
+        detail.missing.push({id:p.id,name:p.name,hrs:scopeH,reason:hourly?'未填時薪':'未填報價'});
       }
-      return;
+    }else{
+      row.rec=hourly?scopeH*Math.max(0,+p.hrate||0):total*scopeH/basis.base;
+      row.conf=hourly?row.rec:row.rec*(basis.confirmed/total);
+      row.est=Math.max(0,row.rec-row.conf);
+      if(!hourly){
+        row.compPct=Math.round(totalHours/basis.base*100);
+        if(p.estHrs>0&&totalHours>p.estHrs)
+          detail.over.push({id:p.id,name:p.name,hrs:scopeH,pct:Math.round(totalHours/p.estHrs*100)});
+        if(!basis.completed&&!(p.estHrs>0)) detail.snap.push({id:p.id,name:p.name,hrs:scopeH});
+      }
+      if(row.est>=1) detail.est.push({id:p.id,name:p.name,hrs:scopeH,cur:cur,amt:Math.round(row.est),pct:row.compPct,m:row.method});
     }
-    var rec, method='', compPct=null;
-    if(!mon){
-      rec=estT;
-    } else if(p.bill==='hourly'){
-      rec=mh*(p.hrate||0);
-    } else if((p.estHrs||0)>0){
-      var E=p.estHrs, cb=cumBefore[p.id]||0, ct=cb+mh;
-      if(p.st==='done'&&lastMon[p.id]===mon){
-        rec=estT*(1-Math.min(1,cb/E)); // 完成月補認列剩餘
-      } else {
-        rec=estT*(Math.min(1,ct/E)-Math.min(1,cb/E));
-      }
-      method='完工'; compPct=Math.min(100,Math.round(ct/E*100));
-      if(p.st!=='done'&&cb>=E&&mh>0){
-        detail.over.push({id:p.id,name:p.name,hrs:mh,pct:Math.round(ct/E*100)});
-      }
-    } else {
-      var tot=totH[p.id]||scopeH;
-      rec=estT*(mh/tot); method='快照';
-      if(p.st!=='done'){
-        detail.snap.push({id:p.id,name:p.name,hrs:mh});
-      }
-    }
-    var confPortion=(conf>=estT)?rec:rec*(conf/estT);
-    var estPortion=Math.max(0,rec-confPortion);
-    recMap[cur]=(recMap[cur]||0)+rec;
-    confMap[cur]=(confMap[cur]||0)+confPortion;
-    estMap[cur]=(estMap[cur]||0)+estPortion;
-    row.rec=rec; row.conf=confPortion; row.est=estPortion;
-    row.method=method; row.compPct=compPct;
     byPid[p.id]=row;
-    if(estPortion>=1){
-      detail.est.push({id:p.id,name:p.name,hrs:scopeH,cur:cur,amt:Math.round(estPortion),pct:compPct!==null?compPct:Math.round((mon?(mh/(totH[p.id]||mh)):1)*100),m:method});
-    }
+    recMap[cur]=(recMap[cur]||0)+row.rec;
+    confMap[cur]=(confMap[cur]||0)+row.conf;
+    estMap[cur]=(estMap[cur]||0)+row.est;
   });
   ['est','missing','zeroOut','snap','over'].forEach(function(k){
     detail[k].sort(function(a,b){return (b.amt||b.hrs)-(a.amt||a.hrs);});
   });
   return {recMap:recMap,confMap:confMap,estMap:estMap,byPid:byPid,detail:detail};
+}
+function valueBreakdown(vr){
+  return '<div class="text-[10px] text-slate-500 mt-1 font-normal leading-tight">已確認 '+formatMultiCurMap(vr.confMap)
+    +' · 暫估 '+formatMultiCurMap(vr.estMap)+'<br>依最新累計工時重算；返修會調整歷史月份</div>';
+}
+function setProjectStatus(p, status){
+  if(p.st!==status){
+    if(status==='done'&&!p.completedAt&&!p.hasCompleted) p.completedAt=toLocalDate();
+    if(p.st==='done'||status==='done') p.hasCompleted=true;
+    (p.statusHistory||(p.statusHistory=[])).push({from:p.st,to:status,date:toLocalDate()});
+    p.st=status;
+  }
+}
+function reworkField(prefix, value){
+  return '<div><label class="text-xs text-slate-500 block mb-1">工時性質</label><select id="'+prefix+'-work" class="inp">'
+    +[['','一般工作／未分類'],['unpaid','無償返修'],['paid','有償返修']].map(function(x){
+      return '<option value="'+x[0]+'"'+(value===x[0]?' selected':'')+'>'+x[1]+'</option>';
+    }).join('')+'</select><p class="text-[10px] text-slate-500 mt-1">標記不會自動改價；有償追加請更新合約金額，或另開後續任務。</p></div>';
+}
+function reworkLabel(l){
+  return l.workKind==='unpaid'?'［無償返修］':l.workKind==='paid'?'［有償返修］':'';
 }
 
 function rPay(){
@@ -6737,21 +6735,17 @@ function rPay(){
   var recvMap={TWD:0,USD:0,CNY:0,JPY:0}; incomes.forEach(p=>recvMap[p.cur]+=p.amt);
   var expMap={TWD:0,USD:0,CNY:0,JPY:0}; expenses.forEach(p=>expMap[p.cur]+=p.amt);
   
-  // ===== 產值：與「分析匯出」共用 calcValRec 認列引擎（完工比例法優先） =====
-  // 口徑差異刻意保留：本頁只加總「已確認」(conf)＝保守對帳視角；
-  // 分析匯出另含估算 (est)＝經營評估視角。因為分攤法已統一，
-  // 同月兩頁差額恆等於估算金額，卡片下方會直接標示 +估算 NT$X。
+  // ===== 產值：與「分析匯出」共用 calcValRec 分攤引擎 =====
   var VR=calcValRec(selMonth||'');
-  var prodMap=VR.confMap;
+  var prodMap=VR.recMap;
   var prodEstTWD=Object.keys(VR.estMap).reduce(function(s,k){return s+toTWD(VR.estMap[k],k);},0);
-  // 依已確認產值（換算 TWD）由大到小：最有貢獻的案子在上、低效率的容易對照
-  // conf=0 的計件案排序時沉到底，但因為有工時仍會顯示，產值欄以灰字「預期 X」呈現
+  // 依分攤產值（換算 TWD）由大到小：最有貢獻的案子在上、低效率的容易對照
   var prodRows=Object.keys(VR.byPid).map(function(k){return VR.byPid[k];})
-                 .sort(function(a,b){return toTWD(b.conf,b.cur)-toTWD(a.conf,a.cur);});
+                 .sort(function(a,b){return toTWD(b.rec,b.cur)-toTWD(a.rec,a.cur);});
   
   var recvLabel=selMonth?selMonth+' 收款':'歷史收款合計';
   var expLabel=selMonth?selMonth+' 付款':'歷史付款合計';
-  var prodLabel=selMonth?selMonth+' 產值':'歷史產值合計';
+  var prodLabel=selMonth?selMonth+' 分攤產值（含暫估）':'歷史分攤產值（含暫估）';
   // 收款／產值卡片化身切換鍵：點擊即切換下方明細表，active 卡片高亮、inactive 卡片低調
   // 付款卡片屬於金流，點擊歸到「收付款」視圖
   var cardBox=function(view,l,v,rgb){
@@ -6766,10 +6760,7 @@ function rPay(){
       '<p class="text-xs text-slate-500 mb-1">'+dot+l+'</p>'+
       '<div class="text-lg font-semibold text-white leading-tight">'+v+'</div></div>';
   };
-  // 產值卡片小字：明示口徑（僅計已確認），並直接顯示與分析匯出的差額（估算部分）
-  var prodCapNote = prodEstTWD>=1
-    ? '<p class="text-[10px] text-slate-500 mt-1 font-normal leading-tight">僅計已確認 · +估算 NT$ '+Math.round(prodEstTWD).toLocaleString()+' 見分析匯出</p>'
-    : '<p class="text-[10px] text-slate-600 mt-1 font-normal leading-tight">僅計已確認金額</p>';
+  var prodCapNote = valueBreakdown(VR);
   st.innerHTML=cardBox('flow',recvLabel,formatMultiCurMap(recvMap),'52,211,153')
     +cardBox('prod',prodLabel,formatMultiCurMap(prodMap)+prodCapNote,'96,165,250')
     +(expenses.length?'<div class="rounded-lg border border-slate-800 bg-slate-900 px-4 py-3 cursor-pointer transition-colors" style="background:#0f172a" onclick="setPayView(\'flow\')"><p class="text-xs text-slate-500 mb-1">'+expLabel+'</p><div class="text-lg font-semibold text-amber-400 leading-tight">'+formatMultiCurMap(expMap,true)+'</div></div>':'');
@@ -6795,29 +6786,15 @@ function rPay(){
         var billBdg = r.isPiece
           ? '<span class="badge bg-purple-950/50 text-purple-300 border border-purple-900/50">計件</span>'
           : '<span class="badge bg-sky-950/50 text-sky-300 border border-sky-900/50">計時</span>';
-        // 計件案尚未確認任何金額(earned<=0)但已有工時 → 時薪欄與產值欄改灰字提示
-        //（不可一鍵認列，避免破壞跨月分攤；正途是按「完成」。估算值已列入分析匯出）
-        var pending = r.isPiece && (r.earned||0)<=0 && !r.missing;
         var rateCell, valCell;
         if(r.missing){
           rateCell = '<span class="text-slate-600 text-xs">'+(r.isPiece?'未填報價':'未填時薪')+'</span>';
           valCell = '<span class="text-slate-500 italic">—</span>';
-        } else if(pending){
-          rateCell = '<span class="text-slate-600 text-xs">尚未回報進度</span>';
-          var expTxt = (r.budget||0)>0 ? '預期 '+fmtMoney(r.budget,r.cur) : '未填合約額';
-          valCell = '<span class="text-slate-500 italic">'+expTxt+'</span>'
-            +((r.est||0)>=1?'<div class="text-[10px] text-slate-600">估算已列入分析匯出</div>':'');
         } else {
-          // 計件：顯示本期等效時薪與認列法（完工比例／快照分攤）
-          var eff = r.hrs>0 ? Math.round((r.conf/r.hrs)*100)/100 : 0;
-          var mLbl = r.method==='完工'
-            ? '完工比例 '+(r.compPct!==null?r.compPct+'%':'')
-            : (r.method==='快照' ? '快照分攤' : fmtMoney(r.earned,r.cur)+' ÷ '+formatHrs(r.totHrs));
-          rateCell = r.isPiece
-            ? '<span class="text-slate-300">'+fmtMoney(eff,r.cur)+'</span><div class="text-[10px] text-slate-500">'+mLbl+'</div>'
-            : '<span class="text-slate-300">'+fmtMoney(r.hrate,r.cur)+'</span>';
-          valCell = '<span class="font-medium text-emerald-400">'+fmtMoney(Math.round(r.conf),r.cur)+'</span>'
-            +((r.est||0)>=1?'<div class="text-[10px] text-slate-600">+估算 '+fmtMoney(Math.round(r.est),r.cur)+'</div>':'');
+          var eff=r.hrs>0?r.rec/r.hrs:0;
+          rateCell='<span class="text-slate-300">'+fmtMoney(eff,r.cur)+'</span><div class="text-[10px] text-slate-500">'+r.method+'</div>';
+          valCell='<span class="font-medium text-emerald-400">'+fmtMoney(Math.round(r.rec),r.cur)+'</span>'
+            +'<div class="text-[10px] text-slate-500">已確認 '+fmtMoney(r.conf,r.cur)+' · 暫估 '+fmtMoney(r.est,r.cur)+'</div>';
         }
         return `<tr class="cursor-pointer hover:bg-slate-800/30" onclick="openDetail(${r.pid})">`+
           `<td class="font-medium text-slate-300">${esc(r.name)}</td>`+
@@ -8097,13 +8074,11 @@ function renderDash(){
   var hrsLabel=formatHrs(tH)+(otherH>0?' <span class="text-slate-500 text-sm font-normal">+ 其他 '+formatHrs(otherH)+'</span>':'');
   
   // ===== 產值認列：與「收付款」分頁共用 calcValRec 引擎（規則詳見該函式註解）=====
-  // 口徑：本面板加總 rec（含估算）＝經營評估視角；收付款只加總 conf（已確認）。
-  // 同月兩面板差額恆等於 estMap（估算部分），可互相驗算。
   var VR=calcValRec(mon);
   var eMap=VR.recMap, estMap=VR.estMap;
   var rMap={TWD:0,USD:0,CNY:0,JPY:0};
   DASH_VAL_DETAIL=VR.detail;
-  Object.keys(eMap).forEach(function(k){eMap[k]=Math.round(eMap[k]);estMap[k]=Math.round(estMap[k]);});
+  // 保留精度直到顯示；各頁及匯出共用原始數值。
   fp.forEach(p=>{if((p.payType||'income')==='income') rMap[p.cur]+=p.amt;});
   var arMap=totalARMap();
 
@@ -8116,7 +8091,7 @@ function renderDash(){
   var estTWD=Object.keys(estMap).reduce(function(s,k){return s+toTWD(estMap[k],k);},0);
   var estNote=estTWD>0?'<button type="button" class="block text-[10px] text-slate-500 hover:text-blue-400 font-normal mt-1 underline decoration-dotted underline-offset-2 transition-colors" onclick="showValDetail()" title="點擊查看是哪些任務構成估算">其中估算 NT$ '+Math.round(estTWD).toLocaleString()+' →</button>':'';
   var missNote=DASH_VAL_DETAIL.missing.length>0?'<button type="button" class="block text-[10px] text-amber-500/80 hover:text-amber-400 font-normal mt-0.5 underline decoration-dotted underline-offset-2 transition-colors" onclick="showValDetail()" title="這些任務有工時但沒有報價／時薪，產值計為 0，會拉低平均時薪">⚠ '+DASH_VAL_DETAIL.missing.length+' 個任務有工時但未填報價 →</button>':'';
-  document.getElementById('dash-stats').innerHTML=sc((mon?mon+' ':'歷史')+'總產值'+(estTWD>0?'（含估算）':''),formatMultiCurMap(eMap)+estNote+missNote)+sc('計費工時',formatHrs(tH))+sc('平均時薪 (NT$)'+(estTWD>0?'（估）':''), (function(){
+  document.getElementById('dash-stats').innerHTML=sc((mon?mon+' ':'歷史')+'分攤產值（含暫估）',formatMultiCurMap(eMap)+valueBreakdown(VR)+estNote+missNote)+sc('計費工時',formatHrs(tH))+sc('平均時薪 (NT$)'+(estTWD>0?'（估）':''), (function(){
     var billHrs=tH; // 已是篩選後計費工時
     var earnedTWD2=totalEarnedTWD;
     if(billHrs<=0)return '<span class="text-slate-500">-</span>';
@@ -8590,7 +8565,7 @@ function renderDailyTimeline(){
           return '<div class=\"daily-row\">'+
             '<span class=\"text-blue-300 font-mono text-sm w-14 text-right flex-shrink-0\">'+formatHrs(l.hrs)+'</span>'+
             '<span class=\"text-slate-300 text-sm font-medium flex-shrink-0 max-w-[140px] truncate\" title=\"'+esc(pn)+'\">'+esc(pn)+'</span>'+
-            '<span class=\"text-slate-500 text-xs flex-1 truncate\">'+(l.note?esc(l.note):'')+'</span>'+
+            '<span class=\"text-slate-500 text-xs flex-1 truncate\">'+(reworkLabel(l)+(l.note?esc(l.note):''))+'</span>'+
             '<button class=\"text-blue-400 hover:text-blue-300 text-[10px] flex-shrink-0 px-1\" onclick=\"editLogFromDash('+l.id+')\" title=\"編輯\">✎</button>'+
             '<button class=\"text-red-400 hover:text-red-300 text-[10px] flex-shrink-0 px-1\" onclick=\"delLogFromDash('+l.id+')\" title=\"刪除\">✕</button>'+
           '</div>';
@@ -8611,6 +8586,7 @@ function editLogFromDash(logId){
   var html=`<div class=\"flex flex-col gap-3\">
     <div><label class=\"text-xs text-slate-500 block mb-1\">日期</label><input id=\"el-date\" type=\"date\" class=\"inp\" value=\"${log.date}\"></div>
     <div><label class=\"text-xs text-slate-500 block mb-1\">時數</label>${hmField('el', log.hrs)}</div>
+    ${reworkField('el',log.workKind||'')}
     <div><label class=\"text-xs text-slate-500 block mb-1\">備註</label><input id=\"el-note\" type=\"text\" class=\"inp\" value=\"${esc(log.note||'')}\"></div>
   </div>`;
   openModal('編輯工時紀錄',html,function(){
@@ -8618,6 +8594,7 @@ function editLogFromDash(logId){
     log.date=document.getElementById('el-date').value||log.date;
     log.hrs=newHrs;
     log.note=document.getElementById('el-note').value.trim();
+    log.workKind=document.getElementById('el-work').value;
     
     syncProjectHrs(log.pid);
     save();rProj();rGrp();renderDash();
@@ -9234,7 +9211,9 @@ aixCollect.profit = function(){
   var now = toLocalDate(), cutoff = aixCutoff(12), target = getGlobalRate(), last = aixLastLogMap();
   var inWin = PJ.filter(function(p){
     if(p.st !== 'done') return false;
-    var a = [last[p.id] || '', p.edate || ''].sort().pop();
+    // Known completion dates do not move when rework is logged.
+    // Legacy records retain the existing activity-date fallback.
+    var a = p.completedAt || [last[p.id] || '', p.edate || ''].sort().pop();
     return a && a >= cutoff;
   });
   var items = [], unpriced = [], nbList = [];
@@ -11258,8 +11237,13 @@ function schedUnitRate(pid, extra){
   if(p.bill === 'hourly') return (p.hrate||0) > 0 ? toTWD(p.hrate, p.budgetCur||'TWD') : 0;
   if((p.budget||0) > 0){
     // 分母優先用總預估工時；沒填預估（多為已結案任務）退而用實際總工時
-    var base = (p.estHrs||0) > 0 ? p.estHrs : (SCHED_EFF_EST[pid] || p.hrs || 0);
-    if(base > 0) return toTWD(p.budget, p.budgetCur||'TWD') / base;
+    var actual=DLOGS.filter(function(l){return l.pid===pid;}).reduce(function(s,l){return s+(+l.hrs||0);},0);
+    var basis=valueBasis(p,actual);
+    if(basis.completed) return 0; // 已結案總額已分攤完；返修不重複預估收入。
+    var base=Math.max(basis.base,SCHED_EFF_EST[pid]||0);
+    var allocated=basis.base>0?basis.total*actual/basis.base:0;
+    var remaining=Math.max(0,basis.total-allocated);
+    if(base>actual) return toTWD(remaining,p.budgetCur||'TWD')/(base-actual);
   }
   return 0;
 }
@@ -11705,34 +11689,11 @@ function renderSched(){
       var ymNext = toLocalDate(new Date(_t.getFullYear(), _t.getMonth()+1, 1)).slice(0,7);
       function mLab(ym){ return parseInt(ym.slice(5,7),10) + '月'; }
 
-      // ---- 本月已投入產值：依工時紀錄歸屬當月，與剩餘排定同一套等效時薪 ----
-      // 計件/計價制設瀑布式上限：本月可計價工時 = min(本月工時, 總預估 − 前期累計工時)，
-      // 超出預估的趕工時數產值以 0 計，避免灌爆合約額（與排程引擎扣抵邏輯一致）。
-      var invByPid = {};
-      DLOGS.forEach(function(l){
-        var ym = (l.date||'').slice(0,7);
-        if(!ym || ym > ymNow) return;
-        var o = invByPid[l.pid];
-        if(!o){ o = invByPid[l.pid] = {pid:l.pid, cur:0, prev:0}; }
-        if(ym === ymNow) o.cur += l.hrs; else o.prev += l.hrs;
-      });
-      var doneRevNow = 0, doneHrsNow = 0;
-      Object.keys(invByPid).forEach(function(k){
-        var o = invByPid[k];
-        if(o.cur <= 0) return;
-        var p = pBy(o.pid); if(!p) return;
-        if(p.execMode && p.execMode !== 'self') return; // 外包/轉包：毛利另計，工時不列
-        doneHrsNow += o.cur;
-        if(p.nonBillable) return; // 無償：計時數不計產值
-        var rate = schedUnitRate(o.pid, null);
-        if(rate <= 0) return;
-        var credit = o.cur;
-        if(p.bill !== 'hourly'){
-          var estBase = (p.estHrs||0) > 0 ? p.estHrs : (p.hrs||0);
-          credit = Math.max(0, Math.min(o.cur, estBase - o.prev));
-        }
-        doneRevNow += credit * rate;
-      });
+      // 已投入與分析、收付款共用按最新工時分攤的產值；未來排定另列預估。
+      var invested=calcValRec(ymNow);
+      var doneRevNow=Object.keys(invested.recMap).reduce(function(sum,cur){return sum+toTWD(invested.recMap[cur],cur);},0);
+      var doneHrsNow=DLOGS.filter(function(l){return (l.date||'').slice(0,7)===ymNow;})
+        .reduce(function(sum,l){return sum+(+l.hrs||0);},0);
 
       var cards = [];
       // 1) 本月合計 = 已投入 + 剩餘排定（月中結案的產值移到「已投入」，合計不縮水）
@@ -11779,7 +11740,7 @@ function renderSched(){
         sub: warnTotal ? wParts.join(' · ') : '無來不及／缺工時'});
 
       var html2 = '<div class="flex items-center justify-between flex-wrap gap-2 mt-4 mb-2">'
-              + '<div class="text-[11px] font-semibold text-slate-400 flex items-center">📊 排程統計'+infoTip('已投入＝本月工時紀錄 × 等效時薪；剩餘＝排定工時 × 等效時薪（計件＝合約額 ÷ 總預估工時），一律換算 TWD。')+'</div>'
+              + '<div class="text-[11px] font-semibold text-slate-400 flex items-center">📊 排程統計'+infoTip('已投入與分析、收付款的分攤產值相同（含暫估），依最新累計工時重算；剩餘排定為未來預估，一律換算 TWD。')+'</div>'
       + (SCHED_WHATIF ? '<div class="text-[10px] text-slate-400 cursor-help" title="'+(SCHED_WHATIF.fee>0?'新案報酬 '+fmtNT(SCHED_WHATIF.fee):'未填報酬，僅計工時排擠')+'；綠/紅小字＝與現況的差額">含新案試算</div>' : '')
       + '</div>';
       html2 += '<div class="sched-stats">' + cards.map(function(c){
