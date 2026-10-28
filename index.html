@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-TW" class="dark">
+<html lang="zh-TW" class="dark" data-editorial-theme="original">
 <head>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
@@ -596,6 +596,10 @@ html[data-mod-off~="batch"] [data-mod="batch"]{display:none !important;}
   .vd-2col,.vd-3col{grid-template-columns:1fr;}
 }
 </style>
+<link id="editorial-styles" rel="stylesheet" href="editorial.css?v=20261029-11">
+<script src="editorial.js?v=20261029-11" defer></script>
+<link rel="stylesheet" href="appearance-controls.css?v=20261029-11">
+<link rel="stylesheet" href="navy-glass.css?v=20261029-11">
 </head>
 <body class="bg-slate-950 min-h-screen text-slate-100 pb-20">
 <datalist id="vendor-datalist"></datalist>
@@ -625,8 +629,8 @@ html[data-mod-off~="batch"] [data-mod="batch"]{display:none !important;}
   <div id="detail-content"></div>
 </div>
 
-<div class="max-w-[1400px] mx-auto px-4 py-8">
-  <div class="flex flex-wrap items-center justify-between mb-8 gap-4">
+<div class="editorial-shell max-w-[1400px] mx-auto px-4 py-8">
+  <div class="editorial-header flex flex-wrap items-center justify-between mb-8 gap-4">
     <div>
       <h1 class="text-2xl font-bold text-white tracking-tight">Freelance Tracker</h1>
       <p class="text-sm text-slate-500 mt-1 flex items-center gap-2">
@@ -636,6 +640,7 @@ html[data-mod-off~="batch"] [data-mod="batch"]{display:none !important;}
       </p>
     </div>
     <div class="flex items-center gap-4 flex-wrap">
+      <label class="inline-flex items-center gap-2 text-xs">外觀<select id="editorial-theme-toggle" class="btn btn-sm" aria-label="外觀模式"><option value="original">柔霧深藍（預設）</option><option value="dark">炭灰深色</option><option value="light">紙白淺色</option></select></label>
       <button id="btn-manual-sync" class="btn btn-sm text-blue-400 border-blue-900/50 hover:bg-blue-950/50 hidden" onclick="forceCloudSave()">☁️ 同步至雲端</button>
       <button class="btn btn-sm hover:bg-slate-800" onclick="exportJSON()">備份 JSON</button>
       <button class="btn btn-sm hover:bg-slate-800" onclick="document.getElementById('imp').click()">匯入</button>
@@ -643,7 +648,7 @@ html[data-mod-off~="batch"] [data-mod="batch"]{display:none !important;}
     </div>
   </div>
 
-  <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-800 mb-8 gap-4 pb-2">
+  <div class="editorial-nav flex flex-col md:flex-row md:items-center justify-between border-b border-slate-800 mb-8 gap-4 pb-2">
     <div class="flex gap-2 overflow-x-auto no-scrollbar">
       <button class="tab-main active" onclick="go('proj',this)">任務與工時</button>
       <button class="tab-main" data-mod="pay" onclick="go('pay',this)">收付款</button>
@@ -669,7 +674,7 @@ html[data-mod-off~="batch"] [data-mod="batch"]{display:none !important;}
     </div>
     <div id="rem-today-banner"></div>
 
-    <div class="bg-slate-900/80 border border-slate-800/80 rounded-xl mb-8 shadow-sm">
+    <div class="editorial-create bg-slate-900/80 border border-slate-800/80 rounded-xl mb-8 shadow-sm">
       <div class="px-5 py-3 flex flex-wrap items-end gap-3">
         <div class="flex flex-col gap-1 flex-1 min-w-[180px]"><label class="text-[10px] text-slate-500 uppercase tracking-wider">任務名稱</label><input type="text" id="pj-name" class="inp py-2" placeholder="例如：主視覺插畫設計" onkeydown="if(event.key==='Enter')addProj()"></div>
         <div class="flex flex-col gap-1 w-28"><label class="text-[10px] text-slate-500 uppercase tracking-wider">類型</label><select id="pj-type" class="inp py-2" onchange="onQuickTypeChange()"></select></div>

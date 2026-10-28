@@ -1,0 +1,134 @@
+/* Editorial task pilot. No storage or business logic changes. */
+:root{--ed-bg:#292a2a;--ed-surface:#303232;--ed-hover:#343a3d;--ed-text:#e8edf2;--ed-muted:#afb6bf;--ed-rule:#464848;--ed-accent:#bccbd7;--ed-ink:#202729;--ed-good:#95c5ae;--ed-warn:#e5c38a;--ed-bad:#f1a1a5;--ed-track:#414749}
+:root[data-editorial-theme="light"]{--ed-bg:#fafaf8;--ed-surface:#f2f2ee;--ed-hover:#f4f0e7;--ed-text:#252622;--ed-muted:#64665f;--ed-rule:#d5d6cf;--ed-accent:#8c601b;--ed-ink:#fff;--ed-good:#236c4d;--ed-warn:#8c601b;--ed-bad:#b33043;--ed-track:#e3e3dd}
+body:has(#v-proj:not(.hidden)){background:var(--ed-bg);color:var(--ed-text);color-scheme:dark}
+html[data-editorial-theme="light"] body:has(#v-proj:not(.hidden)){color-scheme:light}
+body:has(#v-proj:not(.hidden)) .editorial-shell{max-width:1600px;padding:24px 32px}
+body:has(#v-proj:not(.hidden)) .editorial-header{margin-bottom:20px}
+body:has(#v-proj:not(.hidden)) .editorial-header h1{font:26px Georgia,"Noto Serif TC","PMingLiU",serif;letter-spacing:0;color:var(--ed-text)}
+body:has(#v-proj:not(.hidden)) .editorial-nav{border-color:var(--ed-rule);margin-bottom:28px}
+body:has(#v-proj:not(.hidden)) :is(.tab-main,.tab-sub){color:var(--ed-muted);white-space:nowrap}
+body:has(#v-proj:not(.hidden)) .tab-main.active{color:var(--ed-accent);border-color:var(--ed-accent)}
+body:has(#v-proj:not(.hidden)) :is(.tab-main,.tab-sub):hover{color:var(--ed-text);background:var(--ed-surface)}
+
+
+
+#editorial-theme-toggle{display:none}
+body:has(#v-proj:not(.hidden)) #editorial-theme-toggle{display:inline-flex}
+body:has(#v-proj:not(.hidden)) :is(.editorial-header,#v-proj,#detail-panel,#modal) :is([class*="text-slate-"],.text-gray-400){color:var(--ed-muted)}
+body:has(#v-proj:not(.hidden)) :is(.editorial-header,#v-proj,#detail-panel,#modal) :is(.text-white,.text-slate-100,.text-slate-200,.text-slate-300){color:var(--ed-text)}
+body:has(#v-proj:not(.hidden)) :is(#v-proj,#detail-panel,#modal) :is([class*="bg-slate-"],.modal-box){background-color:var(--ed-surface)}
+body:has(#v-proj:not(.hidden)) :is(#v-proj,#detail-panel,#modal) [class*="border-slate-"]{border-color:var(--ed-rule)}
+body:has(#v-proj:not(.hidden)) :is(.editorial-header,#v-proj,#detail-panel,#modal) .btn{border-color:var(--ed-rule);color:var(--ed-text);border-radius:4px;background:transparent;box-shadow:none;min-height:32px}
+body:has(#v-proj:not(.hidden)) :is(.editorial-header,#v-proj,#detail-panel,#modal) .btn:hover{background:var(--ed-hover)}
+body:has(#v-proj:not(.hidden)) :is(#v-proj,#detail-panel,#modal) .btn-solid{background:var(--ed-accent);color:var(--ed-ink);border-color:var(--ed-accent)}
+body:has(#v-proj:not(.hidden)) :is(#v-proj,#detail-panel,#modal) .inp{background:var(--ed-bg);color:var(--ed-text);border:1px solid var(--ed-rule);border-radius:4px;min-height:38px}
+body:has(#v-proj:not(.hidden)) :is(#v-proj,#detail-panel,#modal) .inp::placeholder{color:var(--ed-muted);opacity:1}
+body:has(#v-proj:not(.hidden)) :is(button,input,select,textarea,a):focus-visible{outline:2px solid var(--ed-accent);outline-offset:3px}
+body:has(#v-proj:not(.hidden)) :is(#v-proj,#detail-panel,#modal) :is([class*="text-blue-"],[class*="text-indigo-"],[class*="text-cyan-"]){color:var(--ed-accent)}
+body:has(#v-proj:not(.hidden)) :is(#v-proj,#detail-panel,#modal) [class*="text-emerald-"]{color:var(--ed-good)}
+body:has(#v-proj:not(.hidden)) :is(#v-proj,#detail-panel,#modal) :is([class*="text-amber-"],[class*="text-yellow-"],[class*="text-orange-"]){color:var(--ed-warn)}
+body:has(#v-proj:not(.hidden)) :is(#v-proj,#detail-panel,#modal) :is([class*="text-red-"],[class*="text-rose-"]){color:var(--ed-bad)}
+#v-proj .editorial-create{background:transparent;border:0;border-radius:0;box-shadow:none;margin-bottom:28px}
+#v-proj .editorial-create>div:first-child{padding:0}
+#v-proj .editorial-create>div:first-child>.w-28{width:170px}
+#v-proj .editorial-create>div:first-child>.w-36{width:180px}
+#v-proj .editorial-create>div:first-child .btn{min-height:38px}
+#v-proj .hint-bar{background:var(--ed-surface);border-color:var(--ed-rule);color:var(--ed-muted);font-size:12px;line-height:1.7}
+#v-proj .tbl-wrap{background:transparent;border:0;border-radius:0;box-shadow:none;opacity:1}
+#v-proj .proj-table{table-layout:fixed;min-width:1230px;width:100%;font-variant-numeric:tabular-nums}
+#v-proj .proj-table th:nth-child(1){width:32px}
+#v-proj .proj-table th:nth-child(2){width:auto}
+#v-proj .proj-table th:nth-child(3){width:150px}
+#v-proj .proj-table th:nth-child(4){width:125px}
+#v-proj .proj-table th:nth-child(5){width:100px}
+#v-proj .proj-table th:nth-child(6){width:85px}
+#v-proj .proj-table th:nth-child(7){width:210px}
+#v-proj .proj-table th:nth-child(8){width:160px}
+#v-proj .proj-table thead tr,#v-proj .proj-table th{background:transparent!important;color:var(--ed-muted);font-weight:500;font-size:12px}
+#v-proj .proj-table :is(th,td){border-bottom:1px solid var(--ed-rule);padding:16px 10px}
+#v-proj .proj-table td{font-size:13px;filter:none;line-height:1.65}
+#v-proj .proj-table td:nth-child(4),#v-proj .proj-table td:nth-child(5){text-align:right}
+#v-proj .proj-table td:nth-child(5){white-space:nowrap;font-size:16px;color:var(--ed-text)}
+#v-proj .proj-table tbody tr:hover,#v-proj .proj-table tr.editorial-current{background:var(--ed-hover)}
+#v-proj .proj-table .tk-row{width:64px;height:72px;flex:0 0 64px;border-radius:4px;border:0}
+#v-proj .proj-table .tk-row img{width:100%;height:100%;object-fit:cover}
+#v-proj .proj-table .progress-bar{background:var(--ed-track)}
+#v-proj .proj-table .progress-bar-inner{background:var(--ed-accent)}
+#v-proj :is(#proj-sec-focus,#proj-sec-active,#proj-sec-standby)>div:first-child{border-color:var(--ed-rule)}
+#v-proj :is(#proj-sec-focus,#proj-sec-active,#proj-sec-standby)>div:first-child>span:first-child{font-family:Georgia,"Noto Serif TC","PMingLiU",serif;font-size:18px;color:var(--ed-accent)}
+body:has(#v-proj:not(.hidden)) #detail-panel{background:var(--ed-bg);border-color:var(--ed-rule);box-shadow:-8px 0 32px #0002}
+body:has(#v-proj:not(.hidden)) .modal-box{background:var(--ed-bg);color:var(--ed-text);border-color:var(--ed-rule)}
+@media(max-width:767px){body:has(#v-proj:not(.hidden)) .editorial-shell{padding:20px 16px}#v-proj .editorial-create>div:first-child>.w-28,#v-proj .editorial-create>div:first-child>.w-36{width:calc(50% - 6px)}#v-proj .proj-table .btn{min-height:38px}}
+@media(prefers-reduced-motion:reduce){body:has(#v-proj:not(.hidden)) *,body:has(#v-proj:not(.hidden)) *::before{transition:none!important;animation:none!important}}
+
+/* Keep the canvas open; retain semantic warning/danger colours. */
+body:has(#v-proj:not(.hidden)) #v-proj .editorial-create{background:transparent}
+#v-proj .proj-table{min-width:1160px}
+#v-proj .proj-table tbody tr{background:transparent}
+#v-proj .proj-table tbody tr:hover,#v-proj .proj-table tbody tr:has(button[onclick^="stopTimer"]){background:var(--ed-hover)}
+#v-proj .proj-table .bg-blue-500{background:var(--ed-accent)}
+body:has(#v-proj:not(.hidden)) :is(#v-proj,#detail-panel,#modal) .btn-danger{color:var(--ed-bad);border-color:var(--ed-bad)}
+body:has(#v-proj:not(.hidden)) :is(#v-proj,#detail-panel,#modal) .btn-solid:hover{background:var(--ed-accent);filter:brightness(.93)}
+#v-proj .proj-table :is([class*="text-[10px]"],[class*="text-[11px]"]){font-size:12px}
+#v-proj .proj-table .badge{background:var(--ed-surface);border-color:var(--ed-rule);color:var(--ed-muted)}
+body:has(#v-proj:not(.hidden)) ::-webkit-scrollbar-track{background:var(--ed-bg)}
+body:has(#v-proj:not(.hidden)) ::-webkit-scrollbar-thumb{background:var(--ed-rule)}
+
+#v-proj .hint-bar strong{color:var(--ed-text)}
+#v-proj .proj-table .badge[style]{color:var(--ed-text)!important;background:transparent!important}
+#v-proj .ar-badge-pending{color:var(--ed-accent);background:transparent;border-color:var(--ed-accent)}
+#v-proj .proj-table .badge.bg-blue-900{color:var(--ed-accent);background:transparent;border-color:var(--ed-rule)}
+
+/* Follow-up: centred billing and more legible category colours. */
+#v-proj .proj-table td:nth-child(4){text-align:center}
+#v-proj .proj-table .badge[style]{border-color:var(--tag-hue,var(--ed-muted))!important}
+:root[data-editorial-theme="light"] #v-proj .proj-table .badge[style]{border-color:color-mix(in srgb,var(--tag-hue,var(--ed-muted)) 70%,#252622)!important}
+
+/* All appearances share layout; original preserves the navy palette. */
+:root[data-editorial-theme="original"]{--ed-bg:#020617;--ed-surface:#0f172a;--ed-hover:#131f2e;--ed-text:#f1f5f9;--ed-muted:#94a3b8;--ed-rule:#334155;--ed-accent:#60a5fa;--ed-ink:#020617;--ed-good:#34d399;--ed-warn:#fbbf24;--ed-bad:#f87171;--ed-track:#1e293b}
+/* The legacy hover paints TDs, not only TRs: override both layers. */
+#v-proj .proj-table tbody tr:hover>td{background-color:var(--ed-hover)}
+body:has(#v-proj:not(.hidden)) :is(#v-proj,#detail-panel,#modal) :is(.tag-dd-item,.pdd-row,.time-log-entry,.hist-row,.proj-group-hdr):hover{background-color:var(--ed-hover);color:var(--ed-text)}
+body:has(#v-proj:not(.hidden)) :is(#v-proj,#detail-panel,#modal) :is(.tag-dd-btn,.pdd-q):hover{border-color:var(--ed-accent);color:var(--ed-text)}
+:root[data-editorial-theme="original"] body:has(#v-proj:not(.hidden)) :is(#v-proj,#detail-panel,#modal) .btn-solid{background:#2563eb;border-color:#2563eb;color:#fff}
+
+/* Detail-panel pilot only: open sections, bounded controls, theme-correct surfaces. */
+body:has(#v-proj:not(.hidden)) #detail-panel{--dp-bg:var(--ed-bg);--dp-field:var(--ed-surface);background:var(--dp-bg)!important;box-shadow:-8px 0 28px #0003}
+html[data-editorial-theme="original"] body:has(#v-proj:not(.hidden)) #detail-panel{--dp-bg:#0f172a;--dp-field:#1e293b;--ed-text:#e2e8f0;--ed-muted:#94a3b8;--ed-rule:#334155;background:#0f172a!important;border-left-color:#1e293b}
+body:has(#v-proj:not(.hidden)) #detail-content>div{color:var(--ed-text)}
+body:has(#v-proj:not(.hidden)) #detail-content>div>.mb-6{margin-bottom:24px;padding-top:18px;border-top:1px solid var(--ed-rule)}
+body:has(#v-proj:not(.hidden)) #detail-content div.border{background:transparent;border:0;border-radius:0;box-shadow:none}
+body:has(#v-proj:not(.hidden)) #detail-content>div>div.border{padding:16px 0}
+body:has(#v-proj:not(.hidden)) #detail-content div.border:has(>#dt-notes),
+body:has(#v-proj:not(.hidden)) #detail-content div.border:has(>#dt-contact){background:var(--dp-field);border:1px solid var(--ed-rule);border-radius:6px}
+body:has(#v-proj:not(.hidden)) #detail-panel :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea,.tag-dd-btn){background-color:var(--dp-field);color:var(--ed-text);border:1px solid var(--ed-rule);border-radius:5px;box-shadow:none}
+body:has(#v-proj:not(.hidden)) #detail-panel :is(#dt-notes,#dt-contact){background:transparent;border:0;border-radius:0}
+body:has(#v-proj:not(.hidden)) #detail-panel :is(input,select,textarea)::placeholder{color:var(--ed-muted);opacity:.8}
+body:has(#v-proj:not(.hidden)) #detail-panel :is(input,select,textarea,.tag-dd-btn):focus-visible{outline:2px solid var(--ed-accent);outline-offset:2px}
+body:has(#v-proj:not(.hidden)) #detail-panel select option{background-color:var(--dp-bg)!important;color:var(--ed-text)!important}
+body:has(#v-proj:not(.hidden)) #detail-panel :is(.tag-dd-list,.pdd-menu){background:var(--dp-bg);border-color:var(--ed-rule)}
+body:has(#v-proj:not(.hidden)) #detail-panel :is(div[class*="hover:bg-slate-"],.time-log-entry):hover{background-color:var(--ed-hover)}
+body:has(#v-proj:not(.hidden)) #detail-panel .btn{box-shadow:none;background:transparent}
+body:has(#v-proj:not(.hidden)) #detail-panel .btn:hover{background:var(--ed-hover)}
+body:has(#v-proj:not(.hidden)) #detail-content :is(.border-b,[class*="border-b "]){border-bottom-color:var(--ed-rule)}
+body:has(#v-proj:not(.hidden)) #detail-panel .tk-chip{background:transparent;color:var(--ed-muted);border-color:var(--ed-rule)}
+body:has(#v-proj:not(.hidden)) #detail-panel .tk-chip:hover{background:var(--ed-hover);color:var(--ed-text);border-color:var(--ed-accent)}
+
+/* Quiet inline editing on desktop; borders return on hover or keyboard focus. */
+@media(hover:hover) and (pointer:fine){
+ body:has(#v-proj:not(.hidden)) #detail-panel :is(input[onchange]:not([type="checkbox"]):not([type="radio"]),select[onchange]:not(#dt-ms-name),.tag-dd-btn){background:transparent;border-color:transparent;box-shadow:none}
+ body:has(#v-proj:not(.hidden)) #detail-panel :is(input[onchange]:not([type="checkbox"]):not([type="radio"]),select[onchange]:not(#dt-ms-name),.tag-dd-btn):is(:hover,:focus,:focus-visible){background:var(--dp-field);border-color:var(--ed-rule);filter:none}
+ body:has(#v-proj:not(.hidden)) #detail-content div.border:has(>#dt-notes),
+ body:has(#v-proj:not(.hidden)) #detail-content div.border:has(>#dt-contact){background:transparent;border-color:transparent}
+ body:has(#v-proj:not(.hidden)) #detail-content div.border:has(>#dt-notes):is(:hover,:focus-within),
+ body:has(#v-proj:not(.hidden)) #detail-content div.border:has(>#dt-contact):is(:hover,:focus-within){background:var(--dp-field);border-color:var(--ed-rule)}
+ body:has(#v-proj:not(.hidden)) #detail-panel input[onchange][type="number"]::-webkit-inner-spin-button{opacity:0}
+ body:has(#v-proj:not(.hidden)) #detail-panel input[onchange][type="number"]:is(:hover,:focus)::-webkit-inner-spin-button{opacity:1}
+}
+
+/* New milestone inputs retain a quiet baseline until the user interacts. */
+@media(hover:hover) and (pointer:fine){
+ body:has(#v-proj:not(.hidden)) #detail-panel :is(#dt-ms-name,#dt-ms-note,#dt-ms-est,#dt-ms-date){background:transparent;border-color:transparent;border-bottom-color:var(--ed-rule);border-radius:0;box-shadow:none}
+ body:has(#v-proj:not(.hidden)) #detail-panel :is(#dt-ms-name,#dt-ms-note,#dt-ms-est,#dt-ms-date):is(:hover,:focus,:focus-visible){background:var(--dp-field);border-color:var(--ed-rule);border-radius:5px}
+}
