@@ -1,0 +1,11 @@
+/* Shared appearance controls and requested readability fixes in all three modes. */
+#editorial-theme-toggle{min-height:34px;max-width:180px;cursor:pointer;color-scheme:dark}
+#editorial-theme-toggle option{background:#1e293b;color:#f1f5f9}
+html[data-editorial-theme="light"] #editorial-theme-toggle{color-scheme:light}
+html[data-editorial-theme="light"] #editorial-theme-toggle option{background:#fafaf8;color:#252622}
+#v-proj .proj-table td:nth-child(4),#v-proj .proj-table td:nth-child(4)>div{text-align:center}
+#v-proj .proj-table td:nth-child(4)>div:first-child{justify-content:center}
+#v-proj .proj-table .badge[style]{border-color:var(--tag-hue,#94a3b8)!important}
+#v-proj .proj-table .editorial-custom-tag{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--tag-hue,#94a3b8);border-radius:4px;padding:2px 6px;margin:3px 4px 0 0;color:var(--ed-text,#e2e8f0);font-size:11px;line-height:1.5}
+#v-proj .editorial-custom-tag>span{opacity:1}
+html[data-editorial-theme="light"] #v-proj .proj-table :is(.badge[style],.editorial-custom-tag){border-color:color-mix(in srgb,var(--tag-hue,#94a3b8) 65%,#252622)!important}

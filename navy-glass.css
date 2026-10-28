@@ -1,0 +1,34 @@
+/* Navy-only glass treatment. Static surfaces; no blur on scrolling task rows. */
+:root[data-editorial-theme="original"]{--ed-bg:#020617;--ed-surface:#172032;--ed-hover:#131f2e;--ed-text:#e2e8f0;--ed-muted:#94a3b8;--ed-rule:#334155;--ed-accent:#60a5fa;--ed-ink:#020617;--ed-good:#34d399;--ed-warn:#fbbf24;--ed-bad:#f87171;--ed-track:#1e293b}
+:root[data-editorial-theme="original"] body:has(#v-proj:not(.hidden)){background:#020617}
+:root[data-editorial-theme="original"] body:has(#v-proj:not(.hidden)) .editorial-header h1{font-family:inherit;font-size:26px;font-weight:600;letter-spacing:-.03em}
+:root[data-editorial-theme="original"] #v-proj :is(#proj-sec-focus,#proj-sec-active,#proj-sec-standby)>div:first-child>span:first-child{font-family:inherit;font-size:18px;font-weight:500}
+:root[data-editorial-theme="original"] body:has(#v-proj:not(.hidden)) .editorial-nav{background:transparent;border-radius:0;border-bottom-color:#1e293b;box-shadow:none}
+:root[data-editorial-theme="original"] body:has(#v-proj:not(.hidden)) #v-proj .editorial-create{background:rgba(15,23,42,.8);border-radius:10px;box-shadow:0 0 0 10px rgba(15,23,42,.8),0 8px 24px #00000010}
+:root[data-editorial-theme="original"] #v-proj .tbl-wrap{background:rgba(23,32,50,.96);border-radius:10px;box-shadow:inset 0 1px 0 rgba(204,222,247,.1),inset 0 0 0 1px rgba(161,185,216,.08),0 8px 24px #00000012}
+:root[data-editorial-theme="original"] #v-proj .proj-table td{border-bottom-color:rgba(159,183,215,.1)}
+:root[data-editorial-theme="original"] #v-proj .proj-table tbody tr:hover{background:transparent}
+:root[data-editorial-theme="original"] #v-proj .proj-table tbody tr:hover>td{background:#131f2e}
+:root[data-editorial-theme="original"] body:has(#v-proj:not(.hidden)) :is(.editorial-header,#v-proj,#detail-panel,#modal) .btn{border-radius:7px;background:#1e293b;border-color:#334155}
+:root[data-editorial-theme="original"] body:has(#v-proj:not(.hidden)) :is(.editorial-header,#v-proj,#detail-panel,#modal) .btn:hover{background:#273548}
+:root[data-editorial-theme="original"] body:has(#v-proj:not(.hidden)) :is(#v-proj,#detail-panel,#modal) .inp{background:#1e293b;border-radius:7px;border-color:#334155}
+:root[data-editorial-theme="original"] body:has(#v-proj:not(.hidden)) :is(#v-proj,#detail-panel,#modal) .btn-solid{background:#3b82f6;border-color:#3b82f6;color:#fff}
+:root[data-editorial-theme="original"] body:has(#v-proj:not(.hidden)) :is(#v-proj,#detail-panel,#modal) .btn-solid:hover{background:#2563eb;border-color:#2563eb;filter:none}
+:root[data-editorial-theme="original"] body:has(#v-proj:not(.hidden)) :is(#v-proj,#detail-panel,#modal) .btn-danger{color:var(--ed-bad);border-color:var(--ed-bad)}
+:root[data-editorial-theme="original"] body:has(#v-proj:not(.hidden)) :is(#detail-panel,.modal-box){background:#172337;box-shadow:inset 0 1px 0 #c7daf21a,0 12px 36px #0004}
+@supports (backdrop-filter:blur(10px)){
+:root[data-editorial-theme="original"] body:has(#v-proj:not(.hidden)) .modal-box{backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+:root[data-editorial-theme="original"] body:has(#v-proj:not(.hidden)) .modal-box{background:rgba(23,35,55,.92)}
+}
+@media(max-width:767px),(prefers-reduced-transparency:reduce){
+:root[data-editorial-theme="original"] body:has(#v-proj:not(.hidden)) .modal-box{backdrop-filter:none;-webkit-backdrop-filter:none;background:#172337}
+}
+
+/* Darker page and header band separate column labels from the glass rows. */
+:root[data-editorial-theme="original"] #v-proj .proj-table thead tr,
+:root[data-editorial-theme="original"] #v-proj .proj-table thead th{background:#080f1a!important}
+:root[data-editorial-theme="original"] #v-proj .proj-table thead th{color:#94a3b8;border-bottom-color:#1e293b}
+
+/* Familiar blue/white active navigation, without a frosted toolbar slab. */
+:root[data-editorial-theme="original"] body:has(#v-proj:not(.hidden)) .tab-main.active{color:#f1f5f9;border-bottom-color:#3b82f6}
+:root[data-editorial-theme="original"] #v-proj .proj-table .badge.bg-blue-900{background:#1e3a8a;border-color:#1d4ed8;color:#bfdbfe}
