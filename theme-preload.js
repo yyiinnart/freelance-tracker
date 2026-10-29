@@ -4,9 +4,9 @@
   var key = 'ft_editorial_theme';
   var modes = ['original', 'dark', 'light'];
   function valid(value) { return modes.indexOf(value) !== -1; }
-  function read() { try { var value = localStorage.getItem(key); return valid(value) ? value : 'dark'; } catch (e) { return 'dark'; } }
+  function read() { try { var value = localStorage.getItem(key); return valid(value) ? value : 'original'; } catch (e) { return 'original'; } }
   function apply(value) {
-    value = valid(value) ? value : 'dark';
+    value = valid(value) ? value : 'original';
     var changed = document.documentElement.dataset.editorialTheme !== value;
     document.documentElement.dataset.editorialTheme = value;
     document.documentElement.style.colorScheme = value === 'light' ? 'light' : 'dark';

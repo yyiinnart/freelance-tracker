@@ -1,17 +1,20 @@
 /* Theme controls use the single early-loaded FTTheme preference. */
 document.addEventListener('DOMContentLoaded', function () {
-  var button = document.getElementById('editorial-theme-toggle');
+  var choices = document.querySelectorAll('#editorial-theme-options input[type=radio]');
   var status = document.getElementById('editorial-theme-status');
   var labels = {original:'柔霧深藍',dark:'炭灰深色',light:'紙白淺色'};
   function sync(message) {
     var theme = window.FTTheme ? FTTheme.get() : document.documentElement.dataset.editorialTheme;
-    button.value = theme;
+    choices.forEach(function (choice) { choice.checked = choice.value === theme; });
     status.textContent = '目前使用：' + labels[theme] + (message ? ' · ' + message : '');
   }
   sync();
-  button.addEventListener('change', function () {
-    var saved = window.FTTheme && FTTheme.set(button.value);
-    sync(saved ? '已儲存' : '無法儲存，僅本次有效；請檢查瀏覽器的儲存權限。');
+  choices.forEach(function (choice) {
+    choice.addEventListener('change', function () {
+      if (!choice.checked) return;
+      var saved = window.FTTheme && FTTheme.set(choice.value);
+      sync(saved ? '已儲存' : '無法儲存，僅本次有效；請檢查瀏覽器的儲存權限。');
+    });
   });
   document.addEventListener('ft-theme-change', function () { sync(); });
   document.addEventListener('ft-theme-storage', function () { sync(); });
