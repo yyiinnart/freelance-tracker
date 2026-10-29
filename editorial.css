@@ -1,34 +1,33 @@
 /* Editorial task pilot. No storage or business logic changes. */
-:root{--ed-bg:#292a2a;--ed-surface:#303232;--ed-hover:#343a3d;--ed-text:#e8edf2;--ed-muted:#afb6bf;--ed-rule:#464848;--ed-accent:#bccbd7;--ed-ink:#202729;--ed-good:#95c5ae;--ed-warn:#e5c38a;--ed-bad:#f1a1a5;--ed-track:#414749}
-:root[data-editorial-theme="light"]{--ed-bg:#fafaf8;--ed-surface:#f2f2ee;--ed-hover:#f4f0e7;--ed-text:#252622;--ed-muted:#64665f;--ed-rule:#d5d6cf;--ed-accent:#8c601b;--ed-ink:#fff;--ed-good:#236c4d;--ed-warn:#8c601b;--ed-bad:#b33043;--ed-track:#e3e3dd}
-body:has(#v-proj:not(.hidden)){background:var(--ed-bg);color:var(--ed-text);color-scheme:dark}
-html[data-editorial-theme="light"] body:has(#v-proj:not(.hidden)){color-scheme:light}
-body:has(#v-proj:not(.hidden)) .editorial-shell{max-width:1600px;padding:24px 32px}
-body:has(#v-proj:not(.hidden)) .editorial-header{margin-bottom:20px}
-body:has(#v-proj:not(.hidden)) .editorial-header h1{font:26px Georgia,"Noto Serif TC","PMingLiU",serif;letter-spacing:0;color:var(--ed-text)}
-body:has(#v-proj:not(.hidden)) .editorial-nav{border-color:var(--ed-rule);margin-bottom:28px}
-body:has(#v-proj:not(.hidden)) :is(.tab-main,.tab-sub){color:var(--ed-muted);white-space:nowrap}
-body:has(#v-proj:not(.hidden)) .tab-main.active{color:var(--ed-accent);border-color:var(--ed-accent)}
-body:has(#v-proj:not(.hidden)) :is(.tab-main,.tab-sub):hover{color:var(--ed-text);background:var(--ed-surface)}
+
+
+body:has(:is(#v-proj,.editorial-page):not(.hidden)){background:var(--ed-bg);color:var(--ed-text);color-scheme:dark}
+html[data-editorial-theme="light"] body:has(:is(#v-proj,.editorial-page):not(.hidden)){color-scheme:light}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) .editorial-shell{max-width:1600px;padding:24px 32px}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) .editorial-header{margin-bottom:20px}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) .editorial-header h1{font:26px Georgia,"Noto Serif TC","PMingLiU",serif;letter-spacing:0;color:var(--ed-text)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) .editorial-nav{border-color:var(--ed-rule);margin-bottom:28px}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.tab-main,.tab-sub){color:var(--ed-muted);white-space:nowrap}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) .tab-main.active{color:var(--ed-accent);border-color:var(--ed-accent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.tab-main,.tab-sub):hover{color:var(--ed-text);background:var(--ed-surface)}
 
 
 
 #editorial-theme-toggle{display:none}
-body:has(#v-proj:not(.hidden)) #editorial-theme-toggle{display:inline-flex}
-body:has(#v-proj:not(.hidden)) :is(.editorial-header,#v-proj,#detail-panel,#modal) :is([class*="text-slate-"],.text-gray-400){color:var(--ed-muted)}
-body:has(#v-proj:not(.hidden)) :is(.editorial-header,#v-proj,#detail-panel,#modal) :is(.text-white,.text-slate-100,.text-slate-200,.text-slate-300){color:var(--ed-text)}
-body:has(#v-proj:not(.hidden)) :is(#v-proj,#detail-panel,#modal) :is([class*="bg-slate-"],.modal-box){background-color:var(--ed-surface)}
-body:has(#v-proj:not(.hidden)) :is(#v-proj,#detail-panel,#modal) [class*="border-slate-"]{border-color:var(--ed-rule)}
-body:has(#v-proj:not(.hidden)) :is(.editorial-header,#v-proj,#detail-panel,#modal) .btn{border-color:var(--ed-rule);color:var(--ed-text);border-radius:4px;background:transparent;box-shadow:none;min-height:32px}
-body:has(#v-proj:not(.hidden)) :is(.editorial-header,#v-proj,#detail-panel,#modal) .btn:hover{background:var(--ed-hover)}
-body:has(#v-proj:not(.hidden)) :is(#v-proj,#detail-panel,#modal) .btn-solid{background:var(--ed-accent);color:var(--ed-ink);border-color:var(--ed-accent)}
-body:has(#v-proj:not(.hidden)) :is(#v-proj,#detail-panel,#modal) .inp{background:var(--ed-bg);color:var(--ed-text);border:1px solid var(--ed-rule);border-radius:4px;min-height:38px}
-body:has(#v-proj:not(.hidden)) :is(#v-proj,#detail-panel,#modal) .inp::placeholder{color:var(--ed-muted);opacity:1}
-body:has(#v-proj:not(.hidden)) :is(button,input,select,textarea,a):focus-visible{outline:2px solid var(--ed-accent);outline-offset:3px}
-body:has(#v-proj:not(.hidden)) :is(#v-proj,#detail-panel,#modal) :is([class*="text-blue-"],[class*="text-indigo-"],[class*="text-cyan-"]){color:var(--ed-accent)}
-body:has(#v-proj:not(.hidden)) :is(#v-proj,#detail-panel,#modal) [class*="text-emerald-"]{color:var(--ed-good)}
-body:has(#v-proj:not(.hidden)) :is(#v-proj,#detail-panel,#modal) :is([class*="text-amber-"],[class*="text-yellow-"],[class*="text-orange-"]){color:var(--ed-warn)}
-body:has(#v-proj:not(.hidden)) :is(#v-proj,#detail-panel,#modal) :is([class*="text-red-"],[class*="text-rose-"]){color:var(--ed-bad)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #editorial-theme-toggle{display:inline-flex}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) :is([class*="text-slate-"],.text-gray-400){color:var(--ed-muted)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) :is(.text-white,.text-slate-100,.text-slate-200,.text-slate-300){color:var(--ed-text)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(#v-proj,.editorial-page,#detail-panel,#modal) [class*="border-slate-"]{border-color:var(--ed-rule)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .btn{border-color:var(--ed-rule);color:var(--ed-text);border-radius:4px;background:transparent;box-shadow:none;min-height:32px}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .btn:hover{background:var(--ed-hover)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(#v-proj,.editorial-page,#detail-panel,#modal) .btn-solid{background:var(--ed-accent);color:var(--ed-ink);border-color:var(--ed-accent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(#v-proj,.editorial-page,#detail-panel,#modal) .inp{background:var(--ed-bg);color:var(--ed-text);border:1px solid var(--ed-rule);border-radius:4px;min-height:38px}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(#v-proj,.editorial-page,#detail-panel,#modal) .inp::placeholder{color:var(--ed-muted);opacity:1}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(button,input,select,textarea,a):focus-visible{outline:2px solid var(--ed-accent);outline-offset:3px}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(#v-proj,.editorial-page,#detail-panel,#modal) :is([class*="text-blue-"],[class*="text-indigo-"],[class*="text-cyan-"]){color:var(--ed-accent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(#v-proj,.editorial-page,#detail-panel,#modal) [class*="text-emerald-"]{color:var(--ed-good)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(#v-proj,.editorial-page,#detail-panel,#modal) :is([class*="text-amber-"],[class*="text-yellow-"],[class*="text-orange-"]){color:var(--ed-warn)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(#v-proj,.editorial-page,#detail-panel,#modal) :is([class*="text-red-"],[class*="text-rose-"]){color:var(--ed-bad)}
 #v-proj .editorial-create{background:transparent;border:0;border-radius:0;box-shadow:none;margin-bottom:28px}
 #v-proj .editorial-create>div:first-child{padding:0}
 #v-proj .editorial-create>div:first-child>.w-28{width:170px}
@@ -57,23 +56,23 @@ body:has(#v-proj:not(.hidden)) :is(#v-proj,#detail-panel,#modal) :is([class*="te
 #v-proj .proj-table .progress-bar-inner{background:var(--ed-accent)}
 #v-proj :is(#proj-sec-focus,#proj-sec-active,#proj-sec-standby)>div:first-child{border-color:var(--ed-rule)}
 #v-proj :is(#proj-sec-focus,#proj-sec-active,#proj-sec-standby)>div:first-child>span:first-child{font-family:Georgia,"Noto Serif TC","PMingLiU",serif;font-size:18px;color:var(--ed-accent)}
-body:has(#v-proj:not(.hidden)) #detail-panel{background:var(--ed-bg);border-color:var(--ed-rule);box-shadow:-8px 0 32px #0002}
-body:has(#v-proj:not(.hidden)) .modal-box{background:var(--ed-bg);color:var(--ed-text);border-color:var(--ed-rule)}
-@media(max-width:767px){body:has(#v-proj:not(.hidden)) .editorial-shell{padding:20px 16px}#v-proj .editorial-create>div:first-child>.w-28,#v-proj .editorial-create>div:first-child>.w-36{width:calc(50% - 6px)}#v-proj .proj-table .btn{min-height:38px}}
-@media(prefers-reduced-motion:reduce){body:has(#v-proj:not(.hidden)) *,body:has(#v-proj:not(.hidden)) *::before{transition:none!important;animation:none!important}}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel{background:var(--ed-bg);border-color:var(--ed-rule);box-shadow:-8px 0 32px var(--paint-0-0-0-133-shadow)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) .modal-box{background:var(--ed-bg);color:var(--ed-text);border-color:var(--ed-rule)}
+@media(max-width:767px){body:has(:is(#v-proj,.editorial-page):not(.hidden)) .editorial-shell{padding:20px 16px}#v-proj .editorial-create>div:first-child>.w-28,#v-proj .editorial-create>div:first-child>.w-36{width:calc(50% - 6px)}#v-proj .proj-table .btn{min-height:38px}}
+@media(prefers-reduced-motion:reduce){body:has(:is(#v-proj,.editorial-page):not(.hidden)) *,body:has(:is(#v-proj,.editorial-page):not(.hidden)) *::before{transition:none!important;animation:none!important}}
 
 /* Keep the canvas open; retain semantic warning/danger colours. */
-body:has(#v-proj:not(.hidden)) #v-proj .editorial-create{background:transparent}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #v-proj .editorial-create{background:transparent}
 #v-proj .proj-table{min-width:1160px}
 #v-proj .proj-table tbody tr{background:transparent}
 #v-proj .proj-table tbody tr:hover,#v-proj .proj-table tbody tr:has(button[onclick^="stopTimer"]){background:var(--ed-hover)}
 #v-proj .proj-table .bg-blue-500{background:var(--ed-accent)}
-body:has(#v-proj:not(.hidden)) :is(#v-proj,#detail-panel,#modal) .btn-danger{color:var(--ed-bad);border-color:var(--ed-bad)}
-body:has(#v-proj:not(.hidden)) :is(#v-proj,#detail-panel,#modal) .btn-solid:hover{background:var(--ed-accent);filter:brightness(.93)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(#v-proj,.editorial-page,#detail-panel,#modal) .btn-danger{color:var(--ed-bad);border-color:var(--ed-bad)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(#v-proj,.editorial-page,#detail-panel,#modal) .btn-solid:hover{background:var(--ed-accent);filter:brightness(.93)}
 #v-proj .proj-table :is([class*="text-[10px]"],[class*="text-[11px]"]){font-size:12px}
 #v-proj .proj-table .badge{background:var(--ed-surface);border-color:var(--ed-rule);color:var(--ed-muted)}
-body:has(#v-proj:not(.hidden)) ::-webkit-scrollbar-track{background:var(--ed-bg)}
-body:has(#v-proj:not(.hidden)) ::-webkit-scrollbar-thumb{background:var(--ed-rule)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) ::-webkit-scrollbar-track{background:var(--ed-bg)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) ::-webkit-scrollbar-thumb{background:var(--ed-rule)}
 
 #v-proj .hint-bar strong{color:var(--ed-text)}
 #v-proj .proj-table .badge[style]{color:var(--ed-text)!important;background:transparent!important}
@@ -83,52 +82,405 @@ body:has(#v-proj:not(.hidden)) ::-webkit-scrollbar-thumb{background:var(--ed-rul
 /* Follow-up: centred billing and more legible category colours. */
 #v-proj .proj-table td:nth-child(4){text-align:center}
 #v-proj .proj-table .badge[style]{border-color:var(--tag-hue,var(--ed-muted))!important}
-:root[data-editorial-theme="light"] #v-proj .proj-table .badge[style]{border-color:color-mix(in srgb,var(--tag-hue,var(--ed-muted)) 70%,#252622)!important}
+:root[data-editorial-theme="light"] #v-proj .proj-table .badge[style]{border-color:color-mix(in srgb,var(--tag-hue,var(--ed-muted)) 70%,var(--paint-37-38-34-1000-line))!important}
 
 /* All appearances share layout; original preserves the navy palette. */
-:root[data-editorial-theme="original"]{--ed-bg:#020617;--ed-surface:#0f172a;--ed-hover:#131f2e;--ed-text:#f1f5f9;--ed-muted:#94a3b8;--ed-rule:#334155;--ed-accent:#60a5fa;--ed-ink:#020617;--ed-good:#34d399;--ed-warn:#fbbf24;--ed-bad:#f87171;--ed-track:#1e293b}
+
 /* The legacy hover paints TDs, not only TRs: override both layers. */
 #v-proj .proj-table tbody tr:hover>td{background-color:var(--ed-hover)}
-body:has(#v-proj:not(.hidden)) :is(#v-proj,#detail-panel,#modal) :is(.tag-dd-item,.pdd-row,.time-log-entry,.hist-row,.proj-group-hdr):hover{background-color:var(--ed-hover);color:var(--ed-text)}
-body:has(#v-proj:not(.hidden)) :is(#v-proj,#detail-panel,#modal) :is(.tag-dd-btn,.pdd-q):hover{border-color:var(--ed-accent);color:var(--ed-text)}
-:root[data-editorial-theme="original"] body:has(#v-proj:not(.hidden)) :is(#v-proj,#detail-panel,#modal) .btn-solid{background:#2563eb;border-color:#2563eb;color:#fff}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(#v-proj,.editorial-page,#detail-panel,#modal) :is(.tag-dd-item,.pdd-row,.time-log-entry,.hist-row,.proj-group-hdr):hover{background-color:var(--ed-hover);color:var(--ed-text)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(#v-proj,.editorial-page,#detail-panel,#modal) :is(.tag-dd-btn,.pdd-q):hover{border-color:var(--ed-accent);color:var(--ed-text)}
+:root[data-editorial-theme="original"] body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(#v-proj,.editorial-page,#detail-panel,#modal) .btn-solid{background:var(--paint-37-99-235-1000-fill);border-color:var(--paint-37-99-235-1000-line);color:var(--paint-255-255-255-1000-ink)}
 
 /* Detail-panel pilot only: open sections, bounded controls, theme-correct surfaces. */
-body:has(#v-proj:not(.hidden)) #detail-panel{--dp-bg:var(--ed-bg);--dp-field:var(--ed-surface);background:var(--dp-bg)!important;box-shadow:-8px 0 28px #0003}
-html[data-editorial-theme="original"] body:has(#v-proj:not(.hidden)) #detail-panel{--dp-bg:#0f172a;--dp-field:#1e293b;--ed-text:#e2e8f0;--ed-muted:#94a3b8;--ed-rule:#334155;background:#0f172a!important;border-left-color:#1e293b}
-body:has(#v-proj:not(.hidden)) #detail-content>div{color:var(--ed-text)}
-body:has(#v-proj:not(.hidden)) #detail-content>div>.mb-6{margin-bottom:24px;padding-top:18px;border-top:1px solid var(--ed-rule)}
-body:has(#v-proj:not(.hidden)) #detail-content div.border{background:transparent;border:0;border-radius:0;box-shadow:none}
-body:has(#v-proj:not(.hidden)) #detail-content>div>div.border{padding:16px 0}
-body:has(#v-proj:not(.hidden)) #detail-content div.border:has(>#dt-notes),
-body:has(#v-proj:not(.hidden)) #detail-content div.border:has(>#dt-contact){background:var(--dp-field);border:1px solid var(--ed-rule);border-radius:6px}
-body:has(#v-proj:not(.hidden)) #detail-panel :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea,.tag-dd-btn){background-color:var(--dp-field);color:var(--ed-text);border:1px solid var(--ed-rule);border-radius:5px;box-shadow:none}
-body:has(#v-proj:not(.hidden)) #detail-panel :is(#dt-notes,#dt-contact){background:transparent;border:0;border-radius:0}
-body:has(#v-proj:not(.hidden)) #detail-panel :is(input,select,textarea)::placeholder{color:var(--ed-muted);opacity:.8}
-body:has(#v-proj:not(.hidden)) #detail-panel :is(input,select,textarea,.tag-dd-btn):focus-visible{outline:2px solid var(--ed-accent);outline-offset:2px}
-body:has(#v-proj:not(.hidden)) #detail-panel select option{background-color:var(--dp-bg)!important;color:var(--ed-text)!important}
-body:has(#v-proj:not(.hidden)) #detail-panel :is(.tag-dd-list,.pdd-menu){background:var(--dp-bg);border-color:var(--ed-rule)}
-body:has(#v-proj:not(.hidden)) #detail-panel :is(div[class*="hover:bg-slate-"],.time-log-entry):hover{background-color:var(--ed-hover)}
-body:has(#v-proj:not(.hidden)) #detail-panel .btn{box-shadow:none;background:transparent}
-body:has(#v-proj:not(.hidden)) #detail-panel .btn:hover{background:var(--ed-hover)}
-body:has(#v-proj:not(.hidden)) #detail-content :is(.border-b,[class*="border-b "]){border-bottom-color:var(--ed-rule)}
-body:has(#v-proj:not(.hidden)) #detail-panel .tk-chip{background:transparent;color:var(--ed-muted);border-color:var(--ed-rule)}
-body:has(#v-proj:not(.hidden)) #detail-panel .tk-chip:hover{background:var(--ed-hover);color:var(--ed-text);border-color:var(--ed-accent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel{--dp-bg:var(--ed-bg);--dp-field:var(--ed-surface);background:var(--dp-bg)!important;box-shadow:-8px 0 28px var(--paint-0-0-0-200-shadow)}
+html[data-editorial-theme="original"] body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel{--dp-bg:var(--paint-15-23-42-1000-fill);--dp-field:var(--paint-30-41-59-1000-fill);background:var(--paint-15-23-42-1000-fill)!important;border-left-color:var(--paint-30-41-59-1000-line)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-content>div{color:var(--ed-text)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-content>div>.mb-6{margin-bottom:24px;padding-top:18px;border-top:1px solid var(--ed-rule)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-content div.border{background:transparent;border:0;border-radius:0;box-shadow:none}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-content>div>div.border{padding:16px 0}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-content div.border:has(>#dt-notes),
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-content div.border:has(>#dt-contact){background:var(--dp-field);border:1px solid var(--ed-rule);border-radius:6px}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea,.tag-dd-btn){background-color:var(--dp-field);color:var(--ed-text);border:1px solid var(--ed-rule);border-radius:5px;box-shadow:none}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel :is(#dt-notes,#dt-contact){background:transparent;border:0;border-radius:0}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel :is(input,select,textarea)::placeholder{color:var(--ed-muted);opacity:.8}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel :is(input,select,textarea,.tag-dd-btn):focus-visible{outline:2px solid var(--ed-accent);outline-offset:2px}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel select option{background-color:var(--dp-bg)!important;color:var(--ed-text)!important}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel :is(.tag-dd-list,.pdd-menu){background:var(--dp-bg);border-color:var(--ed-rule)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel :is(div[class*="hover:bg-slate-"],.time-log-entry):hover{background-color:var(--ed-hover)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .btn{box-shadow:none;background:transparent}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .btn:hover{background:var(--ed-hover)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-content :is(.border-b,[class*="border-b "]){border-bottom-color:var(--ed-rule)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .tk-chip{background:transparent;color:var(--ed-muted);border-color:var(--ed-rule)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .tk-chip:hover{background:var(--ed-hover);color:var(--ed-text);border-color:var(--ed-accent)}
 
 /* Quiet inline editing on desktop; borders return on hover or keyboard focus. */
 @media(hover:hover) and (pointer:fine){
- body:has(#v-proj:not(.hidden)) #detail-panel :is(input[onchange]:not([type="checkbox"]):not([type="radio"]),select[onchange]:not(#dt-ms-name),.tag-dd-btn){background:transparent;border-color:transparent;box-shadow:none}
- body:has(#v-proj:not(.hidden)) #detail-panel :is(input[onchange]:not([type="checkbox"]):not([type="radio"]),select[onchange]:not(#dt-ms-name),.tag-dd-btn):is(:hover,:focus,:focus-visible){background:var(--dp-field);border-color:var(--ed-rule);filter:none}
- body:has(#v-proj:not(.hidden)) #detail-content div.border:has(>#dt-notes),
- body:has(#v-proj:not(.hidden)) #detail-content div.border:has(>#dt-contact){background:transparent;border-color:transparent}
- body:has(#v-proj:not(.hidden)) #detail-content div.border:has(>#dt-notes):is(:hover,:focus-within),
- body:has(#v-proj:not(.hidden)) #detail-content div.border:has(>#dt-contact):is(:hover,:focus-within){background:var(--dp-field);border-color:var(--ed-rule)}
- body:has(#v-proj:not(.hidden)) #detail-panel input[onchange][type="number"]::-webkit-inner-spin-button{opacity:0}
- body:has(#v-proj:not(.hidden)) #detail-panel input[onchange][type="number"]:is(:hover,:focus)::-webkit-inner-spin-button{opacity:1}
+ body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel :is(input[onchange]:not([type="checkbox"]):not([type="radio"]),select[onchange]:not(#dt-ms-name),.tag-dd-btn){background:transparent;border-color:transparent;box-shadow:none}
+ body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel :is(input[onchange]:not([type="checkbox"]):not([type="radio"]),select[onchange]:not(#dt-ms-name),.tag-dd-btn):is(:hover,:focus,:focus-visible){background:var(--dp-field);border-color:var(--ed-rule);filter:none}
+ body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-content div.border:has(>#dt-notes),
+ body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-content div.border:has(>#dt-contact){background:transparent;border-color:transparent}
+ body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-content div.border:has(>#dt-notes):is(:hover,:focus-within),
+ body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-content div.border:has(>#dt-contact):is(:hover,:focus-within){background:var(--dp-field);border-color:var(--ed-rule)}
+ body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel input[onchange][type="number"]::-webkit-inner-spin-button{opacity:0}
+ body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel input[onchange][type="number"]:is(:hover,:focus)::-webkit-inner-spin-button{opacity:1}
 }
 
 /* New milestone inputs retain a quiet baseline until the user interacts. */
 @media(hover:hover) and (pointer:fine){
- body:has(#v-proj:not(.hidden)) #detail-panel :is(#dt-ms-name,#dt-ms-note,#dt-ms-est,#dt-ms-date){background:transparent;border-color:transparent;border-bottom-color:var(--ed-rule);border-radius:0;box-shadow:none}
- body:has(#v-proj:not(.hidden)) #detail-panel :is(#dt-ms-name,#dt-ms-note,#dt-ms-est,#dt-ms-date):is(:hover,:focus,:focus-visible){background:var(--dp-field);border-color:var(--ed-rule);border-radius:5px}
+ body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel :is(#dt-ms-name,#dt-ms-note,#dt-ms-est,#dt-ms-date){background:transparent;border-color:transparent;border-bottom-color:var(--ed-rule);border-radius:0;box-shadow:none}
+ body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel :is(#dt-ms-name,#dt-ms-note,#dt-ms-est,#dt-ms-date):is(:hover,:focus,:focus-visible){background:var(--dp-field);border-color:var(--ed-rule);border-radius:5px}
 }
+
+/* Detail review: readable links, help hints and compact labels in every theme. */
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel :is([class*="text-[10px]"],[class*="text-[9px]"]){font-size:11px}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel :is(#dt-notes-pv,#dt-contact-pv) a{color:var(--ed-accent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel :is(#dt-notes-pv,#dt-contact-pv) a:hover{color:var(--ed-text)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .cfg-info{color:var(--ed-muted);border-color:var(--ed-muted);font-size:11px}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .cfg-info:is(:hover,:focus){color:var(--ed-accent);border-color:var(--ed-accent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .cfg-info:focus-visible{outline:2px solid var(--ed-accent);outline-offset:2px}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .cfg-info::after{background:var(--dp-field);color:var(--ed-text);border-color:var(--ed-rule)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel [class*="text-violet-"]{color:var(--ed-accent);background:transparent;border-color:var(--ed-rule)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel button[class*="text-violet-"]:hover{color:var(--ed-text);border-color:var(--ed-accent)}
+@media(max-width:767px){body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .cfg-info::after{max-width:min(240px,60vw)}}
+
+/* Requested detail grouping and shared alignment; keep editable controls intact. */
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-content>div>.detail-attributes.border{padding:14px;border:1px solid var(--ed-rule);border-radius:8px;background:transparent}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-content div.border:has(>#dt-notes),
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-content div.border:has(>#dt-contact){border-color:var(--ed-rule)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-summary>div{min-width:0}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-summary label{padding-inline:8px;margin-bottom:4px}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-summary :is(input,select){min-height:32px;box-sizing:border-box;padding:4px 8px;margin-left:0;max-width:100%}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-summary input[type="date"]{width:100%;min-width:0;margin-bottom:16px}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-summary .detail-total-hours{display:flex;align-items:center;min-height:32px;padding-inline:8px}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-summary>div>div:has(>input[type="number"]){margin-left:0}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-summary input[type="number"]{width:104px;min-width:0}
+
+/* Quiet translucent groups and theme-aware status/type controls. */
+
+
+
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-content>div>.detail-attributes.border,
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-content div.border:has(>#dt-notes),
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-content div.border:has(>#dt-contact){background:var(--dp-box)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel #detail-content .detail-summary select:is(.detail-status,.detail-type){color:var(--dp-chip);border-color:color-mix(in srgb,var(--dp-chip) 35%,var(--ed-rule));background:color-mix(in srgb,var(--dp-chip) 7%,transparent);border-radius:5px;filter:none}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-status{--dp-chip:var(--dp-status)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-status:has(option[value="done"]:checked){--dp-chip:var(--ed-accent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-status:has(option[value="paused"]:checked){--dp-chip:var(--ed-muted)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-type{--dp-chip:var(--dp-type)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel #detail-content .detail-summary select:is(.detail-status,.detail-type):is(:hover,:focus-visible){border-color:color-mix(in srgb,var(--dp-chip) 60%,var(--ed-rule));background:color-mix(in srgb,var(--dp-chip) 11%,transparent)}
+
+/* Detail hierarchy: quiet secondary action and explicit milestone fields. */
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel #detail-content .detail-copy-analysis.btn{color:var(--ed-muted);background:transparent;border-color:transparent;font-size:11px;min-height:28px;padding-inline:6px}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel #detail-content .detail-copy-analysis.btn:hover{color:var(--ed-text);background:var(--dp-box);border-color:var(--ed-rule)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-create{padding-top:16px;margin-top:16px;border-top:1px solid var(--ed-rule)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-create-grid{display:grid;grid-template-columns:minmax(0,128px) minmax(0,1fr);gap:14px 16px}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-field{min-width:0}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-field>label{display:block;font-size:12px;line-height:1.5;color:var(--ed-muted);margin-bottom:8px}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-create :is(#dt-ms-name,#dt-ms-note,#dt-ms-est,#dt-ms-date){width:100%;min-width:0;height:38px;min-height:38px;font-size:13px;padding-inline:8px;box-sizing:border-box}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-create-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-create-actions>label{padding:0;color:var(--ed-muted);font-size:12px;gap:6px}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-create-actions>label>span{font-size:12px}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-create-actions>.btn{min-height:34px;font-size:12px}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-row{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;padding:12px 0}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-main{min-width:0;gap:8px}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-main>select{font-weight:500}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-meta{display:grid;grid-template-columns:64px minmax(0,1fr) 64px 24px;gap:8px;margin-left:24px;min-width:0}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-meta>span{grid-column:1;grid-row:1}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-meta>input[type="date"]{grid-column:2;grid-row:1;width:100%;min-width:0}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-meta>label{grid-column:3;grid-row:1}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-meta>button{grid-column:4;grid-row:1}
+@media(max-width:480px){body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-create-grid{grid-template-columns:minmax(0,128px) minmax(0,1fr);column-gap:12px}body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-meta{grid-template-columns:52px minmax(0,1fr) 60px 22px;gap:4px}}
+
+/* One add entry; its draft uses the same two-line milestone layout. */
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-composer{margin-top:12px}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-add-trigger{display:flex;align-items:center;justify-content:center;min-height:56px;padding:12px;border:1px dashed var(--ed-rule);border-radius:8px;color:var(--ed-muted);background:transparent;font-size:13px;cursor:pointer;list-style:none}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-add-trigger::-webkit-details-marker{display:none}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-add-trigger:hover{color:var(--ed-text);border-color:var(--ed-muted);background:var(--dp-box)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-add-trigger:focus-visible{outline:2px solid var(--ed-accent);outline-offset:3px}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-composer[open]>.detail-ms-add-trigger{display:none}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-draft{padding:4px 10px 10px;border:1px solid var(--ed-rule);border-radius:8px;background:var(--dp-box)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-draft-spacer{width:16px;flex:0 0 16px}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-draft .detail-ms-main>#dt-ms-name{width:112px;flex:0 0 112px}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-draft .detail-ms-main>#dt-ms-note{width:0;min-width:0;flex:1}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-draft #dt-ms-est{width:48px;min-width:0;flex:0 0 48px;text-align:right}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-draft :is(#dt-ms-name,#dt-ms-note,#dt-ms-est,#dt-ms-date){min-height:30px;height:30px;padding:3px 6px;font-size:12px;box-sizing:border-box}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-draft .detail-ms-meta>label{padding:0;gap:4px}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-draft .detail-ms-meta>label>span{font-size:11px}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-draft #dt-ms-date{width:100%;min-width:0}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-draft-actions{display:flex;justify-content:flex-end;padding-top:4px}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-draft-actions>.btn{font-size:12px;min-height:30px}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-main>select{width:112px;flex:0 0 112px}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-draft .detail-ms-main{display:flex;align-items:center;gap:8px}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) #detail-panel .detail-ms-list:not(:has(.detail-ms-row)){display:none}
+
+/* Stage three: opt-in shared components; specialist screens remain separate. */
+.editorial-page .hint-bar{background:var(--ed-surface);border-color:var(--ed-rule);color:var(--ed-muted);font-size:12px;line-height:1.7;margin-bottom:24px}
+.editorial-page .hint-bar strong{color:var(--ed-text)}
+.editorial-page :is(.tbl-wrap,.vd-card){background:var(--ed-surface);border:1px solid var(--ed-rule);border-radius:8px;box-shadow:none}
+.editorial-page :is(th,td){border-color:var(--ed-rule);padding:14px 12px;font-variant-numeric:tabular-nums}
+.editorial-page th{background:transparent;color:var(--ed-muted);font-size:12px;font-weight:500}
+.editorial-page tr:hover>td{background:var(--ed-hover)}
+.editorial-page :is(.tag-dd-btn,.tag-dd-list,.pdd-menu,.vd-pop){background:var(--ed-surface);color:var(--ed-text);border-color:var(--ed-rule)}
+.editorial-page :is(.tag-dd-item,.pdd-row):hover{background:var(--ed-hover)}
+.editorial-page :is([class*="text-[10px]"],[class*="text-[9px]"]){font-size:11px;letter-spacing:normal}
+.editorial-page :is(.vd-name,.vd-acct-no,.vd-bank-meta,.vd-chip,.vd-copy){color:var(--ed-text)}
+.editorial-page :is(.vd-note,.vd-more,.vd-sec-h,.vd-none,.vd-chip-k,.vd-chip-copy){color:var(--ed-muted)}
+.editorial-page :is(.vd-link,.vd-chip a){color:var(--ed-accent)}
+.editorial-page :is(.vd-bank,.vd-chip,.vd-copy){background:var(--ed-bg);border-color:var(--ed-rule)}
+.editorial-page .vd-card:hover{border-color:var(--ed-muted)}
+.editorial-page .vd-pop button{color:var(--ed-text)}
+.editorial-page :is(.vd-pop button,.vd-more,.vd-chip-copy):hover{background:var(--ed-hover);color:var(--ed-text)}
+.editorial-page .vd-pop .is-danger{color:var(--ed-bad)}
+.editorial-page .vd-badge{color:var(--ed-warn);background:color-mix(in srgb,var(--ed-warn) 8%,transparent);border-color:color-mix(in srgb,var(--ed-warn) 35%,var(--ed-rule));font-size:11px}
+body:has(.editorial-page:not(.hidden)) .vd-form :is(label,h4){color:var(--ed-muted)}
+body:has(.editorial-page:not(.hidden)) .vd-form section+section{border-color:var(--ed-rule)}
+body:has(.editorial-page:not(.hidden)) .modal-box{background:var(--ed-bg);color:var(--ed-text)}
+html[data-editorial-theme="original"] body:has(.editorial-page:not(.hidden)) .editorial-header h1{font-family:inherit;font-weight:700}
+@media(max-width:767px){.editorial-page .vd-grid{grid-template-columns:minmax(0,1fr)}.editorial-page .inp{max-width:100%}.editorial-page :is(.btn,.tag-dd-btn){min-height:38px}}
+
+body:has(.editorial-page:not(.hidden)) .tab-sub.active{background:var(--ed-hover);color:var(--ed-text)}
+.editorial-page :is(.proj-group,.proj-group-hdr,.proj-group-body,.proj-card){background:var(--ed-surface);border-color:var(--ed-rule);box-shadow:none}
+.editorial-page .proj-group-hdr:hover{background:var(--ed-hover)}
+.editorial-page :is(.tag-dd-item,.card-note,.card-note-empty){color:var(--ed-muted)}
+
+.editorial-page .task-card{background:var(--ed-bg);border-color:var(--ed-rule);box-shadow:none}
+.editorial-page .task-card:hover{background:var(--ed-hover)}
+.editorial-page .task-card:is(.dl-crit,.dl-over){background:color-mix(in srgb,var(--ed-bad) 7%,var(--ed-surface));border-color:var(--ed-bad);animation:none}
+.editorial-page :is(.tk-vtoggle,.tk-wimg,.tk-wcount,.tk-wstages button){background:var(--ed-surface);border-color:var(--ed-rule);color:var(--ed-text)}
+.editorial-page .tk-vtoggle button.on{background:var(--ed-hover);color:var(--ed-text)}
+.editorial-page .tk-wname{color:var(--ed-text)}
+.editorial-page :is(.tk-wsub,.tk-ph,.tk-wnote,.tk-vtoggle button){color:var(--ed-muted)}
+#v-pay #pay-flow-wrap :is(th,td):nth-child(4),#v-tag table :is(th,td):is(:nth-child(5),:nth-child(6),:nth-child(7)){text-align:right}
+#v-pay #pay-ar-section>div:first-child{grid-template-columns:minmax(0,1fr)}
+
+.editorial-page .badge[style]{color:var(--ed-text)!important;background:transparent!important;font-size:11px}
+
+.editorial-page table{color:var(--ed-text)}
+.editorial-page :is(thead,thead tr){background:var(--ed-bg);color:var(--ed-muted)}
+.editorial-page td{color:var(--ed-text)}
+
+.editorial-page th{text-transform:none;letter-spacing:normal}
+
+/* Theme-aware legacy Tailwind utilities, including their original alpha. */
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-slate-950{background-color:var(--ui-background)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-slate-100{color:var(--ui-text)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:bg-slate-800:hover{background-color:var(--ui-hover)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-slate-500{color:var(--ui-muted)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-slate-600{color:var(--ui-muted)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-blue-400{color:var(--ui-accent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-blue-900\/50{border-color:color-mix(in srgb,var(--ui-accent) 50%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:bg-blue-950\/50:hover{background-color:color-mix(in srgb,var(--ui-accent) 6%,var(--ui-background))}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-slate-800{border-color:var(--ui-border)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-slate-700{background-color:var(--ui-hover)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-slate-900\/80{background-color:rgb(var(--ui-panel-rgb) / var(--ui-alpha-80))}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-slate-800\/80{border-color:color-mix(in srgb,var(--ui-border) 80%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-slate-400{color:var(--ui-muted)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-amber-950\/10{background-color:color-mix(in srgb,var(--ui-warn) 4%,var(--ui-background))}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-amber-900\/30{border-color:color-mix(in srgb,var(--ui-warn) 30%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-amber-500{color:var(--ui-warn)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-amber-500{background-color:var(--ui-warn)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-amber-200\/70{color:color-mix(in srgb,var(--ui-warn) 70%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .focus\:border-amber-700:focus{border-color:var(--ui-warn)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-slate-300{color:var(--ui-text)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:text-blue-400:hover{color:var(--ui-accent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-rose-400{color:var(--ui-bad)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:text-slate-400:hover{color:var(--ui-muted)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-slate-900{background-color:rgb(var(--ui-panel-rgb) / var(--ui-panel-alpha))}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-amber-400{color:var(--ui-warn)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:text-slate-300:hover{color:var(--ui-text)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-emerald-400{color:var(--ui-good)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-slate-800{background-color:var(--ui-hover)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-slate-700{border-color:var(--ui-border)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:bg-slate-700:hover{background-color:var(--ui-hover)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-slate-900\/60{background-color:rgb(var(--ui-panel-rgb) / var(--ui-card-alpha))}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-slate-200{color:var(--ui-text)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-slate-700{color:var(--ui-muted)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:text-slate-200:hover{color:var(--ui-text)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:border-slate-500:hover{border-color:var(--ui-border)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-slate-950\/40{background-color:color-mix(in srgb,var(--ui-background) 40%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-slate-800\/60{border-color:color-mix(in srgb,var(--ui-border) 60%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-amber-400\/80{color:color-mix(in srgb,var(--ui-warn) 80%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:border-amber-500\/60:hover{border-color:color-mix(in srgb,var(--ui-warn) 60%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-amber-300{color:var(--ui-warn)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-slate-900\/40{background-color:rgb(var(--ui-panel-rgb) / var(--ui-soft-alpha))}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-slate-800\/60{background-color:color-mix(in srgb,var(--ui-hover) 60%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:text-amber-400:hover{color:var(--ui-warn)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:bg-amber-950\/20:hover{background-color:color-mix(in srgb,var(--ui-warn) 4%,var(--ui-background))}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:border-amber-900\/50:hover{border-color:color-mix(in srgb,var(--ui-warn) 50%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-slate-950\/60{background-color:color-mix(in srgb,var(--ui-background) 60%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:text-rose-400:hover{color:var(--ui-bad)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:bg-rose-950\/20:hover{background-color:color-mix(in srgb,var(--ui-bad) 4%,var(--ui-background))}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:border-rose-900\/50:hover{border-color:color-mix(in srgb,var(--ui-bad) 50%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-red-400{color:var(--ui-bad)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-red-900\/50{border-color:color-mix(in srgb,var(--ui-bad) 50%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:bg-red-950\/30:hover{background-color:color-mix(in srgb,var(--ui-bad) 4%,var(--ui-background))}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-slate-900{border-color:var(--ui-border)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-blue-500{background-color:var(--ui-accent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-blue-600\/10{background-color:color-mix(in srgb,var(--ui-accent) 10%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-blue-500\/30{border-color:color-mix(in srgb,var(--ui-accent) 30%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-blue-600{background-color:var(--ui-accent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-blue-950\/30{background-color:color-mix(in srgb,var(--ui-accent) 4%,var(--ui-background))}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:text-blue-300:hover{color:var(--ui-accent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-red-950\/20{background-color:color-mix(in srgb,var(--ui-bad) 4%,var(--ui-background))}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-amber-500{border-color:var(--ui-warn)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:bg-slate-800\/60:hover{background-color:color-mix(in srgb,var(--ui-hover) 60%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-amber-500\/20{border-color:color-mix(in srgb,var(--ui-warn) 20%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-amber-500\/5{background-color:color-mix(in srgb,var(--ui-warn) 5%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-rose-400\/90{color:color-mix(in srgb,var(--ui-bad) 90%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-rose-500\/20{border-color:color-mix(in srgb,var(--ui-bad) 20%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-rose-500\/5{background-color:color-mix(in srgb,var(--ui-bad) 5%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-amber-950\/30{background-color:color-mix(in srgb,var(--ui-warn) 4%,var(--ui-background))}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-blue-300{color:var(--ui-accent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:text-red-400:hover{color:var(--ui-bad)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-emerald-500\/70{color:color-mix(in srgb,var(--ui-good) 70%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-amber-500\/70{color:color-mix(in srgb,var(--ui-warn) 70%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:text-emerald-400:hover{color:var(--ui-good)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-emerald-500\/80{color:color-mix(in srgb,var(--ui-good) 80%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-sky-400{color:var(--ui-accent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:text-sky-300:hover{color:var(--ui-accent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:bg-slate-800\/40:hover{background-color:color-mix(in srgb,var(--ui-hover) 40%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-slate-700\/50{border-color:color-mix(in srgb,var(--ui-border) 50%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:text-sky-400:hover{color:var(--ui-accent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:text-red-300:hover{color:var(--ui-bad)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-slate-800\/50{border-color:color-mix(in srgb,var(--ui-border) 50%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-amber-300\/70{color:color-mix(in srgb,var(--ui-warn) 70%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-purple-400{color:var(--ui-accent)} /* taste-skill-ignore: legacy selector is mapped to the current accent, not violet. */
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-amber-400\/90{color:color-mix(in srgb,var(--ui-warn) 90%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-slate-800\/40{background-color:color-mix(in srgb,var(--ui-hover) 40%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-teal-400{color:var(--ui-good)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-teal-900\/50{border-color:color-mix(in srgb,var(--ui-good) 50%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-teal-950\/30{background-color:color-mix(in srgb,var(--ui-good) 4%,var(--ui-background))}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-slate-800\/30{background-color:color-mix(in srgb,var(--ui-hover) 30%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:bg-slate-800\/50:hover{background-color:color-mix(in srgb,var(--ui-hover) 50%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:border-slate-700\/50:hover{border-color:color-mix(in srgb,var(--ui-border) 50%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:border-slate-700:hover{border-color:var(--ui-border)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-slate-800\/20{background-color:color-mix(in srgb,var(--ui-hover) 20%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-red-400\/90{color:color-mix(in srgb,var(--ui-bad) 90%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-emerald-400\/90{color:color-mix(in srgb,var(--ui-good) 90%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-amber-500\/80{color:color-mix(in srgb,var(--ui-warn) 80%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-amber-300\/90{color:color-mix(in srgb,var(--ui-warn) 90%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:text-emerald-500:hover{color:var(--ui-good)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:text-amber-500:hover{color:var(--ui-warn)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-slate-800\/40{border-color:color-mix(in srgb,var(--ui-border) 40%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:bg-slate-800\/20:hover{background-color:color-mix(in srgb,var(--ui-hover) 20%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:border-slate-600:hover{border-color:var(--ui-border)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:bg-slate-900\/50:hover{background-color:rgb(var(--ui-panel-rgb) / var(--ui-alpha-50))}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-slate-700\/60{border-color:color-mix(in srgb,var(--ui-border) 60%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-amber-950\/20{background-color:color-mix(in srgb,var(--ui-warn) 4%,var(--ui-background))}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-amber-900\/40{border-color:color-mix(in srgb,var(--ui-warn) 40%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-emerald-600{color:var(--ui-good)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-blue-400\/60{color:color-mix(in srgb,var(--ui-accent) 60%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-red-400\/70{color:color-mix(in srgb,var(--ui-bad) 70%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-sky-500{background-color:var(--ui-accent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-red-500{background-color:var(--ui-bad)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-slate-800\/50{background-color:color-mix(in srgb,var(--ui-hover) 50%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-slate-700\/30{border-color:color-mix(in srgb,var(--ui-border) 30%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:border-blue-500:hover{border-color:var(--ui-accent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-blue-900{background-color:color-mix(in srgb,var(--ui-accent) 12%,var(--ui-background))}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-blue-200{color:var(--ui-accent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-blue-700{border-color:var(--ui-accent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-amber-700\/40{border-color:color-mix(in srgb,var(--ui-warn) 40%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-yellow-500{color:var(--ui-warn)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-slate-800{color:var(--ui-muted)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-amber-950{background-color:color-mix(in srgb,var(--ui-warn) 12%,var(--ui-background))}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-amber-900\/50{border-color:color-mix(in srgb,var(--ui-warn) 50%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-purple-950{background-color:color-mix(in srgb,var(--ui-accent) 12%,var(--ui-background))} /* taste-skill-ignore: legacy selector is mapped to the current accent, not violet. */
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-purple-900\/50{border-color:color-mix(in srgb,var(--ui-accent) 50%,transparent)} /* taste-skill-ignore: legacy selector is mapped to the current accent, not violet. */
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-amber-400\/60{color:color-mix(in srgb,var(--ui-warn) 60%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-slate-900\/30{background-color:rgb(var(--ui-panel-rgb) / var(--ui-alpha-30))}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-blue-950\/40{background-color:color-mix(in srgb,var(--ui-accent) 4.8%,var(--ui-background))}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-blue-400\/80{color:color-mix(in srgb,var(--ui-accent) 80%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-blue-900\/40{border-color:color-mix(in srgb,var(--ui-accent) 40%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-blue-400\/70{color:color-mix(in srgb,var(--ui-accent) 70%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-amber-950\/50{background-color:color-mix(in srgb,var(--ui-warn) 6%,var(--ui-background))}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-emerald-950\/50{background-color:color-mix(in srgb,var(--ui-good) 6%,var(--ui-background))}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-emerald-900\/50{border-color:color-mix(in srgb,var(--ui-good) 50%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:bg-slate-800\/30:hover{background-color:color-mix(in srgb,var(--ui-hover) 30%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-purple-950\/50{background-color:color-mix(in srgb,var(--ui-accent) 6%,var(--ui-background))} /* taste-skill-ignore: legacy selector is mapped to the current accent, not violet. */
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-purple-300{color:var(--ui-accent)} /* taste-skill-ignore: legacy selector is mapped to the current accent, not violet. */
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-sky-950\/50{background-color:color-mix(in srgb,var(--ui-accent) 6%,var(--ui-background))}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-sky-300{color:var(--ui-accent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-sky-900\/50{border-color:color-mix(in srgb,var(--ui-accent) 50%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-slate-950\/50{background-color:color-mix(in srgb,var(--ui-background) 50%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:text-amber-300:hover{color:var(--ui-warn)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-red-950{background-color:color-mix(in srgb,var(--ui-bad) 12%,var(--ui-background))}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-red-500{border-color:var(--ui-bad)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-blue-950\/60{background-color:color-mix(in srgb,var(--ui-accent) 7.199999999999999%,var(--ui-background))}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-blue-500{border-color:var(--ui-accent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-emerald-950{background-color:color-mix(in srgb,var(--ui-good) 12%,var(--ui-background))}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-emerald-500{border-color:var(--ui-good)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .group:hover .group-hover\:text-blue-400{color:var(--ui-accent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .hover\:text-sky-200:hover{color:var(--ui-accent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-emerald-950\/20{background-color:color-mix(in srgb,var(--ui-good) 4%,var(--ui-background))}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-emerald-900\/40{border-color:color-mix(in srgb,var(--ui-good) 40%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-red-900\/40{border-color:color-mix(in srgb,var(--ui-bad) 40%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .bg-amber-950\/15{background-color:color-mix(in srgb,var(--ui-warn) 4%,var(--ui-background))}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-amber-200{color:var(--ui-warn)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .text-emerald-400\/80{color:color-mix(in srgb,var(--ui-good) 80%,transparent)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-emerald-800{border-color:var(--ui-good)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-amber-800{border-color:var(--ui-warn)}
+body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) .border-rose-800{border-color:var(--ui-bad)}
+
+/* Pay and analytics: one enclosing surface, figures separated by spacing. */
+#v-pay #pay-ar-total{border:0;border-radius:0;background:transparent;padding:0 0 16px;border-bottom:1px solid var(--ui-border)}
+#v-pay #pay-ar-total-val{font-size:28px;font-variant-numeric:tabular-nums}
+#v-pay #pay-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:0;border-block:1px solid var(--ui-border);background:rgb(var(--ui-panel-rgb) / var(--ui-soft-alpha));padding:8px 0}
+#v-pay #pay-stats.hidden{display:none}
+#v-pay #pay-stats>div{border:0!important;border-radius:0;background:transparent!important;box-shadow:none!important;padding:16px 20px;min-width:0}
+#v-pay #pay-stats>div+div{border-left:1px solid var(--ui-border)!important}
+#v-pay #pay-stats>div[style*="box-shadow"]{box-shadow:inset 0 -2px var(--ui-accent)!important;background:rgb(var(--ui-panel-rgb) / var(--ui-card-alpha))!important}
+#v-pay #pay-stats>div:hover{background:var(--ui-hover)!important}
+#v-pay #pay-stats .text-lg{font-size:24px;font-variant-numeric:tabular-nums;line-height:1.4}
+#v-pay :is(#pay-flow-wrap,#pay-prod-wrap){border:0;border-radius:0;background:transparent}
+#v-pay #pay-ar-list>div{border:0;border-bottom:1px solid var(--ui-border);border-radius:0;background:rgb(var(--ui-panel-rgb) / var(--ui-soft-alpha))}
+#v-dash{--analysis-gap:24px}
+#v-dash #dash-panels{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--analysis-gap)}
+#v-dash .dash-panel{margin-bottom:0;min-width:0}
+#v-dash .dash-panel>div{border:0;border-radius:8px;background:rgb(var(--ui-panel-rgb) / var(--ui-panel-alpha));box-shadow:none;padding:20px}
+#v-dash .dash-panel h3{font-size:15px;line-height:1.5;color:var(--ui-text);border:0;padding-bottom:0;margin-bottom:20px;gap:12px;flex-wrap:wrap}
+#v-dash :is(#dash-stats,#dash-cf,#dl-stats){gap:20px;align-items:start}
+#v-dash :is(#dash-stats,#dash-cf)>div{min-width:0;border:0;background:transparent;padding:0}
+#v-dash :is(#dash-stats,#dash-cf) .text-lg{font-size:24px;line-height:1.4;font-variant-numeric:tabular-nums}
+#v-dash :is(#dash-stats,#dash-cf)>div:first-child .text-lg{font-size:28px}
+#v-dash #dl-stats .stat-card{border:0;border-radius:0;background:transparent;padding:0}
+#v-dash [data-panel="timeline"]>div{background:rgb(var(--ui-panel-rgb) / var(--ui-soft-alpha))}
+#v-dash>div:has(>.wkc-head){background:rgb(var(--ui-panel-rgb) / var(--ui-panel-alpha));border:0;box-shadow:none;margin-bottom:24px}
+#v-dash>div:has(>.wkc-head)>div.bg-gradient-to-r{background:var(--ui-accent);height:1px;opacity:.3} /* taste-skill-ignore: removes the legacy gradient by using a flat accent. */
+#v-dash>div:has(#f-month){gap:20px;background:rgb(var(--ui-panel-rgb) / var(--ui-soft-alpha));padding:16px;border-radius:8px}
+#v-dash>div:has(#f-month)>div{min-width:0;flex-wrap:wrap}
+#v-dash #export-box{margin-top:24px;border:0;background:rgb(var(--ui-panel-rgb) / var(--ui-panel-alpha));color:var(--ui-text)}
+#v-dash #copy-btn{background:transparent;color:var(--ui-muted);box-shadow:none}
+#v-dash .stat-card{box-shadow:none}
+#v-dash [data-panel="pie"] h3>span{flex-wrap:wrap}
+body .editorial-page .cal-table :is(th,td){padding:2px 2px 18px;font-size:11px}
+body .editorial-page .cal-table th{padding:8px 2px}
+#v-cal .cal-table td.other-month{background:var(--ui-background)!important}
+#v-cal .cal-day-num.other-month{color:var(--ui-muted)!important;opacity:.6}
+#v-cal .vacation-day{background-color:var(--ui-panel)!important;background-image:repeating-linear-gradient(45deg,transparent,transparent 5px,color-mix(in srgb,var(--ui-border) 20%,transparent) 5px,color-mix(in srgb,var(--ui-border) 20%,transparent) 10px)!important} /* taste-skill-ignore: functional holiday hatch distinguishes non-working days. */
+#v-cal .cal-table td.today{box-shadow:inset 0 0 0 1px var(--ui-accent)}
+#v-cal .cal-table td:hover{background-color:var(--ui-hover)}
+:is(.tk-tile,.tk-drop,.tk-wimg,.tk-row,#tk-peek){border-color:var(--ui-border)}
+.tk-tile{background:rgb(var(--ui-panel-rgb) / var(--ui-image-alpha))}
+.tk-drop{background:color-mix(in srgb,var(--ui-background) calc(var(--ui-image-well-alpha)*100%),transparent)}
+#tk-lb{background:color-mix(in srgb,var(--ui-background) calc(var(--ui-lightbox-alpha)*100%),transparent);color:var(--ui-text)}
+.tk-empty{color:var(--ui-muted)}
+@media(max-width:640px){#v-pay #pay-stats>div+div{border-left:0!important;border-top:1px solid var(--ui-border)!important}#v-dash :is(#dash-stats,#dash-cf){grid-template-columns:minmax(0,1fr)}#v-dash :is(#dash-stats,#dash-cf)>div+div{padding-top:16px;border-top:1px solid var(--ui-border)}#v-dash .dash-panel>div{padding:16px}#v-dash :is(#pie-metric-seg,#pie-mode-seg){flex-wrap:wrap}}
+
+.editorial-nav .bg-slate-700{background:var(--ui-border)}
+#v-pay #pay-ar-total{background:transparent!important}
+#v-dash #wkc-pace>span{box-shadow:none!important}
+
+@media(max-width:767px){#v-dash .cfg-info::after{max-width:min(220px,55vw)}}
+
+.ui-danger{color:var(--ui-bad)}.ui-muted{color:var(--ui-muted)}.ui-text{color:var(--ui-text)}
+.sync-dot[style*="--paint-71-85-105"]{background:var(--ui-muted)!important}
+#v-cal .cal-ev.ev-ms:not(.ev-ms-done){color:var(--ui-accent)!important}
+
+#v-dash :is(#dash-stats,#dash-cf){grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))}
+#v-dash .week-divider{background:rgb(var(--ui-panel-rgb) / var(--ui-soft-alpha))}
+#v-dash{font-variant-numeric:tabular-nums}
+#v-dash .wk-stats{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+#modal :is([class*="text-[10px]"],[class*="text-[9px]"]){font-size:11px}
+
+@media(min-width:768px) and (max-width:1100px){body .editorial-nav{flex-direction:column;align-items:stretch}.editorial-nav>div{min-width:0}}

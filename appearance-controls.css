@@ -1,11 +1,17 @@
 /* Shared appearance controls and requested readability fixes in all three modes. */
 #editorial-theme-toggle{min-height:34px;max-width:180px;cursor:pointer;color-scheme:dark}
-#editorial-theme-toggle option{background:#1e293b;color:#f1f5f9}
+#editorial-theme-toggle option{background:var(--paint-30-41-59-1000-fill);color:var(--paint-241-245-249-1000-ink)}
 html[data-editorial-theme="light"] #editorial-theme-toggle{color-scheme:light}
-html[data-editorial-theme="light"] #editorial-theme-toggle option{background:#fafaf8;color:#252622}
+html[data-editorial-theme="light"] #editorial-theme-toggle option{background:var(--paint-250-250-248-1000-fill);color:var(--paint-37-38-34-1000-ink)}
 #v-proj .proj-table td:nth-child(4),#v-proj .proj-table td:nth-child(4)>div{text-align:center}
 #v-proj .proj-table td:nth-child(4)>div:first-child{justify-content:center}
-#v-proj .proj-table .badge[style]{border-color:var(--tag-hue,#94a3b8)!important}
-#v-proj .proj-table .editorial-custom-tag{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--tag-hue,#94a3b8);border-radius:4px;padding:2px 6px;margin:3px 4px 0 0;color:var(--ed-text,#e2e8f0);font-size:11px;line-height:1.5}
+#v-proj .proj-table .badge[style]{border-color:var(--tag-hue,var(--paint-148-163-184-1000-line))!important}
+#v-proj .proj-table .editorial-custom-tag{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--tag-hue,var(--paint-148-163-184-1000-line));border-radius:4px;padding:2px 6px;margin:3px 4px 0 0;color:var(--ed-text,var(--paint-226-232-240-1000-ink));font-size:11px;line-height:1.5}
 #v-proj .editorial-custom-tag>span{opacity:1}
-html[data-editorial-theme="light"] #v-proj .proj-table :is(.badge[style],.editorial-custom-tag){border-color:color-mix(in srgb,var(--tag-hue,#94a3b8) 65%,#252622)!important}
+html[data-editorial-theme="light"] #v-proj .proj-table :is(.badge[style],.editorial-custom-tag){border-color:color-mix(in srgb,var(--tag-hue,var(--paint-148-163-184-1000-line)) 65%,var(--paint-37-38-34-1000-line))!important}
+
+/* Settings owns the single theme control. */
+#v-cfg [data-pane="appearance"] .cfg-card{max-width:760px}
+#v-cfg #editorial-theme-toggle{width:200px;max-width:100%;background:var(--ui-panel);color:var(--ui-text);border-color:var(--ui-border)}
+#v-cfg #editorial-theme-status{margin:0;padding:0 20px 16px;color:var(--ui-muted);line-height:1.6}
+#v-cfg #editorial-theme-toggle:focus-visible{outline:2px solid var(--ui-accent);outline-offset:2px}
