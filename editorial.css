@@ -484,3 +484,49 @@ body .editorial-page .cal-table th{padding:8px 2px}
 #modal :is([class*="text-[10px]"],[class*="text-[9px]"]){font-size:11px}
 
 @media(min-width:768px) and (max-width:1100px){body .editorial-nav{flex-direction:column;align-items:stretch}.editorial-nav>div{min-width:0}}
+
+/* Progressive task columns: preserve the task and its actions at narrow widths. */
+@media(max-width:1279px){
+ #v-proj .proj-table{min-width:0}
+ #v-proj .proj-table th:nth-child(1){width:24px}
+ #v-proj .proj-table th:nth-child(3){width:11%}
+ #v-proj .proj-table th:nth-child(4){width:10%}
+ #v-proj .proj-table th:nth-child(5){width:80px}
+ #v-proj .proj-table th:nth-child(6){width:7%}
+ #v-proj .proj-table th:nth-child(7){width:18%}
+ #v-proj .proj-table th:nth-child(8){width:140px}
+ #v-proj .proj-table :is(th,td){padding:14px 6px}
+ #v-proj .proj-table td:nth-child(2){overflow-wrap:anywhere}
+ #v-proj .proj-table td:nth-child(5){font-size:14px}
+ #v-proj .proj-table .tk-row{width:40px;height:48px;flex-basis:40px}
+ #v-proj .proj-table td:nth-child(2)>.flex{gap:8px}
+}
+@media(max-width:1199px){#v-proj .proj-table :is(th,td):nth-child(3){display:none}}
+@media(max-width:999px){#v-proj .proj-table :is(th,td):is(:nth-child(4),:nth-child(6)){display:none}#v-proj .proj-table th:nth-child(7){width:24%}}
+@media(max-width:799px){#v-proj .proj-table :is(th,td):nth-child(7){display:none}}
+@media(max-width:599px){
+ #v-proj .proj-table th:nth-child(1){width:20px}
+ #v-proj .proj-table th:nth-child(5){width:62px}
+ #v-proj .proj-table th:nth-child(8){width:94px}
+ #v-proj .proj-table :is(th,td){padding:12px 4px}
+ #v-proj .proj-table td:nth-child(5){font-size:13px}
+ #v-proj .proj-table td:nth-child(8)>div>div{flex-wrap:wrap;gap:2px}
+ #v-proj .proj-table td:nth-child(8) .btn{padding:6px 2px;min-height:36px;font-size:12px}
+ #v-proj .proj-table .tk-row{width:28px;height:36px;flex-basis:28px}
+ #v-proj .proj-table td:nth-child(2)>.flex{gap:4px}
+}
+
+/* Quiet task groups: charcoal and paper only; keep navy unchanged. */
+html:is([data-editorial-theme="dark"],[data-editorial-theme="light"]) #v-proj :is(#proj-sec-focus,#proj-sec-active,#proj-sec-standby){--task-group-bg:color-mix(in srgb,var(--ed-surface) 55%,var(--ed-bg));margin-bottom:28px;border:0;border-radius:0;background:transparent}
+html:is([data-editorial-theme="dark"],[data-editorial-theme="light"]) #v-proj :is(#proj-sec-focus,#proj-sec-active,#proj-sec-standby)>div:first-child{margin:0 0 8px;padding:0 4px;min-height:28px;flex-wrap:wrap;gap:6px 10px}
+html:is([data-editorial-theme="dark"],[data-editorial-theme="light"]) #v-proj :is(#proj-sec-focus,#proj-sec-active,#proj-sec-standby)>div:first-child>span:first-child{font-size:17px;color:var(--ed-text)}
+html:is([data-editorial-theme="dark"],[data-editorial-theme="light"]) #v-proj :is(#proj-sec-focus,#proj-sec-active,#proj-sec-standby)>div:first-child>span:not(:first-child){color:var(--ed-muted);font-size:12px}
+html:is([data-editorial-theme="dark"],[data-editorial-theme="light"]) #v-proj #proj-sec-focus>div:first-child::before{content:'';width:16px;height:2px;background:var(--ed-accent);flex:none}
+html:is([data-editorial-theme="dark"],[data-editorial-theme="light"]) #v-proj #proj-sec-standby>div:first-child>span:first-child{color:var(--ed-muted)}
+html:is([data-editorial-theme="dark"],[data-editorial-theme="light"]) #v-proj :is(#proj-sec-focus,#proj-sec-active,#proj-sec-standby)>.tbl-wrap{border:1px solid var(--ed-rule);border-radius:8px;background:var(--task-group-bg);opacity:1}
+html:is([data-editorial-theme="dark"],[data-editorial-theme="light"]) #v-proj :is(#proj-sec-focus,#proj-sec-active,#proj-sec-standby) .proj-table thead{background:var(--ed-surface)}
+html:is([data-editorial-theme="dark"],[data-editorial-theme="light"]) #v-proj :is(#proj-sec-focus,#proj-sec-active,#proj-sec-standby) .proj-table tbody tr:last-child>td{border-bottom:0}
+@media(max-width:959px){
+ html:is([data-editorial-theme="dark"],[data-editorial-theme="light"]) #v-proj :is(#proj-sec-focus,#proj-sec-active,#proj-sec-standby)>div:first-child{padding:0 4px;gap:6px 8px}
+ html:is([data-editorial-theme="dark"],[data-editorial-theme="light"]) #v-proj :is(#proj-sec-focus,#proj-sec-active,#proj-sec-standby) .proj-table tbody tr:last-child{border-bottom:0}
+}
