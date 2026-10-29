@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html lang="zh-TW" class="dark" data-editorial-theme="original">
+<html lang="zh-TW" class="dark" data-editorial-theme="dark">
 <head>
+<script src="theme-preload.js?v=20261029-20"></script>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -28,26 +29,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang TC',sans-
 input,select,button,textarea{font-family:inherit;}
 
 /* 導覽列樣式 */
-.tab-main{font-size:14px;font-weight:500;padding:12px 16px;border-bottom:2px solid transparent;color:#64748b;transition:all .2s;}
-.tab-main:hover{color:#cbd5e1;}
-.tab-main.active{border-bottom-color:#3b82f6;color:#f1f5f9;}
-.tab-sub{font-size:12px;padding:6px 12px;border-radius:6px;color:#94a3b8;transition:all .2s;}
-.tab-sub:hover{background:#1e293b;color:#f1f5f9;}
-.tab-sub.active{background:#334155;color:#f1f5f9;font-weight:500;}
+.tab-main{font-size:14px;font-weight:500;padding:12px 16px;border-bottom:2px solid transparent;color:var(--paint-100-116-139-1000-ink);transition:all .2s;}
+.tab-main:hover{color:var(--paint-203-213-225-1000-ink);}
+.tab-main.active{border-bottom-color:var(--paint-59-130-246-1000-line);color:var(--paint-241-245-249-1000-ink);}
+.tab-sub{font-size:12px;padding:6px 12px;border-radius:6px;color:var(--paint-148-163-184-1000-ink);transition:all .2s;}
+.tab-sub:hover{background:var(--paint-30-41-59-1000-fill);color:var(--paint-241-245-249-1000-ink);}
+.tab-sub.active{background:var(--paint-51-65-85-1000-fill);color:var(--paint-241-245-249-1000-ink);font-weight:500;}
 
 /* 通用元件 */
-.inp{background:#1e293b;border:1px solid #334155;border-radius:8px;padding:8px 12px;font-size:13px;color:#f1f5f9;width:100%;transition:border-color .15s;outline:none;}
-.inp:focus{border-color:#64748b;}
-.inp option{background:#1e293b;}
+.inp{background:var(--paint-30-41-59-1000-fill);border:1px solid var(--paint-51-65-85-1000-line);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--paint-241-245-249-1000-ink);width:100%;transition:border-color .15s;outline:none;}
+.inp:focus{border-color:var(--paint-100-116-139-1000-line);}
+.inp option{background:var(--paint-30-41-59-1000-fill);}
 textarea.inp{resize:vertical;min-height:60px;}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;border:1px solid #334155;background:#1e293b;color:#cbd5e1;white-space:nowrap;}
-.btn:hover{background:#273548;border-color:#475569;}
-.btn-solid{background:#3b82f6;color:#fff;border-color:#3b82f6;}
-.btn-solid:hover{background:#2563eb;border-color:#2563eb;}
-.btn-danger{color:#f87171;border-color:#7f1d1d;}
-.btn-danger:hover{background:#1c0a0a;}
-.btn-info{color:#60a5fa;border-color:#1e3a5f;}
-.btn-info:hover{background:#0f1f35;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;border:1px solid var(--paint-51-65-85-1000-line);background:var(--paint-30-41-59-1000-fill);color:var(--paint-203-213-225-1000-ink);white-space:nowrap;}
+.btn:hover{background:var(--paint-39-53-72-1000-fill);border-color:var(--paint-71-85-105-1000-line);}
+.btn-solid{background:var(--paint-59-130-246-1000-fill);color:var(--paint-255-255-255-1000-ink);border-color:var(--paint-59-130-246-1000-line);}
+.btn-solid:hover{background:var(--paint-37-99-235-1000-fill);border-color:var(--paint-37-99-235-1000-line);}
+.btn-danger{color:var(--paint-248-113-113-1000-ink);border-color:var(--paint-127-29-29-1000-line);}
+.btn-danger:hover{background:var(--paint-28-10-10-1000-fill);}
+.btn-info{color:var(--paint-96-165-250-1000-ink);border-color:var(--paint-30-58-95-1000-line);}
+.btn-info:hover{background:var(--paint-15-31-53-1000-fill);}
 .btn-sm{padding:4px 10px;font-size:12px;}
 
 /* 表格與拖曳樣式 */
@@ -57,34 +58,34 @@ table {
   table-layout: auto; 
   min-width: 0; 
 }
-th{font-size:11px;font-weight:600;color:#64748b;letter-spacing:.05em;text-transform:uppercase;padding:12px;border-bottom:1px solid #1e293b;text-align:left;white-space:nowrap;}
+th{font-size:11px;font-weight:600;color:var(--paint-100-116-139-1000-ink);letter-spacing:.05em;text-transform:uppercase;padding:12px;border-bottom:1px solid var(--paint-30-41-59-1000-line);text-align:left;white-space:nowrap;}
 td { 
   padding: 12px; 
-  border-bottom: 1px solid #1a2332; 
+  border-bottom: 1px solid var(--paint-26-35-50-1000-line);
   font-size: 13px; 
-  color: #cbd5e1; 
+  color: var(--paint-203-213-225-1000-ink);
   vertical-align: middle;
   word-wrap: break-word;
 }
 tbody tr:last-child td{border-bottom:none;}
-tbody tr:hover td{background:#131f2e;}
-.tbl-wrap{background:#172032;border:1px solid #1e293b;border-radius:12px;overflow:hidden;}
+tbody tr:hover td{background:var(--paint-19-31-46-1000-fill);}
+.tbl-wrap{background:var(--paint-23-32-50-1000-fill);border:1px solid var(--paint-30-41-59-1000-line);border-radius:12px;overflow:hidden;}
 .drag-row{cursor:grab;}
 .drag-row:active{cursor:grabbing;}
-.drag-over{border-top:2px solid #3b82f6;background:#1e293b;}
+.drag-over{border-top:2px solid var(--paint-59-130-246-1000-line);background:var(--paint-30-41-59-1000-fill);}
 
 /* 標籤與狀態卡片 */
 .badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500;white-space:nowrap;}
-.stat-card{background:#1e293b;border-radius:12px;padding:16px;border:1px solid #273548;}
-.hint-bar{font-size:12px;color:#64748b;background:#1a2332;border-left:3px solid #3b82f6;padding:10px 14px;border-radius:0 8px 8px 0;margin-bottom:1.5rem;line-height:1.6;}
-.hint-bar strong{color:#e2e8f0;}
+.stat-card{background:var(--paint-30-41-59-1000-fill);border-radius:12px;padding:16px;border:1px solid var(--paint-39-53-72-1000-line);}
+.hint-bar{font-size:12px;color:var(--paint-100-116-139-1000-ink);background:var(--paint-26-35-50-1000-fill);border-left:3px solid var(--paint-59-130-246-1000-line);padding:10px 14px;border-radius:0 8px 8px 0;margin-bottom:1.5rem;line-height:1.6;}
+.hint-bar strong{color:var(--paint-226-232-240-1000-ink);}
 
 /* Modal 與捲軸 */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:50;}
-.modal-box{background:#1e293b;border:1px solid #334155;border-radius:16px;padding:2rem;width:90%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);}
+.modal-overlay{position:fixed;inset:0;background:var(--paint-0-0-0-750-fill);display:flex;align-items:center;justify-content:center;z-index:50;}
+.modal-box{background:var(--paint-30-41-59-1000-fill);border:1px solid var(--paint-51-65-85-1000-line);border-radius:16px;padding:2rem;width:90%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:0 25px 50px -12px var(--paint-0-0-0-500-shadow);}
 ::-webkit-scrollbar{width:6px;height:6px;}
-::-webkit-scrollbar-track{background:#0f172a;}
-::-webkit-scrollbar-thumb{background:#334155;border-radius:3px;}
+::-webkit-scrollbar-track{background:var(--paint-15-23-42-1000-fill);}
+::-webkit-scrollbar-thumb{background:var(--paint-51-65-85-1000-fill);border-radius:3px;}
 
 /* 同步燈號 */
 .sync-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0;}
@@ -92,138 +93,138 @@ tbody tr:hover td{background:#131f2e;}
 .sync-saving{animation:pulse 1s infinite;}
 
 /* 教學與設定排版 */
-.prose-dark h2{font-size:15px;font-weight:600;color:#e2e8f0;margin:1.5rem 0 .6rem;}
-.prose-dark p,.prose-dark li{font-size:13px;color:#94a3b8;line-height:1.75;}
+.prose-dark h2{font-size:15px;font-weight:600;color:var(--paint-226-232-240-1000-ink);margin:1.5rem 0 .6rem;}
+.prose-dark p,.prose-dark li{font-size:13px;color:var(--paint-148-163-184-1000-ink);line-height:1.75;}
 .prose-dark li{margin-bottom:4px;}
-.prose-dark code{background:#1e293b;border:1px solid #334155;border-radius:4px;padding:1px 6px;font-size:12px;color:#cbd5e1;font-family:monospace;}
-.prose-dark strong{color:#cbd5e1;}
-.step-num{width:24px;height:24px;border-radius:50%;background:#3b82f6;color:#fff;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:12px;}
+.prose-dark code{background:var(--paint-30-41-59-1000-fill);border:1px solid var(--paint-51-65-85-1000-line);border-radius:4px;padding:1px 6px;font-size:12px;color:var(--paint-203-213-225-1000-ink);font-family:monospace;}
+.prose-dark strong{color:var(--paint-203-213-225-1000-ink);}
+.step-num{width:24px;height:24px;border-radius:50%;background:var(--paint-59-130-246-1000-fill);color:var(--paint-255-255-255-1000-ink);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:12px;}
 
 /* 下拉選單組件 */
 .tag-dd{position:relative;display:inline-block;}
-.tag-dd-btn{display:flex;align-items:center;gap:6px;padding:8px 12px;background:#1e293b;border:1px solid #334155;border-radius:8px;font-size:13px;color:#94a3b8;cursor:pointer;min-width:140px;user-select:none;}
-.tag-dd-btn:hover{border-color:#475569;}
-.tag-dd-list{position:absolute;top:calc(100%+4px);left:0;background:#1e293b;border:1px solid #475569;border-radius:8px;padding:6px 0;z-index:40;min-width:200px;max-height:240px;overflow-y:auto;display:none;box-shadow:0 10px 25px rgba(0,0,0,.5);}
+.tag-dd-btn{display:flex;align-items:center;gap:6px;padding:8px 12px;background:var(--paint-30-41-59-1000-fill);border:1px solid var(--paint-51-65-85-1000-line);border-radius:8px;font-size:13px;color:var(--paint-148-163-184-1000-ink);cursor:pointer;min-width:140px;user-select:none;}
+.tag-dd-btn:hover{border-color:var(--paint-71-85-105-1000-line);}
+.tag-dd-list{position:absolute;top:calc(100%+4px);left:0;background:var(--paint-30-41-59-1000-fill);border:1px solid var(--paint-71-85-105-1000-line);border-radius:8px;padding:6px 0;z-index:40;min-width:200px;max-height:240px;overflow-y:auto;display:none;box-shadow:0 10px 25px var(--paint-0-0-0-500-shadow);}
 .tag-dd-list.open{display:flex;flex-direction:column;}
-.tag-dd-item{display:flex;align-items:center;gap:8px;padding:8px 14px;cursor:pointer;font-size:13px;color:#cbd5e1;}
-.tag-dd-item:hover{background:#273548;}
-.tag-dd-item input[type=checkbox]{accent-color:#3b82f6;}
+.tag-dd-item{display:flex;align-items:center;gap:8px;padding:8px 14px;cursor:pointer;font-size:13px;color:var(--paint-203-213-225-1000-ink);}
+.tag-dd-item:hover{background:var(--paint-39-53-72-1000-fill);}
+.tag-dd-item input[type=checkbox]{accent-color:var(--paint-59-130-246-1000-fill);}
 .pdd-list{min-width:250px;max-height:320px;}
 #mdd_tag-st-dd_list > div:first-child{display:none;}   /* 狀態只有四項，不需要搜尋框 */
-.pdd-list input[type=checkbox]{accent-color:#3b82f6;pointer-events:none;flex-shrink:0;}
+.pdd-list input[type=checkbox]{accent-color:var(--paint-59-130-246-1000-fill);pointer-events:none;flex-shrink:0;}
 .pdd-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:3px 10px 3px 0;}
-.pdd-row:hover{background:#273548;}
-.pdd-year{display:flex;align-items:center;gap:8px;padding:6px 0 6px 14px;cursor:pointer;font-size:13px;color:#cbd5e1;flex:1;}
+.pdd-row:hover{background:var(--paint-39-53-72-1000-fill);}
+.pdd-year{display:flex;align-items:center;gap:8px;padding:6px 0 6px 14px;cursor:pointer;font-size:13px;color:var(--paint-203-213-225-1000-ink);flex:1;}
 .pdd-qs{display:flex;gap:3px;}
-.pdd-q{font-size:11px;color:#94a3b8;border:1px solid #334155;border-radius:6px;padding:2px 7px;background:transparent;}
-.pdd-q:hover{border-color:#64748b;color:#e2e8f0;}
-.pdd-q.on{background:rgba(59,130,246,.18);border-color:#3b82f6;color:#bfdbfe;}
+.pdd-q{font-size:11px;color:var(--paint-148-163-184-1000-ink);border:1px solid var(--paint-51-65-85-1000-line);border-radius:6px;padding:2px 7px;background:transparent;}
+.pdd-q:hover{border-color:var(--paint-100-116-139-1000-line);color:var(--paint-226-232-240-1000-ink);}
+.pdd-q.on{background:var(--paint-59-130-246-180-fill);border-color:var(--paint-59-130-246-1000-line);color:var(--paint-191-219-254-1000-ink);}
 
 /* 專案時間分佈：模式切換按鈕 */
-.pie-mode-btn{font-size:11px;font-weight:400;line-height:1;padding:4px 10px;border-radius:6px;color:#64748b;transition:all .15s;}
-.pie-mode-btn:hover{color:#94a3b8;}
-.pie-mode-btn.active{background:#1e293b;color:#60a5fa;font-weight:600;}
+.pie-mode-btn{font-size:11px;font-weight:400;line-height:1;padding:4px 10px;border-radius:6px;color:var(--paint-100-116-139-1000-ink);transition:all .15s;}
+.pie-mode-btn:hover{color:var(--paint-148-163-184-1000-ink);}
+.pie-mode-btn.active{background:var(--paint-30-41-59-1000-fill);color:var(--paint-96-165-250-1000-ink);font-weight:600;}
 
 /* 專案群組與 Fieldset */
-.proj-group{background:#080f1a;border:1px solid #1a2540;border-radius:12px;margin-bottom:12px;overflow:hidden;}
-.proj-group-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:#0c1525;border-bottom:1px solid #1a2540;cursor:pointer;user-select:none;}
-.proj-group-hdr:hover{background:#0f1d30;}
+.proj-group{background:var(--paint-8-15-26-1000-fill);border:1px solid var(--paint-26-37-64-1000-line);border-radius:12px;margin-bottom:12px;overflow:hidden;}
+.proj-group-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--paint-12-21-37-1000-fill);border-bottom:1px solid var(--paint-26-37-64-1000-line);cursor:pointer;user-select:none;}
+.proj-group-hdr:hover{background:var(--paint-15-29-48-1000-fill);}
 .proj-group-body{padding:10px 12px;}
 /* 已完成群組：置底、降低視覺權重（hover 恢復） */
 .proj-group.grp-done{opacity:.5;transition:opacity .2s;}
 .proj-group.grp-done:hover{opacity:1;}
-.grp-done-sep{display:flex;align-items:center;gap:10px;margin:26px 0 12px;color:#475569;font-size:11px;letter-spacing:.08em;user-select:none;}
-.grp-done-sep::before,.grp-done-sep::after{content:"";height:1px;background:#1a2540;flex:1;}
-.fieldset-title{font-size:12px;font-weight:600;color:#60a5fa;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;}
+.grp-done-sep{display:flex;align-items:center;gap:10px;margin:26px 0 12px;color:var(--paint-71-85-105-1000-ink);font-size:11px;letter-spacing:.08em;user-select:none;}
+.grp-done-sep::before,.grp-done-sep::after{content:"";height:1px;background:var(--paint-26-37-64-1000-fill);flex:1;}
+.fieldset-title{font-size:12px;font-weight:600;color:var(--paint-96-165-250-1000-ink);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;}
 
 /* 任務卡片 (群組內) */
-.task-card{background:#111c2d;border:1px solid #1e2d42;border-radius:10px;padding:14px 16px;transition:all .2s;cursor:pointer;}
-.task-card:hover{border-color:#334155;background:#1a2640;}
+.task-card{background:var(--paint-17-28-45-1000-fill);border:1px solid var(--paint-30-45-66-1000-line);border-radius:10px;padding:14px 16px;transition:all .2s;cursor:pointer;}
+.task-card:hover{border-color:var(--paint-51-65-85-1000-line);background:var(--paint-26-38-64-1000-fill);}
 /* 截止日提醒 */
-.task-card.dl-crit{border-color:#dc2626;background:linear-gradient(135deg,#172032 60%,#450a0a);animation:dl-pulse 2s ease-in-out infinite;}
-.task-card.dl-crit:hover{border-color:#ef4444;}
-.task-card.dl-over{border-color:#ef4444;background:linear-gradient(135deg,#172032 50%,#7f1d1d);}
-.task-card.dl-over:hover{border-color:#f87171;}
+.task-card.dl-crit{border-color:var(--paint-220-38-38-1000-line);background:linear-gradient(135deg,var(--paint-23-32-50-1000-fill) 60%,var(--paint-69-10-10-1000-fill));animation:dl-pulse 2s ease-in-out infinite;}
+.task-card.dl-crit:hover{border-color:var(--paint-239-68-68-1000-line);}
+.task-card.dl-over{border-color:var(--paint-239-68-68-1000-line);background:linear-gradient(135deg,var(--paint-23-32-50-1000-fill) 50%,var(--paint-127-29-29-1000-fill));}
+.task-card.dl-over:hover{border-color:var(--paint-248-113-113-1000-line);}
 /* 卡片備註（點擊直接編輯） */
-.card-note{padding:6px 12px 8px;font-size:10px;color:#8fa3bd;line-height:1.45;cursor:text;word-break:break-all;white-space:pre-wrap;}
-.card-note:hover{color:#cbd5e1;}
-.card-note-empty{color:#2b3a55;}
-.card-note-empty:hover{color:#64748b;}
-.card-note-input{width:100%;background:#0b1524;border:1px solid #26405f;border-radius:5px;color:#e2e8f0;font-size:11px;padding:3px 6px;outline:none;font-family:inherit;}
-@keyframes dl-pulse{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,0);}50%{box-shadow:0 0 12px 2px rgba(220,38,38,.25);}}
+.card-note{padding:6px 12px 8px;font-size:10px;color:var(--paint-143-163-189-1000-ink);line-height:1.45;cursor:text;word-break:break-all;white-space:pre-wrap;}
+.card-note:hover{color:var(--paint-203-213-225-1000-ink);}
+.card-note-empty{color:var(--paint-43-58-85-1000-ink);}
+.card-note-empty:hover{color:var(--paint-100-116-139-1000-ink);}
+.card-note-input{width:100%;background:var(--paint-11-21-36-1000-fill);border:1px solid var(--paint-38-64-95-1000-line);border-radius:5px;color:var(--paint-226-232-240-1000-ink);font-size:11px;padding:3px 6px;outline:none;font-family:inherit;}
+@keyframes dl-pulse{0%,100%{box-shadow:0 0 0 0 var(--paint-220-38-38-0-shadow);}50%{box-shadow:0 0 12px 2px var(--paint-220-38-38-250-shadow);}}
 .dl-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;padding:1px 7px;border-radius:8px;font-weight:600;}
-.dl-badge.dl-crit{background:#450a0a;color:#f87171;}
-.dl-badge.dl-over{background:#7f1d1d;color:#fca5a5;}
+.dl-badge.dl-crit{background:var(--paint-69-10-10-1000-fill);color:var(--paint-248-113-113-1000-ink);}
+.dl-badge.dl-over{background:var(--paint-127-29-29-1000-fill);color:var(--paint-252-165-165-1000-ink);}
 /* Toast */
-#ft-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#1e293b;color:#e2e8f0;padding:10px 18px;border-radius:10px;font-size:13px;border:1px solid #334155;box-shadow:0 10px 30px rgba(0,0,0,.5);z-index:9999;opacity:0;pointer-events:none;transition:opacity .2s, transform .2s;}
+#ft-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--paint-30-41-59-1000-fill);color:var(--paint-226-232-240-1000-ink);padding:10px 18px;border-radius:10px;font-size:13px;border:1px solid var(--paint-51-65-85-1000-line);box-shadow:0 10px 30px var(--paint-0-0-0-500-shadow);z-index:9999;opacity:0;pointer-events:none;transition:opacity .2s, transform .2s;}
 #ft-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-#ft-toast.toast-green{border-color:#166534;color:#86efac;}
-#ft-toast.toast-amber{border-color:#78350f;color:#fbbf24;}
-#ft-toast.toast-blue{border-color:#1e3a5f;color:#60a5fa;}
+#ft-toast.toast-green{border-color:var(--paint-22-101-52-1000-line);color:var(--paint-134-239-172-1000-ink);}
+#ft-toast.toast-amber{border-color:var(--paint-120-53-15-1000-line);color:var(--paint-251-191-36-1000-ink);}
+#ft-toast.toast-blue{border-color:var(--paint-30-58-95-1000-line);color:var(--paint-96-165-250-1000-ink);}
 /* 排程日曆 */
 .cal-table{width:100%;border-collapse:collapse;table-layout:fixed;min-width:700px;}
-.cal-table th{font-size:11px;color:#64748b;padding:6px 2px;text-align:center;border-bottom:1px solid #1e293b;position:sticky;top:0;background:#0f172a;z-index:2;}
-.cal-table td{border:1px solid #1e293b;vertical-align:top;padding:2px 2px 18px 2px;height:125px;font-size:11px;position:relative;}
-.cal-table td.today{background:#172032;box-shadow:inset 0 0 0 2px #3b82f6;}
-.cal-table td.other-month { background: #05080d !important; }
-.cal-day-num.other-month { color: #1e293b !important; }
+.cal-table th{font-size:11px;color:var(--paint-100-116-139-1000-ink);padding:6px 2px;text-align:center;border-bottom:1px solid var(--paint-30-41-59-1000-line);position:sticky;top:0;background:var(--paint-15-23-42-1000-fill);z-index:2;}
+.cal-table td{border:1px solid var(--paint-30-41-59-1000-line);vertical-align:top;padding:2px 2px 18px 2px;height:125px;font-size:11px;position:relative;}
+.cal-table td.today{background:var(--paint-23-32-50-1000-fill);box-shadow:inset 0 0 0 2px var(--paint-59-130-246-1000-shadow);}
+.cal-table td.other-month { background: var(--paint-5-8-13-1000-fill) !important; }
+.cal-day-num.other-month { color: var(--paint-30-41-59-1000-ink) !important; }
 .cal-table td.other-month.vacation-day {
-  background-color: #030508 !important;
-  background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.6) 5px, rgba(0,0,0,0.6) 10px) !important;
+  background-color: var(--paint-3-5-8-1000-fill) !important;
+  background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, var(--paint-0-0-0-600-fill) 5px, var(--paint-0-0-0-600-fill) 10px) !important;
 }
-.cal-day-num{color:#94a3b8;font-size:11px;padding:2px 4px;font-weight:600;}
-.cal-day-num.today{color:#60a5fa;}
+.cal-day-num{color:var(--paint-148-163-184-1000-ink);font-size:11px;padding:2px 4px;font-weight:600;}
+.cal-day-num.today{color:var(--paint-96-165-250-1000-ink);}
 .cal-ev{display:flex;align-items:center;gap:3px;font-size:9px;padding:1px 4px;margin:1px 0;border-radius:3px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.5;}
-.hist-total{font-size:9px;font-weight:700;color:#60a5fa;float:right;padding:2px 4px;font-family:ui-monospace,monospace;}
-.hist-row{display:flex;align-items:center;gap:4px;font-size:9px;padding:1px 4px;margin:1px 0;border-radius:3px;cursor:pointer;white-space:nowrap;overflow:hidden;line-height:1.6;background:#0d1526;}
-.hist-row:hover{background:#172032;}
+.hist-total{font-size:9px;font-weight:700;color:var(--paint-96-165-250-1000-ink);float:right;padding:2px 4px;font-family:ui-monospace,monospace;}
+.hist-row{display:flex;align-items:center;gap:4px;font-size:9px;padding:1px 4px;margin:1px 0;border-radius:3px;cursor:pointer;white-space:nowrap;overflow:hidden;line-height:1.6;background:var(--paint-13-21-38-1000-fill);}
+.hist-row:hover{background:var(--paint-23-32-50-1000-fill);}
 .hist-dot{width:6px;height:6px;border-radius:2px;flex-shrink:0;}
-.hist-name{flex:1;overflow:hidden;text-overflow:ellipsis;color:#cbd5e1;}
-.hist-hrs{flex-shrink:0;font-family:ui-monospace,monospace;color:#94a3b8;}
+.hist-name{flex:1;overflow:hidden;text-overflow:ellipsis;color:var(--paint-203-213-225-1000-ink);}
+.hist-hrs{flex-shrink:0;font-family:ui-monospace,monospace;color:var(--paint-148-163-184-1000-ink);}
 .cal-ev:hover{filter:brightness(1.3);}
 .cal-ev.ev-deadline{font-weight:600;font-size:10px;}
-.cal-ev.ev-dl-crit{font-weight:700;}.cal-ev.ev-dl-crit .dl-icon{color:#f87171;animation:dl-blink 1.5s ease-in-out infinite;}
-.cal-ev.ev-dl-over{font-weight:700;text-decoration:line-through;text-decoration-color:#ef4444;}.cal-ev.ev-dl-over .dl-icon{color:#ef4444;}
+.cal-ev.ev-dl-crit{font-weight:700;}.cal-ev.ev-dl-crit .dl-icon{color:var(--paint-248-113-113-1000-ink);animation:dl-blink 1.5s ease-in-out infinite;}
+.cal-ev.ev-dl-over{font-weight:700;text-decoration:line-through;text-decoration-color:var(--paint-239-68-68-1000-ink);}.cal-ev.ev-dl-over .dl-icon{color:var(--paint-239-68-68-1000-ink);}
 /* 日曆小提醒 */
-.cal-rem{display:flex;align-items:center;gap:3px;font-size:9px;padding:1px 4px;margin:1px 0;border-radius:3px;cursor:pointer;line-height:1.5;background:#1c1917;border-left:2px solid #d97706;color:#fbbf24;}
+.cal-rem{display:flex;align-items:center;gap:3px;font-size:9px;padding:1px 4px;margin:1px 0;border-radius:3px;cursor:pointer;line-height:1.5;background:var(--paint-28-25-23-1000-fill);border-left:2px solid var(--paint-217-119-6-1000-line);color:var(--paint-251-191-36-1000-ink);}
 .cal-rem:hover{filter:brightness(1.25);}
-.cal-rem.rem-done{opacity:.5;text-decoration:line-through;text-decoration-color:#78716c;border-left-color:#57534e;color:#a8a29e;}
-.cal-rem.rem-over{border-left-color:#ef4444;color:#f87171;}
+.cal-rem.rem-done{opacity:.5;text-decoration:line-through;text-decoration-color:var(--paint-120-113-108-1000-ink);border-left-color:var(--paint-87-83-78-1000-line);color:var(--paint-168-162-158-1000-ink);}
+.cal-rem.rem-over{border-left-color:var(--paint-239-68-68-1000-line);color:var(--paint-248-113-113-1000-ink);}
 .cal-rem .rem-txt{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .cal-rem .rem-chk{flex-shrink:0;font-size:10px;}
-.cal-rem-add{position:absolute;top:2px;right:2px;width:16px;height:16px;line-height:14px;text-align:center;border-radius:4px;font-size:13px;color:#64748b;background:#0d1526;border:1px solid #1e293b;cursor:pointer;opacity:0;transition:opacity .12s;z-index:2;}
+.cal-rem-add{position:absolute;top:2px;right:2px;width:16px;height:16px;line-height:14px;text-align:center;border-radius:4px;font-size:13px;color:var(--paint-100-116-139-1000-ink);background:var(--paint-13-21-38-1000-fill);border:1px solid var(--paint-30-41-59-1000-line);cursor:pointer;opacity:0;transition:opacity .12s;z-index:2;}
 .cal-table td:hover .cal-rem-add{opacity:1;}
-.cal-rem-add:hover{color:#fbbf24;border-color:#d97706;background:#1c1917;}
+.cal-rem-add:hover{color:var(--paint-251-191-36-1000-ink);border-color:var(--paint-217-119-6-1000-line);background:var(--paint-28-25-23-1000-fill);}
 .cal-rem.rem-ghost{opacity:.32;background:transparent;border-left-style:dashed;cursor:default;}
 .cal-rem.rem-ghost:hover{filter:none;}
 .cal-rem[draggable="true"]{cursor:grab;}
 .cal-rem .rem-rep{flex-shrink:0;opacity:.7;}
-.cal-table td.rem-drop-over{box-shadow:inset 0 0 0 2px #d97706;}
-.rem-banner{display:flex;align-items:flex-start;gap:10px;background:#1c1917;border:1px solid #78350f;border-left:3px solid #d97706;border-radius:10px;padding:10px 14px;margin-bottom:16px;}
-.rem-banner .rb-item{display:flex;align-items:center;gap:6px;font-size:13px;color:#fcd34d;}
-.rem-banner .rb-chk{cursor:pointer;font-size:15px;color:#a16207;flex-shrink:0;}
-.rem-banner .rb-chk:hover{color:#fbbf24;}
+.cal-table td.rem-drop-over{box-shadow:inset 0 0 0 2px var(--paint-217-119-6-1000-shadow);}
+.rem-banner{display:flex;align-items:flex-start;gap:10px;background:var(--paint-28-25-23-1000-fill);border:1px solid var(--paint-120-53-15-1000-line);border-left:3px solid var(--paint-217-119-6-1000-line);border-radius:10px;padding:10px 14px;margin-bottom:16px;}
+.rem-banner .rb-item{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--paint-252-211-77-1000-ink);}
+.rem-banner .rb-chk{cursor:pointer;font-size:15px;color:var(--paint-161-98-7-1000-ink);flex-shrink:0;}
+.rem-banner .rb-chk:hover{color:var(--paint-251-191-36-1000-ink);}
 /* 排程分頁：缺工時提示（低調，不搶視覺） */
-.noest-warn{background:transparent;border:1px solid #1e293b;border-left:2px solid #b45309;border-radius:8px;margin-bottom:12px;overflow:hidden;}
+.noest-warn{background:transparent;border:1px solid var(--paint-30-41-59-1000-line);border-left:2px solid var(--paint-180-83-9-1000-line);border-radius:8px;margin-bottom:12px;overflow:hidden;}
 .noest-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 12px;cursor:pointer;user-select:none;}
-.noest-head:hover{background:rgba(30,41,59,.35);}
-.noest-title{font-size:11px;color:#94a3b8;font-weight:500;}
-.noest-em{color:#d97706;}
-.noest-toggle{font-size:10px;color:#64748b;flex-shrink:0;}
+.noest-head:hover{background:var(--paint-30-41-59-350-fill);}
+.noest-title{font-size:11px;color:var(--paint-148-163-184-1000-ink);font-weight:500;}
+.noest-em{color:var(--paint-217-119-6-1000-ink);}
+.noest-toggle{font-size:10px;color:var(--paint-100-116-139-1000-ink);flex-shrink:0;}
 .noest-body{padding:2px 12px 8px 12px;display:flex;flex-direction:column;gap:3px;}
-.noest-row{display:flex;align-items:center;gap:8px;font-size:12px;color:#cbd5e1;padding:3px 0;border-top:1px solid #1e293b;}
+.noest-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--paint-203-213-225-1000-ink);padding:3px 0;border-top:1px solid var(--paint-30-41-59-1000-line);}
 .noest-row:first-child{border-top:none;}
-.noest-name{flex:1;color:#94a3b8;cursor:pointer;text-decoration:underline;text-decoration-color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.noest-name:hover{color:#cbd5e1;}
-.noest-dl{font-size:11px;color:#64748b;font-family:ui-monospace,monospace;flex-shrink:0;}
-.noest-inp{width:62px;background:#0f172a;border:1px solid #334155;border-radius:5px;padding:3px 6px;color:#cbd5e1;font-size:12px;outline:none;text-align:right;}
-.noest-inp:focus{border-color:#d97706;}
+.noest-name{flex:1;color:var(--paint-148-163-184-1000-ink);cursor:pointer;text-decoration:underline;text-decoration-color:var(--paint-51-65-85-1000-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.noest-name:hover{color:var(--paint-203-213-225-1000-ink);}
+.noest-dl{font-size:11px;color:var(--paint-100-116-139-1000-ink);font-family:ui-monospace,monospace;flex-shrink:0;}
+.noest-inp{width:62px;background:var(--paint-15-23-42-1000-fill);border:1px solid var(--paint-51-65-85-1000-line);border-radius:5px;padding:3px 6px;color:var(--paint-203-213-225-1000-ink);font-size:12px;outline:none;text-align:right;}
+.noest-inp:focus{border-color:var(--paint-217-119-6-1000-line);}
 @keyframes dl-blink{0%,100%{opacity:1;}50%{opacity:.3;}}
 .cal-ev.ev-start{font-size:8px;opacity:.5;}
 .cal-ev.ev-ms{font-size:9px;}
-.cal-ev.ev-ms-done{font-size:9px;text-decoration:line-through;opacity:.5;color:#64748b !important;}
-.cal-ev.ev-done{text-decoration:line-through;opacity:.5;color:#64748b !important;}
-.cal-ev.ev-delegated{border-left:2px solid #f59e0b;background:rgba(245,158,11,.08);padding-left:3px;}
+.cal-ev.ev-ms-done{font-size:9px;text-decoration:line-through;opacity:.5;color:var(--paint-100-116-139-1000-ink) !important;}
+.cal-ev.ev-done{text-decoration:line-through;opacity:.5;color:var(--paint-100-116-139-1000-ink) !important;}
+.cal-ev.ev-delegated{border-left:2px solid var(--paint-245-158-11-1000-line);background:var(--paint-245-158-11-80-fill);padding-left:3px;}
 .cal-ev.ev-delegated.ev-start{opacity:.75;}
 .cal-track-area {
   position: absolute;
@@ -254,51 +255,51 @@ tbody tr:hover td{background:#131f2e;}
 .cal-track:hover {
   height: 7px;
 }
-.ms-row{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid #1e293b;}
+.ms-row{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--paint-30-41-59-1000-line);}
 .ms-row:last-child{border-bottom:none;}
 .ms-done{text-decoration:line-through;opacity:.5;}
 
 /* 任務詳情側面板 */
-.detail-panel{position:fixed;top:0;right:-560px;width:540px;max-width:95vw;height:100vh;background:#0f172a;border-left:1px solid #1e293b;z-index:45;transition:right .3s ease;overflow-y:auto;box-shadow:-10px 0 30px rgba(0,0,0,.4);}
+.detail-panel{position:fixed;top:0;right:-560px;width:540px;max-width:95vw;height:100vh;background:var(--paint-15-23-42-1000-fill);border-left:1px solid var(--paint-30-41-59-1000-line);z-index:45;transition:right .3s ease;overflow-y:auto;box-shadow:-10px 0 30px var(--paint-0-0-0-400-shadow);}
 .detail-panel.open{right:0;}
-.detail-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:44;opacity:0;pointer-events:none;transition:opacity .3s;}
+.detail-overlay{position:fixed;inset:0;background:var(--paint-0-0-0-500-fill);z-index:44;opacity:0;pointer-events:none;transition:opacity .3s;}
 .detail-overlay.open{opacity:1;pointer-events:auto;}
 
 /* 工時日誌條目 */
-.time-log-entry{display:flex;align-items:center;gap:10px;padding:8px 12px;background:#1e293b;border-radius:8px;font-size:12px;color:#94a3b8;}
-.time-log-entry:hover{background:#273548;}
+.time-log-entry{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--paint-30-41-59-1000-fill);border-radius:8px;font-size:12px;color:var(--paint-148-163-184-1000-ink);}
+.time-log-entry:hover{background:var(--paint-39-53-72-1000-fill);}
 
 /* 每日工作日誌 */
-.daily-row{display:flex;align-items:center;gap:12px;padding:10px 14px;background:#172032;border:1px solid #1e293b;border-radius:10px;transition:background .15s;}
-.daily-row:hover{background:#1a2640;}
+.daily-row{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--paint-23-32-50-1000-fill);border:1px solid var(--paint-30-41-59-1000-line);border-radius:10px;transition:background .15s;}
+.daily-row:hover{background:var(--paint-26-38-64-1000-fill);}
 
 /* 週分隔條 */
-.week-divider{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;margin:10px 0 6px;background:linear-gradient(90deg,rgba(59,130,246,0.08),rgba(59,130,246,0.02));border-left:3px solid #3b82f6;border-radius:6px;}
-.week-divider .wk-label{font-size:11px;color:#93c5fd;font-weight:600;letter-spacing:0.5px;}
-.week-divider .wk-range{font-size:10px;color:#64748b;margin-left:8px;}
-.week-divider .wk-stats{font-size:11px;color:#cbd5e1;font-family:monospace;display:flex;gap:12px;}
-.week-divider .wk-stats b{color:#fff;font-weight:600;}
+.week-divider{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;margin:10px 0 6px;background:linear-gradient(90deg,var(--paint-59-130-246-80-fill),var(--paint-59-130-246-20-fill));border-left:3px solid var(--paint-59-130-246-1000-line);border-radius:6px;}
+.week-divider .wk-label{font-size:11px;color:var(--paint-147-197-253-1000-ink);font-weight:600;letter-spacing:0.5px;}
+.week-divider .wk-range{font-size:10px;color:var(--paint-100-116-139-1000-ink);margin-left:8px;}
+.week-divider .wk-stats{font-size:11px;color:var(--paint-203-213-225-1000-ink);font-family:monospace;display:flex;gap:12px;}
+.week-divider .wk-stats b{color:var(--paint-255-255-255-1000-ink);font-weight:600;}
 /* 週工時卡 */
 .wkc-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px;}
 .wkc-nav{display:flex;align-items:center;gap:6px;}
-.wkc-nav .nb{width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;border:1px solid #334155;background:#1e293b;color:#cbd5e1;font-size:11px;}
-.wkc-nav .nb:hover:not(:disabled){background:#334155;}
+.wkc-nav .nb{width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;border:1px solid var(--paint-51-65-85-1000-line);background:var(--paint-30-41-59-1000-fill);color:var(--paint-203-213-225-1000-ink);font-size:11px;}
+.wkc-nav .nb:hover:not(:disabled){background:var(--paint-51-65-85-1000-fill);}
 .wkc-nav .nb:disabled{opacity:.35;cursor:default;}
-.wkc-nav .nb:focus-visible,.wkc-today:focus-visible{outline:2px solid #60a5fa;outline-offset:2px;}
-.wkc-range{min-width:104px;text-align:center;font-size:13px;font-weight:600;color:#e2e8f0;font-variant-numeric:tabular-nums;}
-.wkc-tag{font-size:11px;color:#60a5fa;min-width:24px;}
-.wkc-today{font-size:11px;color:#60a5fa;padding:4px 8px;border-radius:6px;}
-.wkc-today:hover{background:#1e293b;}
+.wkc-nav .nb:focus-visible,.wkc-today:focus-visible{outline:2px solid var(--paint-96-165-250-1000-line);outline-offset:2px;}
+.wkc-range{min-width:104px;text-align:center;font-size:13px;font-weight:600;color:var(--paint-226-232-240-1000-ink);font-variant-numeric:tabular-nums;}
+.wkc-tag{font-size:11px;color:var(--paint-96-165-250-1000-ink);min-width:24px;}
+.wkc-today{font-size:11px;color:var(--paint-96-165-250-1000-ink);padding:4px 8px;border-radius:6px;}
+.wkc-today:hover{background:var(--paint-30-41-59-1000-fill);}
 .wkc-stats{display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px 36px;margin-bottom:18px;}
-.wkc-main .v{font-size:24px;font-weight:600;color:#f1f5f9;font-variant-numeric:tabular-nums;line-height:1.2;}
-.wkc-main .v.hit{color:#34d399;}
-.wkc-main .of{font-size:13px;color:#64748b;margin-left:6px;}
-.wkc-prog{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:11px;color:#64748b;font-variant-numeric:tabular-nums;}
-.wkc-prog .bar{width:140px;height:4px;border-radius:2px;background:#1e293b;overflow:hidden;}
-.wkc-prog .bar i{display:block;height:100%;background:#3b82f6;}
-.wkc-prog .bar.hit i{background:#10b981;}
-.wkc-s .k{font-size:11px;color:#64748b;}
-.wkc-s .v{font-size:15px;font-weight:600;color:#e2e8f0;font-variant-numeric:tabular-nums;margin-top:2px;}
+.wkc-main .v{font-size:24px;font-weight:600;color:var(--paint-241-245-249-1000-ink);font-variant-numeric:tabular-nums;line-height:1.2;}
+.wkc-main .v.hit{color:var(--paint-52-211-153-1000-ink);}
+.wkc-main .of{font-size:13px;color:var(--paint-100-116-139-1000-ink);margin-left:6px;}
+.wkc-prog{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:11px;color:var(--paint-100-116-139-1000-ink);font-variant-numeric:tabular-nums;}
+.wkc-prog .bar{width:140px;height:4px;border-radius:2px;background:var(--paint-30-41-59-1000-fill);overflow:hidden;}
+.wkc-prog .bar i{display:block;height:100%;background:var(--paint-59-130-246-1000-fill);}
+.wkc-prog .bar.hit i{background:var(--paint-16-185-129-1000-fill);}
+.wkc-s .k{font-size:11px;color:var(--paint-100-116-139-1000-ink);}
+.wkc-s .v{font-size:15px;font-weight:600;color:var(--paint-226-232-240-1000-ink);font-variant-numeric:tabular-nums;margin-top:2px;}
 
 
 /* 展開箭頭動畫 */
@@ -306,8 +307,8 @@ tbody tr:hover td{background:#131f2e;}
 .chevron.expanded{transform:rotate(90deg);}
 
 /* 統一欄標題深色背景 */
-.tbl-wrap thead tr { background: #080f1a; }
-.tbl-wrap th { background: #080f1a; }
+.tbl-wrap thead tr { background: var(--paint-8-15-26-1000-fill); }
+.tbl-wrap th { background: var(--paint-8-15-26-1000-fill); }
 
 /* 欄寬控制：只套用於任務與工時分頁的 table (.proj-table) */
 .proj-table { table-layout: fixed; min-width: 880px; }
@@ -337,52 +338,52 @@ tr.row-archived .progress-bar-inner { filter: grayscale(1); }
 .ar-badge-pending {
   display: inline-flex; align-items: center; padding: 2px 8px;
   border-radius: 99px; font-size: 11px; font-weight: 600;
-  background: rgba(245,158,11,0.15); border: 1px solid #d97706;
-  color: #fbbf24; white-space: nowrap;
+  background: var(--paint-245-158-11-150-fill); border: 1px solid var(--paint-217-119-6-1000-line);
+  color: var(--paint-251-191-36-1000-ink); white-space: nowrap;
 }
 
 /* section header 深色版 */
-.sec-hdr { display:flex; align-items:center; gap:8px; margin-bottom:8px; padding:8px 12px; border-radius:8px; background:#131d2e; border:1px solid #1e293b; }
+.sec-hdr { display:flex; align-items:center; gap:8px; margin-bottom:8px; padding:8px 12px; border-radius:8px; background:var(--paint-19-29-46-1000-fill); border:1px solid var(--paint-30-41-59-1000-line); }
 
 /* 可點擊列 */
-tbody tr[onclick]:hover td{background:#131f2e;}
+tbody tr[onclick]:hover td{background:var(--paint-19-31-46-1000-fill);}
 /* 委外任務卡 */
-.deleg-card{display:flex;align-items:center;gap:10px;padding:8px 14px;background:#131d2e;border:1px solid #1a2332;border-radius:8px;font-size:12px;color:#94a3b8;cursor:pointer;transition:all .15s;}
-.deleg-card:hover{background:#172540;border-color:#273548;}
-.deleg-card.deleg-done{opacity:.45;background:#0f1520;border-color:#151d2a;}
+.deleg-card{display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--paint-19-29-46-1000-fill);border:1px solid var(--paint-26-35-50-1000-line);border-radius:8px;font-size:12px;color:var(--paint-148-163-184-1000-ink);cursor:pointer;transition:all .15s;}
+.deleg-card:hover{background:var(--paint-23-37-64-1000-fill);border-color:var(--paint-39-53-72-1000-line);}
+.deleg-card.deleg-done{opacity:.45;background:var(--paint-15-21-32-1000-fill);border-color:var(--paint-21-29-42-1000-line);}
 .deleg-card.deleg-done:hover{opacity:.7;}
 
 /* 排程試算樣式 */
-.cal-table td.sched-off{background:#0a0f18;}
-.cal-table td.sched-off .cal-day-num{color:#475569;}
-.sched-chip{display:flex;align-items:center;justify-content:space-between;gap:4px;font-size:9px;padding:1px 3px 1px 5px;margin:1px 0;background:rgba(30,41,59,.5);border-radius:0 4px 4px 0;cursor:pointer;overflow:hidden;}
-.sched-chip:hover{background:rgba(51,65,85,.6);}
+.cal-table td.sched-off{background:var(--paint-10-15-24-1000-fill);}
+.cal-table td.sched-off .cal-day-num{color:var(--paint-71-85-105-1000-ink);}
+.sched-chip{display:flex;align-items:center;justify-content:space-between;gap:4px;font-size:9px;padding:1px 3px 1px 5px;margin:1px 0;background:var(--paint-30-41-59-500-fill);border-radius:0 4px 4px 0;cursor:pointer;overflow:hidden;}
+.sched-chip:hover{background:var(--paint-51-65-85-600-fill);}
 .sched-chip>span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.sched-hrs{color:#94a3b8;font-family:monospace;font-size:9px;flex-shrink:0;}
-.sched-day-total{position:absolute;bottom:2px;right:4px;font-size:9px;color:#475569;font-family:monospace;}
-.sched-chip-wi{background:rgba(226,232,240,.07);}
-.sched-wi-row td{background:rgba(226,232,240,.04) !important;border-top:1px dashed #475569;border-bottom:1px dashed #475569 !important;}
+.sched-hrs{color:var(--paint-148-163-184-1000-ink);font-family:monospace;font-size:9px;flex-shrink:0;}
+.sched-day-total{position:absolute;bottom:2px;right:4px;font-size:9px;color:var(--paint-71-85-105-1000-ink);font-family:monospace;}
+.sched-chip-wi{background:var(--paint-226-232-240-70-fill);}
+.sched-wi-row td{background:var(--paint-226-232-240-40-fill) !important;border-top:1px dashed var(--paint-71-85-105-1000-line);border-bottom:1px dashed var(--paint-71-85-105-1000-line) !important;}
 .sched-task-cell{vertical-align:top;max-width:190px;}
 .sched-task-name{display:inline-block;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;}
-.sched-grp-first td{border-top:1px solid #1e293b;}
+.sched-grp-first td{border-top:1px solid var(--paint-30-41-59-1000-line);}
 /* 排程統計面板 */
 .sched-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:8px;}
-.sched-stat{background:rgba(2,6,23,.5);border:1px solid #1e293b;border-radius:10px;padding:9px 12px;min-width:0;}
-.sched-stat .ss-l{font-size:10px;color:#64748b;margin-bottom:3px;white-space:nowrap;}
-.sched-stat .ss-v{font-size:15px;font-weight:600;color:#e2e8f0;line-height:1.25;font-variant-numeric:tabular-nums;}
-.sched-stat .ss-sub{font-size:10px;color:#475569;margin-top:2px;line-height:1.4;}
+.sched-stat{background:var(--paint-2-6-23-500-fill);border:1px solid var(--paint-30-41-59-1000-line);border-radius:10px;padding:9px 12px;min-width:0;}
+.sched-stat .ss-l{font-size:10px;color:var(--paint-100-116-139-1000-ink);margin-bottom:3px;white-space:nowrap;}
+.sched-stat .ss-v{font-size:15px;font-weight:600;color:var(--paint-226-232-240-1000-ink);line-height:1.25;font-variant-numeric:tabular-nums;}
+.sched-stat .ss-sub{font-size:10px;color:var(--paint-71-85-105-1000-ink);margin-top:2px;line-height:1.4;}
 /* 排程摘要表：用分隔線把「同任務多階段」收束、任務之間拉開 */
-#sched-summary .tbl-wrap tbody td{border-bottom:1px solid #141d2c;}
-#sched-summary .tbl-wrap tbody tr.sched-grp-first:not(.sched-wi-row) td{border-top:2px solid #334155;}
+#sched-summary .tbl-wrap tbody td{border-bottom:1px solid var(--paint-20-29-44-1000-line);}
+#sched-summary .tbl-wrap tbody tr.sched-grp-first:not(.sched-wi-row) td{border-top:2px solid var(--paint-51-65-85-1000-line);}
 #sched-summary .tbl-wrap tbody tr.sched-grp-first:first-child td{border-top:none;}
 
 /* 休假日樣式 */
 .vacation-day {
-  background: #111827 !important; 
-  background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.15) 5px, rgba(0,0,0,0.15) 10px) !important;
+  background: var(--paint-17-24-39-1000-fill) !important;
+  background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, var(--paint-0-0-0-150-fill) 5px, var(--paint-0-0-0-150-fill) 10px) !important;
 }
 .vacation-day .cal-day-num {
-  color: #475569 !important;
+  color: var(--paint-71-85-105-1000-ink) !important;
   text-decoration: line-through;
 }
 .cal-day-num {
@@ -390,110 +391,110 @@ tbody tr[onclick]:hover td{background:#131f2e;}
   transition: color 0.15s;
 }
 .cal-day-num:hover {
-  color: #e2e8f0;
+  color: var(--paint-226-232-240-1000-ink);
 }
 
 /* 年→月 選擇器 popover */
 .cal-mp-pop{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);z-index:60;
-  width:280px;background:#0f172a;border:1px solid #334155;border-radius:12px;
-  box-shadow:0 12px 32px rgba(0,0,0,.55);padding:8px;}
+  width:280px;background:var(--paint-15-23-42-1000-fill);border:1px solid var(--paint-51-65-85-1000-line);border-radius:12px;
+  box-shadow:0 12px 32px var(--paint-0-0-0-550-shadow);padding:8px;}
 .cal-mp-head{display:flex;align-items:center;justify-content:space-between;
-  padding:6px 8px 10px;border-bottom:1px solid #1e293b;margin-bottom:8px;}
-.cal-mp-year{font-size:16px;font-weight:600;color:#e2e8f0;}
-.cal-mp-arrow{background:transparent;border:none;color:#64748b;font-size:22px;line-height:1;
+  padding:6px 8px 10px;border-bottom:1px solid var(--paint-30-41-59-1000-line);margin-bottom:8px;}
+.cal-mp-year{font-size:16px;font-weight:600;color:var(--paint-226-232-240-1000-ink);}
+.cal-mp-arrow{background:transparent;border:none;color:var(--paint-100-116-139-1000-ink);font-size:22px;line-height:1;
   cursor:pointer;padding:2px 10px;border-radius:6px;transition:all .12s;}
-.cal-mp-arrow:hover{color:#cbd5e1;background:#1e293b;}
+.cal-mp-arrow:hover{color:var(--paint-203-213-225-1000-ink);background:var(--paint-30-41-59-1000-fill);}
 .cal-mp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;}
-.cal-mp-cell{padding:11px 0;text-align:center;font-size:14px;color:#cbd5e1;border-radius:8px;
+.cal-mp-cell{padding:11px 0;text-align:center;font-size:14px;color:var(--paint-203-213-225-1000-ink);border-radius:8px;
   cursor:pointer;transition:all .12s;user-select:none;}
-.cal-mp-cell:hover{background:#1e293b;}
-.cal-mp-cell.cur{color:#60a5fa;font-weight:600;}
-.cal-mp-cell.sel{background:#3b82f6;color:#fff;font-weight:600;}
-.cal-mp-cell.sel:hover{background:#2563eb;}
+.cal-mp-cell:hover{background:var(--paint-30-41-59-1000-fill);}
+.cal-mp-cell.cur{color:var(--paint-96-165-250-1000-ink);font-weight:600;}
+.cal-mp-cell.sel{background:var(--paint-59-130-246-1000-fill);color:var(--paint-255-255-255-1000-ink);font-weight:600;}
+.cal-mp-cell.sel:hover{background:var(--paint-37-99-235-1000-fill);}
 
 /* ===== 設定頁：左側分類＋單列設定 ===== */
 .cfg-shell{display:grid;grid-template-columns:148px minmax(0,1fr);gap:32px;max-width:920px;}
 .cfg-nav{position:sticky;top:16px;align-self:start;display:flex;flex-direction:column;gap:2px;}
-.cfg-nav-btn{text-align:left;font-size:13px;color:#94a3b8;padding:8px 12px;border-radius:0 8px 8px 0;border-left:2px solid transparent;background:transparent;cursor:pointer;transition:color .15s,background .15s;white-space:nowrap;}
-.cfg-nav-btn:hover{color:#e2e8f0;background:rgba(30,41,59,.45);}
-.cfg-nav-btn.active{color:#f1f5f9;background:rgba(30,41,59,.7);border-left-color:#3b82f6;font-weight:500;}
-.cfg-nav-btn.is-danger.active{border-left-color:#f43f5e;}
-.cfg-nav-btn:focus-visible{outline:2px solid #60a5fa;outline-offset:-2px;}
-.cfg-nav-sep{height:1px;background:#1e293b;margin:8px 12px;}
+.cfg-nav-btn{text-align:left;font-size:13px;color:var(--paint-148-163-184-1000-ink);padding:8px 12px;border-radius:0 8px 8px 0;border-left:2px solid transparent;background:transparent;cursor:pointer;transition:color .15s,background .15s;white-space:nowrap;}
+.cfg-nav-btn:hover{color:var(--paint-226-232-240-1000-ink);background:var(--paint-30-41-59-450-fill);}
+.cfg-nav-btn.active{color:var(--paint-241-245-249-1000-ink);background:var(--paint-30-41-59-700-fill);border-left-color:var(--paint-59-130-246-1000-line);font-weight:500;}
+.cfg-nav-btn.is-danger.active{border-left-color:var(--paint-244-63-94-1000-line);}
+.cfg-nav-btn:focus-visible{outline:2px solid var(--paint-96-165-250-1000-line);outline-offset:-2px;}
+.cfg-nav-sep{height:1px;background:var(--paint-30-41-59-1000-fill);margin:8px 12px;}
 .cfg-pane{display:none;}
 .cfg-pane.active{display:block;}
-.cfg-pane-title{font-size:16px;font-weight:600;color:#f1f5f9;margin:4px 0 16px;}
-.cfg-card{background:#0f172a;border:1px solid #1e293b;border-radius:12px;margin-bottom:20px;}
-.cfg-card.is-danger{border-color:rgba(244,63,94,.22);}
+.cfg-pane-title{font-size:16px;font-weight:600;color:var(--paint-241-245-249-1000-ink);margin:4px 0 16px;}
+.cfg-card{background:var(--paint-15-23-42-1000-fill);border:1px solid var(--paint-30-41-59-1000-line);border-radius:12px;margin-bottom:20px;}
+.cfg-card.is-danger{border-color:var(--paint-244-63-94-220-line);}
 .cfg-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:16px 18px 0;}
-.cfg-card-title{font-size:13px;font-weight:600;color:#e2e8f0;display:flex;align-items:center;gap:6px;}
-.cfg-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px 16px;padding:13px 18px;min-height:54px;border-top:1px solid rgba(30,41,59,.8);}
+.cfg-card-title{font-size:13px;font-weight:600;color:var(--paint-226-232-240-1000-ink);display:flex;align-items:center;gap:6px;}
+.cfg-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px 16px;padding:13px 18px;min-height:54px;border-top:1px solid var(--paint-30-41-59-800-line);}
 .cfg-card > .cfg-row:first-child{border-top:0;}
 .cfg-row-stack{flex-direction:column;align-items:stretch;}
 .cfg-row-stack .cfg-row-label{flex:none;}
 .cfg-row-label{flex:1 1 0;min-width:0;}
 .cfg-row-wide .cfg-row-label{flex-basis:200px;}
-.cfg-row-name{font-size:13px;color:#e2e8f0;display:flex;align-items:center;gap:6px;}
+.cfg-row-name{font-size:13px;color:var(--paint-226-232-240-1000-ink);display:flex;align-items:center;gap:6px;}
 .cfg-row-name-strong{font-weight:600;}
-.cfg-row-desc{font-size:11px;color:#64748b;margin-top:2px;line-height:1.5;}
-.cfg-row-warn{color:rgba(251,191,36,.85);}
+.cfg-row-desc{font-size:11px;color:var(--paint-100-116-139-1000-ink);margin-top:2px;line-height:1.5;}
+.cfg-row-warn{color:var(--paint-251-191-36-850-ink);}
 /* 補充說明：比描述再低一階，只是提醒資料去向 */
-.cfg-row-note{font-size:11px;color:#475569;margin-top:2px;line-height:1.5;}
-.cfg-row-note::before{content:'└ ';color:#334155;}
+.cfg-row-note{font-size:11px;color:var(--paint-71-85-105-1000-ink);margin-top:2px;line-height:1.5;}
+.cfg-row-note::before{content:'└ ';color:var(--paint-51-65-85-1000-ink);}
 .cfg-row-ctl{display:flex;align-items:center;gap:8px;flex-shrink:0;}
 .cfg-block{padding:14px 18px 16px;}
-.cfg-unit{font-size:12px;color:#64748b;white-space:nowrap;min-width:42px;}
+.cfg-unit{font-size:12px;color:var(--paint-100-116-139-1000-ink);white-space:nowrap;min-width:42px;}
 .cfg-unit-inline{min-width:0;}
 .inp.cfg-num{width:72px;padding:6px 8px;text-align:center;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
 .inp.cfg-num-sm{width:52px;}
 .inp.cfg-sel{width:auto;padding:6px 10px;font-size:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
 #unify-cur-sel:disabled{display:none;}
 /* 子選項：縮排＋淡底，看得出從屬於上一列 */
-.cfg-sub{background:rgba(2,6,23,.35);}
+.cfg-sub{background:var(--paint-2-6-23-350-fill);}
 .cfg-sub .cfg-row{padding-left:36px;min-height:48px;}
-.cfg-sub .cfg-row-name{color:#cbd5e1;}
+.cfg-sub .cfg-row-name{color:var(--paint-203-213-225-1000-ink);}
 /* 卡片標題列帶總開關：標題在卡片底色上，選項放進較深的內嵌區，一眼分出層級 */
 .cfg-card-head-toggle{align-items:center;padding:15px 18px;}
-.cfg-card-head-toggle .cfg-card-title{font-size:14px;color:#f8fafc;}
-.cfg-inset{background:rgba(2,6,23,.45);border-top:1px solid #1e293b;}
+.cfg-card-head-toggle .cfg-card-title{font-size:14px;color:var(--paint-248-250-252-1000-ink);}
+.cfg-inset{background:var(--paint-2-6-23-450-fill);border-top:1px solid var(--paint-30-41-59-1000-line);}
 .cfg-inset > .cfg-row:first-child{border-top:0;}
 /* 從屬選項：整列縮排，分隔線也從縮排處開始，左側導引線連回上層開關 */
 .cfg-sub-rail{position:relative;background:transparent;}
-.cfg-sub-rail::before{content:'';position:absolute;left:27px;top:0;bottom:20px;width:1px;background:#334155;}
+.cfg-sub-rail::before{content:'';position:absolute;left:27px;top:0;bottom:20px;width:1px;background:var(--paint-51-65-85-1000-fill);}
 .cfg-sub-rail .cfg-row{margin-left:44px;padding-left:0;min-height:46px;}
-.cfg-sub-rail .cfg-row-name{color:#94a3b8;font-size:12.5px;}
+.cfg-sub-rail .cfg-row-name{color:var(--paint-148-163-184-1000-ink);font-size:12.5px;}
 .cfg-card > :last-child, .cfg-card > :last-child > :last-child{border-bottom-left-radius:12px;border-bottom-right-radius:12px;}
 /* 工作模式選項 */
 .cfg-mode{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.cfg-mode-opt{border:1px solid #334155;border-radius:10px;padding:10px 14px;transition:border-color .15s,background .15s;height:100%;}
-.cfg-mode-opt:hover{border-color:#475569;}
-.cfg-mode-name{font-size:13px;font-weight:500;color:#e2e8f0;}
-.cfg-mode-desc{font-size:11px;color:#64748b;margin-top:2px;}
+.cfg-mode-opt{border:1px solid var(--paint-51-65-85-1000-line);border-radius:10px;padding:10px 14px;transition:border-color .15s,background .15s;height:100%;}
+.cfg-mode-opt:hover{border-color:var(--paint-71-85-105-1000-line);}
+.cfg-mode-name{font-size:13px;font-weight:500;color:var(--paint-226-232-240-1000-ink);}
+.cfg-mode-desc{font-size:11px;color:var(--paint-100-116-139-1000-ink);margin-top:2px;}
 /* 開關 */
-.cfg-switch{appearance:none;-webkit-appearance:none;width:34px;height:20px;border-radius:999px;background:#334155;position:relative;cursor:pointer;flex-shrink:0;margin:0;transition:background .15s;}
-.cfg-switch::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#e2e8f0;transition:transform .15s;}
-.cfg-switch:checked{background:#3b82f6;}
+.cfg-switch{appearance:none;-webkit-appearance:none;width:34px;height:20px;border-radius:999px;background:var(--paint-51-65-85-1000-fill);position:relative;cursor:pointer;flex-shrink:0;margin:0;transition:background .15s;}
+.cfg-switch::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--paint-226-232-240-1000-fill);transition:transform .15s;}
+.cfg-switch:checked{background:var(--paint-59-130-246-1000-fill);}
 .cfg-switch:checked::after{transform:translateX(14px);}
-.cfg-switch:focus-visible{outline:2px solid #60a5fa;outline-offset:2px;}
+.cfg-switch:focus-visible{outline:2px solid var(--paint-96-165-250-1000-line);outline-offset:2px;}
 /* ⓘ 說明提示 */
-.cfg-info{position:relative;display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;border:1px solid #475569;color:#64748b;font-size:9px;font-weight:700;font-style:italic;font-family:Georgia,serif;cursor:help;flex-shrink:0;line-height:1;}
+.cfg-info{position:relative;display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;border:1px solid var(--paint-71-85-105-1000-line);color:var(--paint-100-116-139-1000-ink);font-size:9px;font-weight:700;font-style:italic;font-family:Georgia,serif;cursor:help;flex-shrink:0;line-height:1;}
 .cfg-info.tip-r::after{left:auto;right:-6px;}
 .cfg-info{text-transform:none;letter-spacing:0;vertical-align:middle;}
-.cfg-info:hover,.cfg-info:focus{color:#cbd5e1;border-color:#94a3b8;outline:none;}
-.cfg-info::after{content:attr(data-tip);position:absolute;left:-6px;top:calc(100% + 8px);z-index:40;width:max-content;max-width:min(280px,72vw);padding:8px 11px;border-radius:8px;background:#1e293b;border:1px solid #334155;box-shadow:0 10px 24px rgba(0,0,0,.45);color:#cbd5e1;font:400 11px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI','PingFang TC',sans-serif;white-space:normal;opacity:0;visibility:hidden;transform:translateY(-2px);transition:opacity .12s,transform .12s,visibility .12s;pointer-events:none;}
+.cfg-info:hover,.cfg-info:focus{color:var(--paint-203-213-225-1000-ink);border-color:var(--paint-148-163-184-1000-line);outline:none;}
+.cfg-info::after{content:attr(data-tip);position:absolute;left:-6px;top:calc(100% + 8px);z-index:40;width:max-content;max-width:min(280px,72vw);padding:8px 11px;border-radius:8px;background:var(--paint-30-41-59-1000-fill);border:1px solid var(--paint-51-65-85-1000-line);box-shadow:0 10px 24px var(--paint-0-0-0-450-shadow);color:var(--paint-203-213-225-1000-ink);font:400 11px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI','PingFang TC',sans-serif;white-space:normal;opacity:0;visibility:hidden;transform:translateY(-2px);transition:opacity .12s,transform .12s,visibility .12s;pointer-events:none;}
 .cfg-info:hover::after,.cfg-info:focus::after{opacity:1;visibility:visible;transform:none;}
 /* 已儲存回饋 */
-.cfg-saved{font-size:11px;color:#34d399;opacity:0;transition:opacity .2s;white-space:nowrap;}
+.cfg-saved{font-size:11px;color:var(--paint-52-211-153-1000-ink);opacity:0;transition:opacity .2s;white-space:nowrap;}
 .cfg-saved.show{opacity:1;}
 @media (prefers-reduced-motion:reduce){.cfg-switch,.cfg-switch::after,.cfg-info::after,.cfg-saved{transition:none;}}
 /* 窄螢幕：分類改成頂部橫向標籤 */
 @media (max-width:767px){
   .cfg-shell{grid-template-columns:1fr;gap:18px;}
-  .cfg-nav{position:static;flex-direction:row;overflow-x:auto;gap:4px;border-bottom:1px solid #1e293b;padding-bottom:0;scrollbar-width:none;}
+  .cfg-nav{position:static;flex-direction:row;overflow-x:auto;gap:4px;border-bottom:1px solid var(--paint-30-41-59-1000-line);padding-bottom:0;scrollbar-width:none;}
   .cfg-nav::-webkit-scrollbar{display:none;}
   .cfg-nav-btn{border-left:0;border-bottom:2px solid transparent;border-radius:6px 6px 0 0;padding:8px 12px;}
-  .cfg-nav-btn.active{border-bottom-color:#3b82f6;background:transparent;}
-  .cfg-nav-btn.is-danger.active{border-bottom-color:#f43f5e;}
+  .cfg-nav-btn.active{border-bottom-color:var(--paint-59-130-246-1000-line);background:transparent;}
+  .cfg-nav-btn.is-danger.active{border-bottom-color:var(--paint-244-63-94-1000-line);}
   .cfg-nav-sep{display:none;}
   .cfg-pane-title{display:none;}
   .cfg-mode{grid-template-columns:1fr;}
@@ -513,80 +514,80 @@ html[data-mod-off~="aix"] [data-mod="aix"],
 html[data-mod-off~="thumb"] [data-mod="thumb"],
 html[data-mod-off~="batch"] [data-mod="batch"]{display:none !important;}
 .cfg-mode-3{grid-template-columns:repeat(3,1fr);}
-.cfg-tpl{all:unset;box-sizing:border-box;display:block;cursor:pointer;border:1px solid #334155;border-radius:10px;padding:10px 14px;transition:border-color .15s,background .15s;}
-.cfg-tpl:hover{border-color:#475569;}
-.cfg-tpl:focus-visible{outline:2px solid #60a5fa;outline-offset:2px;}
-.cfg-tpl.active{border-color:#3b82f6;background:rgba(23,37,84,.35);}
-.cfg-tag{font-size:10px;font-weight:500;color:#94a3b8;border:1px solid #334155;border-radius:999px;padding:1px 8px;}
-#mod-undo{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);display:flex;align-items:center;gap:14px;background:#1e293b;color:#e2e8f0;padding:9px 10px 9px 18px;border-radius:10px;font-size:13px;border:1px solid #334155;box-shadow:0 10px 30px rgba(0,0,0,.5);z-index:10000;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;}
+.cfg-tpl{all:unset;box-sizing:border-box;display:block;cursor:pointer;border:1px solid var(--paint-51-65-85-1000-line);border-radius:10px;padding:10px 14px;transition:border-color .15s,background .15s;}
+.cfg-tpl:hover{border-color:var(--paint-71-85-105-1000-line);}
+.cfg-tpl:focus-visible{outline:2px solid var(--paint-96-165-250-1000-line);outline-offset:2px;}
+.cfg-tpl.active{border-color:var(--paint-59-130-246-1000-line);background:var(--paint-23-37-84-350-fill);}
+.cfg-tag{font-size:10px;font-weight:500;color:var(--paint-148-163-184-1000-ink);border:1px solid var(--paint-51-65-85-1000-line);border-radius:999px;padding:1px 8px;}
+#mod-undo{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);display:flex;align-items:center;gap:14px;background:var(--paint-30-41-59-1000-fill);color:var(--paint-226-232-240-1000-ink);padding:9px 10px 9px 18px;border-radius:10px;font-size:13px;border:1px solid var(--paint-51-65-85-1000-line);box-shadow:0 10px 30px var(--paint-0-0-0-500-shadow);z-index:10000;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;}
 #mod-undo.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto;}
 .mod-undo-t{white-space:nowrap;}
 #mod-undo{max-width:calc(100vw - 32px);}
-.mod-undo-b{all:unset;cursor:pointer;color:#60a5fa;font-weight:600;font-size:12px;padding:4px 8px;border-radius:6px;}
-.mod-undo-b:hover{background:rgba(59,130,246,.15);}
-.mod-undo-b:focus-visible{outline:2px solid #60a5fa;}
+.mod-undo-b{all:unset;cursor:pointer;color:var(--paint-96-165-250-1000-ink);font-weight:600;font-size:12px;padding:4px 8px;border-radius:6px;}
+.mod-undo-b:hover{background:var(--paint-59-130-246-150-fill);}
+.mod-undo-b:focus-visible{outline:2px solid var(--paint-96-165-250-1000-line);}
 @media (max-width:767px){.cfg-mode-3{grid-template-columns:1fr;}}
 /* ===== 聯絡人 ===== */
 .vd-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
 .vd-toolbar-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 .inp.vd-search{width:220px;padding:7px 12px;font-size:13px;}
 .vd-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;}
-.vd-card{background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:12px;min-width:0;}
-.vd-card:hover{border-color:#334155;}
+.vd-card{background:var(--paint-15-23-42-1000-fill);border:1px solid var(--paint-30-41-59-1000-line);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:12px;min-width:0;}
+.vd-card:hover{border-color:var(--paint-51-65-85-1000-line);}
 .vd-head{display:flex;align-items:flex-start;gap:8px;}
 .vd-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-.vd-name{all:unset;cursor:pointer;font-size:15px;font-weight:600;color:#f1f5f9;border-radius:4px;}
-.vd-name:hover{color:#93c5fd;}
-.vd-name:focus-visible{outline:2px solid #60a5fa;outline-offset:2px;}
-.vd-badge{font-size:10px;color:#fbbf24;background:rgba(120,53,15,.3);border:1px solid rgba(120,53,15,.6);border-radius:999px;padding:1px 8px;}
-.vd-note{font-size:12px;color:#64748b;margin-top:3px;line-height:1.5;}
+.vd-name{all:unset;cursor:pointer;font-size:15px;font-weight:600;color:var(--paint-241-245-249-1000-ink);border-radius:4px;}
+.vd-name:hover{color:var(--paint-147-197-253-1000-ink);}
+.vd-name:focus-visible{outline:2px solid var(--paint-96-165-250-1000-line);outline-offset:2px;}
+.vd-badge{font-size:10px;color:var(--paint-251-191-36-1000-ink);background:var(--paint-120-53-15-300-fill);border:1px solid var(--paint-120-53-15-600-line);border-radius:999px;padding:1px 8px;}
+.vd-note{font-size:12px;color:var(--paint-100-116-139-1000-ink);margin-top:3px;line-height:1.5;}
 .vd-menu{position:relative;flex:none;}
-.vd-more{all:unset;cursor:pointer;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;color:#64748b;font-size:16px;line-height:1;}
-.vd-more:hover,.vd-menu.open .vd-more{background:#1e293b;color:#e2e8f0;}
-.vd-more:focus-visible{outline:2px solid #60a5fa;}
-.vd-pop{display:none;position:absolute;right:0;top:calc(100% + 4px);z-index:30;min-width:120px;background:#1e293b;border:1px solid #334155;border-radius:8px;padding:4px;box-shadow:0 10px 24px rgba(0,0,0,.45);}
+.vd-more{all:unset;cursor:pointer;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;color:var(--paint-100-116-139-1000-ink);font-size:16px;line-height:1;}
+.vd-more:hover,.vd-menu.open .vd-more{background:var(--paint-30-41-59-1000-fill);color:var(--paint-226-232-240-1000-ink);}
+.vd-more:focus-visible{outline:2px solid var(--paint-96-165-250-1000-line);}
+.vd-pop{display:none;position:absolute;right:0;top:calc(100% + 4px);z-index:30;min-width:120px;background:var(--paint-30-41-59-1000-fill);border:1px solid var(--paint-51-65-85-1000-line);border-radius:8px;padding:4px;box-shadow:0 10px 24px var(--paint-0-0-0-450-shadow);}
 .vd-menu.open .vd-pop{display:block;}
-.vd-pop button{all:unset;box-sizing:border-box;display:block;width:100%;padding:7px 10px;border-radius:6px;font-size:12px;color:#cbd5e1;cursor:pointer;}
-.vd-pop button:hover,.vd-pop button:focus-visible{background:#334155;color:#fff;}
-.vd-pop button.is-danger{color:#fb7185;}
-.vd-pop button.is-danger:hover{background:rgba(159,18,57,.25);}
-.vd-bank{background:rgba(2,6,23,.45);border:1px solid rgba(30,41,59,.9);border-radius:10px;padding:10px 12px;}
-.vd-sec-h{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:#64748b;margin-bottom:6px;}
-.vd-link{all:unset;cursor:pointer;font-size:11px;color:#60a5fa;}
-.vd-link:hover{color:#93c5fd;}
-.vd-link.is-done,.vd-copy.is-done,.vd-chip-copy.is-done{color:#34d399;}
-.vd-bank-meta{font-size:12px;color:#cbd5e1;}
-.vd-dot{color:#475569;margin:0 6px;}
+.vd-pop button{all:unset;box-sizing:border-box;display:block;width:100%;padding:7px 10px;border-radius:6px;font-size:12px;color:var(--paint-203-213-225-1000-ink);cursor:pointer;}
+.vd-pop button:hover,.vd-pop button:focus-visible{background:var(--paint-51-65-85-1000-fill);color:var(--paint-255-255-255-1000-ink);}
+.vd-pop button.is-danger{color:var(--paint-251-113-133-1000-ink);}
+.vd-pop button.is-danger:hover{background:var(--paint-159-18-57-250-fill);}
+.vd-bank{background:var(--paint-2-6-23-450-fill);border:1px solid var(--paint-30-41-59-900-line);border-radius:10px;padding:10px 12px;}
+.vd-sec-h{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--paint-100-116-139-1000-ink);margin-bottom:6px;}
+.vd-link{all:unset;cursor:pointer;font-size:11px;color:var(--paint-96-165-250-1000-ink);}
+.vd-link:hover{color:var(--paint-147-197-253-1000-ink);}
+.vd-link.is-done,.vd-copy.is-done,.vd-chip-copy.is-done{color:var(--paint-52-211-153-1000-ink);}
+.vd-bank-meta{font-size:12px;color:var(--paint-203-213-225-1000-ink);}
+.vd-dot{color:var(--paint-71-85-105-1000-ink);margin:0 6px;}
 .vd-acct{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:6px;}
-.vd-acct-no{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:16px;letter-spacing:.02em;color:#f8fafc;font-variant-numeric:tabular-nums;word-break:break-all;}
-.vd-copy{all:unset;cursor:pointer;flex:none;font-size:11px;color:#cbd5e1;border:1px solid #334155;background:#1e293b;border-radius:6px;padding:4px 9px;}
-.vd-copy:hover{border-color:#475569;color:#fff;}
-.vd-none{font-size:12px;color:#475569;}
+.vd-acct-no{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:16px;letter-spacing:.02em;color:var(--paint-248-250-252-1000-ink);font-variant-numeric:tabular-nums;word-break:break-all;}
+.vd-copy{all:unset;cursor:pointer;flex:none;font-size:11px;color:var(--paint-203-213-225-1000-ink);border:1px solid var(--paint-51-65-85-1000-line);background:var(--paint-30-41-59-1000-fill);border-radius:6px;padding:4px 9px;}
+.vd-copy:hover{border-color:var(--paint-71-85-105-1000-line);color:var(--paint-255-255-255-1000-ink);}
+.vd-none{font-size:12px;color:var(--paint-71-85-105-1000-ink);}
 .vd-chips{display:flex;flex-wrap:wrap;gap:6px;}
-.vd-chip{display:inline-flex;align-items:center;gap:6px;max-width:100%;font-size:12px;color:#cbd5e1;background:#1e293b;border:1px solid #334155;border-radius:999px;padding:3px 4px 3px 10px;}
+.vd-chip{display:inline-flex;align-items:center;gap:6px;max-width:100%;font-size:12px;color:var(--paint-203-213-225-1000-ink);background:var(--paint-30-41-59-1000-fill);border:1px solid var(--paint-51-65-85-1000-line);border-radius:999px;padding:3px 4px 3px 10px;}
 .vd-chip:not(:has(.vd-chip-copy)){padding-right:10px;}
-.vd-chip a{color:#93c5fd;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.vd-chip a{color:var(--paint-147-197-253-1000-ink);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .vd-chip a:hover{text-decoration:underline;}
-.vd-chip-k{color:#64748b;font-size:11px;}
-.vd-chip-copy{all:unset;cursor:pointer;font-size:10px;color:#94a3b8;padding:2px 7px;border-radius:999px;}
-.vd-chip-copy:hover{background:#334155;color:#fff;}
-.vd-chip-warn{color:#fbbf24;border-color:rgba(120,53,15,.7);padding-right:10px;}
-.vd-link:focus-visible,.vd-copy:focus-visible,.vd-chip-copy:focus-visible,.vd-chip a:focus-visible{outline:2px solid #60a5fa;outline-offset:1px;}
+.vd-chip-k{color:var(--paint-100-116-139-1000-ink);font-size:11px;}
+.vd-chip-copy{all:unset;cursor:pointer;font-size:10px;color:var(--paint-148-163-184-1000-ink);padding:2px 7px;border-radius:999px;}
+.vd-chip-copy:hover{background:var(--paint-51-65-85-1000-fill);color:var(--paint-255-255-255-1000-ink);}
+.vd-chip-warn{color:var(--paint-251-191-36-1000-ink);border-color:var(--paint-120-53-15-700-line);padding-right:10px;}
+.vd-link:focus-visible,.vd-copy:focus-visible,.vd-chip-copy:focus-visible,.vd-chip a:focus-visible{outline:2px solid var(--paint-96-165-250-1000-line);outline-offset:1px;}
 /* 彈窗表單 */
 .vd-form{display:flex;flex-direction:column;gap:18px;}
 .vd-form section{display:flex;flex-direction:column;gap:10px;}
-.vd-form section + section{border-top:1px solid #334155;padding-top:16px;}
-.vd-form h4{font-size:12px;font-weight:600;color:#94a3b8;margin:0;}
+.vd-form section + section{border-top:1px solid var(--paint-51-65-85-1000-line);padding-top:16px;}
+.vd-form h4{font-size:12px;font-weight:600;color:var(--paint-148-163-184-1000-ink);margin:0;}
 .vd-field{display:flex;flex-direction:column;gap:5px;min-width:0;}
-.vd-field label{font-size:11px;color:#94a3b8;}
+.vd-field label{font-size:11px;color:var(--paint-148-163-184-1000-ink);}
 .vd-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .vd-3col{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
 #vd-acctno{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
-.vd-err{font-size:11px;color:#fb7185;margin-top:-4px;}
-.vd-danger{border-top:1px solid #334155;padding-top:14px;}
-.vd-del{all:unset;cursor:pointer;font-size:12px;color:#fb7185;}
+.vd-err{font-size:11px;color:var(--paint-251-113-133-1000-ink);margin-top:-4px;}
+.vd-danger{border-top:1px solid var(--paint-51-65-85-1000-line);padding-top:14px;}
+.vd-del{all:unset;cursor:pointer;font-size:12px;color:var(--paint-251-113-133-1000-ink);}
 .vd-del:hover{text-decoration:underline;}
-.vd-del:focus-visible{outline:2px solid #fb7185;outline-offset:2px;}
+.vd-del:focus-visible{outline:2px solid var(--paint-251-113-133-1000-line);outline-offset:2px;}
 @media (max-width:640px){
   .vd-grid{grid-template-columns:1fr;}
   .inp.vd-search{width:100%;}
@@ -596,10 +597,11 @@ html[data-mod-off~="batch"] [data-mod="batch"]{display:none !important;}
   .vd-2col,.vd-3col{grid-template-columns:1fr;}
 }
 </style>
-<link id="editorial-styles" rel="stylesheet" href="editorial.css?v=20261029-11">
-<script src="editorial.js?v=20261029-11" defer></script>
-<link rel="stylesheet" href="appearance-controls.css?v=20261029-11">
-<link rel="stylesheet" href="navy-glass.css?v=20261029-11">
+<link rel="stylesheet" href="theme-tokens.css?v=20261029-20">
+<link id="editorial-styles" rel="stylesheet" href="editorial.css?v=20261029-20">
+<script src="editorial.js?v=20261029-20" defer></script>
+<link rel="stylesheet" href="appearance-controls.css?v=20261029-20">
+<link rel="stylesheet" href="navy-glass.css?v=20261029-20">
 </head>
 <body class="bg-slate-950 min-h-screen text-slate-100 pb-20">
 <datalist id="vendor-datalist"></datalist>
@@ -607,9 +609,9 @@ html[data-mod-off~="batch"] [data-mod="batch"]{display:none !important;}
 <div id="ft-toast"></div>
 
 <!-- 雲端載入遮罩 — 避免 init 階段先渲染本地舊資料、又被雲端覆寫造成的視覺閃爍 -->
-<div id="cloud-load-mask" style="position:fixed;inset:0;z-index:60;background:rgba(15,23,42,0.7);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px;">
-  <div style="width:36px;height:36px;border:3px solid #1e293b;border-top-color:#60a5fa;border-radius:50%;animation:cloud-spin 0.9s linear infinite;"></div>
-  <div style="font-size:12px;color:#94a3b8;letter-spacing:0.05em;">正在從雲端讀取資料…</div>
+<div id="cloud-load-mask" style="position:fixed;inset:0;z-index:60;background:var(--paint-15-23-42-700-fill);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px;">
+  <div style="width:36px;height:36px;border:3px solid var(--paint-30-41-59-1000-line);border-top-color:var(--paint-96-165-250-1000-line);border-radius:50%;animation:cloud-spin 0.9s linear infinite;"></div>
+  <div style="font-size:12px;color:var(--paint-148-163-184-1000-ink);letter-spacing:0.05em;">正在從雲端讀取資料…</div>
 </div>
 <style>@keyframes cloud-spin{to{transform:rotate(360deg);}}</style>
 
@@ -634,13 +636,13 @@ html[data-mod-off~="batch"] [data-mod="batch"]{display:none !important;}
     <div>
       <h1 class="text-2xl font-bold text-white tracking-tight">Freelance Tracker</h1>
       <p class="text-sm text-slate-500 mt-1 flex items-center gap-2">
-        <span class="sync-dot" id="sync-dot" style="background:#475569"></span>
+        <span class="sync-dot" id="sync-dot" style="background:var(--paint-71-85-105-1000-fill)"></span>
         <span id="sync-text">未設定雲端同步</span>
         <span id="fx-text" class="ml-2 text-slate-600">| 匯率更新中...</span>
       </p>
     </div>
     <div class="flex items-center gap-4 flex-wrap">
-      <label class="inline-flex items-center gap-2 text-xs">外觀<select id="editorial-theme-toggle" class="btn btn-sm" aria-label="外觀模式"><option value="original">柔霧深藍（預設）</option><option value="dark">炭灰深色</option><option value="light">紙白淺色</option></select></label>
+
       <button id="btn-manual-sync" class="btn btn-sm text-blue-400 border-blue-900/50 hover:bg-blue-950/50 hidden" onclick="forceCloudSave()">☁️ 同步至雲端</button>
       <button class="btn btn-sm hover:bg-slate-800" onclick="exportJSON()">備份 JSON</button>
       <button class="btn btn-sm hover:bg-slate-800" onclick="document.getElementById('imp').click()">匯入</button>
@@ -877,7 +879,7 @@ html[data-mod-off~="batch"] [data-mod="batch"]{display:none !important;}
     <div id="done-proj-wrap" class="tbl-wrap opacity-75 hover:opacity-100 transition-opacity duration-300 mb-10" style="display:none;">
       <div class="overflow-x-auto max-h-[400px] overflow-y-auto">
         <table class="proj-table" style="border-collapse: separate; border-spacing: 0;">
-          <thead class="sticky top-0 z-10" style="background:#0f172a; box-shadow: 0 1px 0 #1e293b;">            
+          <thead class="sticky top-0 z-10" style="background:var(--paint-15-23-42-1000-fill); box-shadow: 0 1px 0 var(--paint-30-41-59-1000-shadow);">
             <tr>
               <th style="width: 40px;"></th>
               <th>任務與專案</th>
@@ -912,7 +914,7 @@ html[data-mod-off~="batch"] [data-mod="batch"]{display:none !important;}
     </div>
   </div>
 
-  <div id="v-pay" class="hidden">
+  <div id="v-pay" class="hidden editorial-page">
     <div class="hint-bar">所有收付款紀錄的總覽。如需新增，請開啟各任務的<strong>詳情面板</strong>，在款項區塊中登記收款或付款。此頁可依月份篩選，並一覽各筆帳款的歸屬任務與備註。</div>
     
     <div id="pay-ar-section" class="mb-6 hidden">
@@ -967,7 +969,7 @@ html[data-mod-off~="batch"] [data-mod="batch"]{display:none !important;}
     </div>
   </div>
 
-  <div id="v-cal" class="hidden">
+  <div id="v-cal" class="hidden editorial-page">
     <div class="hint-bar" id="cal-hint-cal">以月曆方式呈現所有任務的起訖區間，快速確認排程衝突與空檔。點擊色條可展開任務詳情。截止日臨近的任務會以顏色警示標記。</div>
     <div class="hint-bar" id="cal-hint-sched" style="display:none;">依各任務的<strong>預估工時</strong>與<strong>截止日</strong>自動試算每日該做什麼：硬截止優先、截止日近的先排，自動跳過週末與休假日。試算僅供參考，不會寫入任何資料；未填預估的任務以歷史中位數暫排（虛線），常態任務改從每日容量扣除每週保留（委外／轉包不參與）。</div>
     <div class="hint-bar" id="cal-hint-hist" style="display:none;">以月曆回顧<strong>每天實際做了哪些專案、各花多少工時</strong>，資料來自工時紀錄（計時器自動記錄＋手動補登）。色塊依業務類型上色，方便看出時間流向；點擊任一專案列可直接開啟該案詳情。可依業務類型篩選，月份可用上方箭頭或下拉選單切換。</div>
@@ -1018,7 +1020,7 @@ html[data-mod-off~="batch"] [data-mod="batch"]{display:none !important;}
         <span class="text-slate-700">│</span>
         <span>⚠️ 緊急</span><span>🚨 逾期</span>
         <span class="text-slate-700">│</span>
-        <span class="inline-flex items-center gap-1"><span style="display:inline-block;width:8px;height:10px;border-left:2px solid #f59e0b;background:rgba(245,158,11,.15);vertical-align:middle;"></span>委外</span>
+        <span class="inline-flex items-center gap-1"><span style="display:inline-block;width:8px;height:10px;border-left:2px solid var(--paint-245-158-11-1000-line);background:var(--paint-245-158-11-150-fill);vertical-align:middle;"></span>委外</span>
       </div>
       <div class="flex items-center gap-4">
         <label class="flex items-center gap-1.5 text-[11px] text-slate-400 cursor-pointer hover:text-slate-200">
@@ -1094,7 +1096,7 @@ html[data-mod-off~="batch"] [data-mod="batch"]{display:none !important;}
 </div>
   </div>
 
-  <div id="v-grp" class="hidden">
+  <div id="v-grp" class="hidden editorial-page">
     <div class="hint-bar">將多個相關任務歸入同一群組，方便依客戶或大型專案彙整管理。點擊群組列可展開查看所屬任務卡片；群組本身有獨立的狀態（進行中／完成／暫停）可標記。</div>
     <div class="flex flex-wrap gap-4 items-end mb-6 pb-5 border-b border-slate-800/60">
       <div class="flex flex-col gap-1.5 flex-1 min-w-[200px]"><label class="text-xs font-medium text-slate-500">群組名稱</label><input type="text" id="grp-name" class="inp" placeholder="客戶名稱或大型企劃名"></div>
@@ -1105,7 +1107,7 @@ html[data-mod-off~="batch"] [data-mod="batch"]{display:none !important;}
     <div id="grp-empty" class="text-center py-16 text-sm text-slate-500">尚無專案群組</div>
   </div>
 
-  <div id="v-vendor" class="hidden">
+  <div id="v-vendor" class="hidden editorial-page">
     <div class="hint-bar">記錄合作外包商或轉包方的聯絡資訊與收款帳號。建立後可在任務的「外包設定」中直接選用，免去重複填寫。所有資料僅儲存於本機瀏覽器，不會上傳至任何第三方。</div>
     <div class="vd-toolbar">
       <h3 class="text-sm font-semibold text-slate-300">聯絡人 <span id="vendor-count" class="text-slate-500 font-normal"></span></h3>
@@ -1118,7 +1120,7 @@ html[data-mod-off~="batch"] [data-mod="batch"]{display:none !important;}
     <div id="vendor-empty" class="text-center py-16 text-sm text-slate-500">尚無聯絡人資料</div>
   </div>
 
-  <div id="v-tag" class="hidden">
+  <div id="v-tag" class="hidden editorial-page">
     <div class="hint-bar">以表格或圖牆列出所有任務，支援多條件同時篩選。<strong>期間</strong>可選整年或單一季度（依工時紀錄與任務起訖日期判斷）；<strong>狀態</strong>的「未開始」指還沒記過工時的進行中任務；<strong>業務類型</strong>與<strong>標籤</strong>皆可多選；<strong>關鍵字</strong>比對任務名稱。點擊任務名稱可開啟詳情面板。</div>
     <div class="flex items-center justify-between gap-3 mb-4">
       <h3 class="text-sm font-semibold text-slate-300">篩選任務</h3>
@@ -1167,7 +1169,7 @@ html[data-mod-off~="batch"] [data-mod="batch"]{display:none !important;}
     <div id="tag-wall" class="hidden"></div>
   </div>
 
-  <div id="v-cat" class="hidden">
+  <div id="v-cat" class="hidden editorial-page">
     <div class="hint-bar"><strong>業務類型</strong>用於區分案件的工作性質（如插畫、UI設計、顧問），會顯示在任務卡片上並影響分析頁的圓餅圖統計。<strong>標籤</strong>用於彈性分組（如急件標籤、特定活動標籤），可在任務一覽頁多選篩選，兩者可同時使用。</div>
     <!-- 類型新增列 -->
     <div class="flex flex-wrap gap-3 items-end mb-5 pb-5 border-b border-slate-800">
@@ -1202,7 +1204,7 @@ html[data-mod-off~="batch"] [data-mod="batch"]{display:none !important;}
     </div>
   </div>
 
-<div id="v-dash" class="hidden">
+<div id="v-dash" class="hidden editorial-page">
     <div class="hint-bar">綜覽接案產值、工時分佈與金流狀況。頂部可切換週次查看每週工時，下方可依<strong>月份篩選</strong>聚焦單月數據。「現金流與獲利」面板可點擊<strong>當月總支出</strong>填入該月消費（房租、保險、訂閱等<strong>固定支出</strong>在設定頁設定一次即自動帶入），系統會自動算出「淨結餘（實收−支出）」判斷賺得夠不夠。「📋 複製 AI 分析」可先選模板：<strong>通用</strong>看近 3 個月總體概況，或挑專題（收支、工時、估時、獲利、排程）只整理那一面的數據，方便貼給 AI 助理深入分析。各模板的內文可按旁邊的 ⚙ 到設定頁修改。</div>
     <!-- 置頂：週工時（不受下方月份篩選影響） -->
     <div class="bg-slate-900 rounded-xl border border-slate-800 p-5 mb-8 relative overflow-hidden shadow-lg shadow-blue-900/5">
@@ -1314,7 +1316,7 @@ html[data-mod-off~="batch"] [data-mod="batch"]{display:none !important;}
 
       <!-- 每日工時紀錄 -->
       <div data-panel="timeline" class="dash-panel mb-6">
-        <div class="rounded-xl p-5" style="background:rgba(15,23,42,0.4)">
+        <div class="rounded-xl p-5" style="background:var(--paint-15-23-42-400-fill)">
           <div class="flex items-center justify-between mb-4 pb-2">
             <h3 class="text-sm font-semibold text-slate-500">每日工時紀錄</h3>
             <span id="dl-range-label" class="text-[11px] text-slate-500"></span>
@@ -1369,18 +1371,37 @@ html[data-mod-off~="batch"] [data-mod="batch"]{display:none !important;}
     <div id="export-box" class="hidden bg-slate-900 border border-slate-800 rounded-xl p-5 text-sm font-mono text-slate-400 leading-relaxed whitespace-pre-wrap overflow-auto" style="max-height:400px"></div>
   </div>
 
-  <div id="v-cfg" class="hidden">
+  <div id="v-cfg" class="hidden editorial-page">
     <div class="cfg-shell">
       <nav class="cfg-nav" role="tablist" aria-label="設定分類">
         <button type="button" class="cfg-nav-btn" role="tab" data-cfg="general" onclick="setCfgPane('general')">一般</button>
         <button type="button" class="cfg-nav-btn" role="tab" data-cfg="finance" onclick="setCfgPane('finance')">財務</button>
         <button type="button" class="cfg-nav-btn" role="tab" data-cfg="time" onclick="setCfgPane('time')">時間</button>
         <button type="button" class="cfg-nav-btn" role="tab" data-cfg="analysis" onclick="setCfgPane('analysis')">分析</button>
+        <button type="button" class="cfg-nav-btn" role="tab" data-cfg="appearance" onclick="setCfgPane('appearance')">外觀</button>
         <span class="cfg-nav-sep" aria-hidden="true"></span>
         <button type="button" class="cfg-nav-btn is-danger" role="tab" data-cfg="maint" onclick="setCfgPane('maint')">資料維護</button>
       </nav>
 
       <div class="cfg-body">
+
+
+        <section class="cfg-pane" data-pane="appearance" role="tabpanel" aria-labelledby="appearance-heading">
+          <h2 class="cfg-pane-title" id="appearance-heading">外觀</h2>
+          <div class="cfg-card">
+            <div class="cfg-row">
+              <div class="cfg-row-label"><label class="cfg-row-name" for="editorial-theme-toggle">主題</label><div class="cfg-row-desc">立即套用並自動儲存在此瀏覽器。</div></div>
+              <div class="cfg-row-ctl">
+                <select id="editorial-theme-toggle" class="inp" aria-describedby="editorial-theme-status" data-nosave>
+                  <option value="dark">炭灰深色（預設）</option>
+                  <option value="original">柔霧深藍</option>
+                  <option value="light">紙白淺色</option>
+                </select>
+              </div>
+            </div>
+            <p id="editorial-theme-status" class="cfg-row-desc" role="status" aria-live="polite"></p>
+          </div>
+        </section>
 
         <!-- ===== 一般 ===== -->
         <section class="cfg-pane" data-pane="general" role="tabpanel">
@@ -1683,7 +1704,7 @@ html[data-mod-off~="batch"] [data-mod="batch"]{display:none !important;}
     </div>
   </div>
 
-<div id="v-sync" class="hidden prose-dark">
+<div id="v-sync" class="hidden prose-dark editorial-page">
   <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
     
     <div class="lg:col-span-4 space-y-4">
@@ -1691,7 +1712,7 @@ html[data-mod-off~="batch"] [data-mod="batch"]{display:none !important;}
         <div class="flex items-center justify-between mb-6">
           <h3 class="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Cloud Status</h3>
           <div class="flex items-center gap-2 px-3 py-1 bg-slate-950 rounded-full border border-slate-800">
-            <span class="sync-dot" id="cfg-dot" style="background:#475569"></span>
+            <span class="sync-dot" id="cfg-dot" style="background:var(--paint-71-85-105-1000-fill)"></span>
             <span class="text-[10px] font-bold text-slate-300" id="cfg-status-text">未設定</span>
           </div>
         </div>
@@ -1822,34 +1843,34 @@ html[data-mod-off~="batch"] [data-mod="batch"]{display:none !important;}
   </div>
 </div>
 
-<div id="v-help" class="hidden prose-dark">
+<div id="v-help" class="hidden prose-dark editorial-page">
     <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-5 max-w-3xl">
       <h2 class="mt-0" style="margin-bottom:.5rem">這個工具是什麼？</h2>
       <p>專為自由接案設計的工時與收益追蹤器。將「工作產值（應收）」和「實體金流（實收）」分開記錄，藉此精準計算「待收帳款」與「實際時薪」。</p>
     </div>
     <h2>快速開始指南</h2>
     <div class="flex flex-col gap-3 max-w-3xl">
-      <div class="flex items-start bg-slate-900 border border-slate-800 rounded-lg px-4 py-3"><div class="step-num">1</div><div><p style="color:#94a3b8;font-weight:500;margin:0 0 3px">設定工作模式與基礎參數</p><p style="margin:0">前往「⚙ 設定」選擇工作模式（個人接案或專案管理），設定「目標時薪」與「緊急門檻」。再於「類型管理」、「專案群組」建立分類。</p></div></div>
-      <div class="flex items-start bg-slate-900 border border-slate-800 rounded-lg px-4 py-3"><div class="step-num">2</div><div><p style="color:#94a3b8;font-weight:500;margin:0 0 3px">「任務」建立具體案子</p><p style="margin:0">填寫任務名稱、計費模式、合約金額與起訖日期。建立後，即可在列表追蹤進度。</p></div></div>
-      <div class="flex items-start bg-slate-900 border border-slate-800 rounded-lg px-4 py-3"><div class="step-num">3</div><div><p style="color:#e2e8f0;font-weight:500;margin:0 0 3px">拖曳任務，啟動專一計時</p><p style="margin:0">透過拖曳前方的 ☰ 將最重要的任務排到第一順位。系統規定<strong>只有頂部的任務才能啟動計時</strong>，幫助您維持專注。臨時想做別的任務時，把它<strong>跨區拖進「本週焦點」</strong>頂端即可啟動計時。</p></div></div>
-      <div class="flex items-start bg-slate-900 border border-slate-800 rounded-lg px-4 py-3"><div class="step-num">4</div><div><p style="color:#94a3b8;font-weight:500;margin:0 0 3px">任務詳情與自動工時</p><p style="margin:0">點擊任務列開啟詳情面板，可以填寫案件備註與客戶資訊。所有工時由計時器停止或進度更新時<strong>自動記錄</strong>，包含日期、時數與來源。可在詳情面板或「分析匯出」中查看、編輯或刪除。</p></div></div>
-      <div class="flex items-start bg-slate-900 border border-slate-800 rounded-lg px-4 py-3"><div class="step-num">5</div><div><p style="color:#94a3b8;font-weight:500;margin:0 0 3px">注意虧本紅線預警</p><p style="margin:0">系統會即時換算您的工時與合約/應收金額，若逼近您設定的目標時薪紅線，卡片會亮起進度條警告。</p></div></div>
-      <div class="flex items-start bg-slate-900 border border-slate-800 rounded-lg px-4 py-3"><div class="step-num">6</div><div><p style="color:#94a3b8;font-weight:500;margin:0 0 3px">錢入帳時於「任務詳情」登記</p><p style="margin:0">客戶匯款時，請到各任務的詳情面板中登記。系統會自動從該任務的「總應收」中扣除，核銷「待收帳款」。</p></div></div>
+      <div class="flex items-start bg-slate-900 border border-slate-800 rounded-lg px-4 py-3"><div class="step-num">1</div><div><p style="color:var(--paint-148-163-184-1000-ink);font-weight:500;margin:0 0 3px">設定工作模式與基礎參數</p><p style="margin:0">前往「⚙ 設定」選擇工作模式（個人接案或專案管理），設定「目標時薪」與「緊急門檻」。再於「類型管理」、「專案群組」建立分類。</p></div></div>
+      <div class="flex items-start bg-slate-900 border border-slate-800 rounded-lg px-4 py-3"><div class="step-num">2</div><div><p style="color:var(--paint-148-163-184-1000-ink);font-weight:500;margin:0 0 3px">「任務」建立具體案子</p><p style="margin:0">填寫任務名稱、計費模式、合約金額與起訖日期。建立後，即可在列表追蹤進度。</p></div></div>
+      <div class="flex items-start bg-slate-900 border border-slate-800 rounded-lg px-4 py-3"><div class="step-num">3</div><div><p style="color:var(--paint-226-232-240-1000-ink);font-weight:500;margin:0 0 3px">拖曳任務，啟動專一計時</p><p style="margin:0">透過拖曳前方的 ☰ 將最重要的任務排到第一順位。系統規定<strong>只有頂部的任務才能啟動計時</strong>，幫助您維持專注。臨時想做別的任務時，把它<strong>跨區拖進「本週焦點」</strong>頂端即可啟動計時。</p></div></div>
+      <div class="flex items-start bg-slate-900 border border-slate-800 rounded-lg px-4 py-3"><div class="step-num">4</div><div><p style="color:var(--paint-148-163-184-1000-ink);font-weight:500;margin:0 0 3px">任務詳情與自動工時</p><p style="margin:0">點擊任務列開啟詳情面板，可以填寫案件備註與客戶資訊。所有工時由計時器停止或進度更新時<strong>自動記錄</strong>，包含日期、時數與來源。可在詳情面板或「分析匯出」中查看、編輯或刪除。</p></div></div>
+      <div class="flex items-start bg-slate-900 border border-slate-800 rounded-lg px-4 py-3"><div class="step-num">5</div><div><p style="color:var(--paint-148-163-184-1000-ink);font-weight:500;margin:0 0 3px">注意虧本紅線預警</p><p style="margin:0">系統會即時換算您的工時與合約/應收金額，若逼近您設定的目標時薪紅線，卡片會亮起進度條警告。</p></div></div>
+      <div class="flex items-start bg-slate-900 border border-slate-800 rounded-lg px-4 py-3"><div class="step-num">6</div><div><p style="color:var(--paint-148-163-184-1000-ink);font-weight:500;margin:0 0 3px">錢入帳時於「任務詳情」登記</p><p style="margin:0">客戶匯款時，請到各任務的詳情面板中登記。系統會自動從該任務的「總應收」中扣除，核銷「待收帳款」。</p></div></div>
     </div> <div class="bg-red-950/20 border border-red-900/50 rounded-xl pt-2 pb-5 px-6 mt-6 mb-5 max-w-3xl">
-        <h2 class="text-[#f87171] text-base font-bold mt-0 mb-2.5 leading-none flex items-center border-none">
+        <h2 class="ui-danger text-base font-bold mt-0 mb-2.5 leading-none flex items-center border-none">
             資料同步與多裝置使用警語
         </h2>
-        <ul class="text-[#94a3b8] list-none p-0 m-0 space-y-2 leading-relaxed text-sm">
+        <ul class="ui-muted list-none p-0 m-0 space-y-2 leading-relaxed text-sm">
             <li class="flex items-start">
-                <span class="mr-2 text-[#e2e8f0] opacity-80">•</span>
+                <span class="mr-2 ui-text opacity-80">•</span>
                 <span>
-                    <strong class="text-[#e2e8f0]">禁止並行編輯</strong>：請勿在電腦、手機或多個瀏覽器分頁中「同時」開啟並操作本系統。
+                    <strong class="ui-text">禁止並行編輯</strong>：請勿在電腦、手機或多個瀏覽器分頁中「同時」開啟並操作本系統。
                 </span>
             </li>
             <li class="flex items-start">
-                <span class="mr-2 text-[#e2e8f0] opacity-80">•</span>
+                <span class="mr-2 ui-text opacity-80">•</span>
                 <span>
-                    <strong class="text-[#e2e8f0]">跨裝置切換規則</strong>：更換裝置前，請先確認原裝置左上角顯示「已同步」。於新裝置開啟時，請務必<strong class="text-[#f87171]">重新載入網頁 (F5)</strong> 確保載入最新資料。
+                    <strong class="ui-text">跨裝置切換規則</strong>：更換裝置前，請先確認原裝置左上角顯示「已同步」。於新裝置開啟時，請務必<strong class="ui-danger">重新載入網頁 (F5)</strong> 確保載入最新資料。
                 </span>
             </li>
         </ul>
@@ -2775,7 +2796,7 @@ function recalcProjectMoney(p, old) {
 }
 
 function setSyncStatus(state,msg){
-  var c={ok:'#4ade80',saving:'#fbbf24',error:'#f87171',none:'#475569'};
+  var c={ok:'var(--ui-good)',saving:'var(--ui-warn)',error:'var(--ui-bad)',none:'var(--ui-muted)'};
   var l={ok:'已同步',saving:'同步中…',error:'同步失敗',none:'未設定雲端'};
   var col=c[state]||c.none;
   ['sync-dot','cfg-dot'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.background=col;});
@@ -2788,7 +2809,7 @@ function setSyncStatus(state,msg){
   var ct=document.getElementById('cfg-status-text');if(ct)ct.textContent=msg||l[state]||'';
   var sd=document.getElementById('sync-dot');if(sd){sd.classList.remove('sync-saving');if(state==='saving')sd.classList.add('sync-saving');}
 }
-function showCfgMsg(msg,col){var el=document.getElementById('cfg-msg');if(!el)return;el.textContent=msg;el.style.color=col||'#94a3b8';el.classList.remove('hidden');setTimeout(function(){el.classList.add('hidden');},4000);}
+function showCfgMsg(msg,col){var el=document.getElementById('cfg-msg');if(!el)return;el.textContent=msg;el.style.color=col||'var(--ui-muted)';el.classList.remove('hidden');setTimeout(function(){el.classList.add('hidden');},4000);}
 function getScriptUrl(){return localStorage.getItem(SKEY)||'';}
 function saveScriptUrl(){
   var url = document.getElementById('script-url').value.trim();
@@ -2797,7 +2818,7 @@ function saveScriptUrl(){
   if(url !== getScriptUrl()) forgetCloudAt();   // 換了雲端，上次的同步紀錄不再適用
   localStorage.setItem(SKEY, url);
   localStorage.setItem('ft_sync_token', token); 
-  showCfgMsg('已儲存，測試中…','#60a5fa');
+  showCfgMsg('已儲存，測試中…','var(--ui-accent)');
   testConnection();
 }
 function clearScriptUrl(){
@@ -2825,7 +2846,7 @@ function testConnection(){
   setSyncStatus('saving','測試中…');
   fetch(getAuthUrl(url), {method:'GET'})
     .then(r=>r.json()).then(d=>{
-      if(d.ok) { setSyncStatus('ok','連線成功'); showCfgMsg('連線成功！','#4ade80'); }
+      if(d.ok) { setSyncStatus('ok','連線成功'); showCfgMsg('連線成功！','var(--ui-good)'); }
       else { setSyncStatus('error', d.error || '驗證失敗'); }
     }).catch(e=>setSyncStatus('error','連線失敗'));
 }
@@ -3883,7 +3904,7 @@ function refreshNotePreview(previewId,inputId,placeholder){
     pv.innerHTML=linkify(val);
     pv.classList.remove('text-slate-600');
   }else{
-    pv.textContent=placeholder||'（點擊編輯）';
+    pv.textContent=placeholder == null ? '（點擊編輯）' : placeholder;
     pv.classList.add('text-slate-600');
   }
   ip.style.display='none';
@@ -3949,7 +3970,7 @@ function buildTagDD(cid,px){
 }
 function toggleTagDD(px){var l=document.getElementById(px+'-tag-list');if(!l)return;l.classList.toggle('open');if(l.classList.contains('open')){var c=e=>{if(!l.parentElement.contains(e.target)){l.classList.remove('open');document.removeEventListener('click',c);}};setTimeout(()=>document.addEventListener('click',c),0);}}
 function toggleDD(ddId){var l=document.getElementById(ddId+'_list');if(!l)return;l.classList.toggle('open');if(l.classList.contains('open')){var c=function(e){if(!l.parentElement.contains(e.target)){l.classList.remove('open');document.removeEventListener('click',c);}};setTimeout(function(){document.addEventListener('click',c);},0);}}
-function updateTagLabel(px){var chks=document.querySelectorAll('.'+px+'-tag-chk:checked');var l=document.getElementById(px+'-tag-label');if(!l)return;if(!chks.length){l.textContent='選擇標籤…';l.style.color='#94a3b8';return;}l.innerHTML=Array.from(chks).map(c=>{var t=tagBy(c.value);if(!t)return '';return '<span style="color:'+(BC[t.color]||BC.gray).text+'">'+esc(t.name)+'</span>';}).join(', ');l.style.color='#f1f5f9';}
+function updateTagLabel(px){var chks=document.querySelectorAll('.'+px+'-tag-chk:checked');var l=document.getElementById(px+'-tag-label');if(!l)return;if(!chks.length){l.textContent='選擇標籤…';l.style.color='var(--ui-muted)';return;}l.innerHTML=Array.from(chks).map(c=>{var t=tagBy(c.value);if(!t)return '';return '<span style="color:'+(BC[t.color]||BC.gray).text+'">'+esc(t.name)+'</span>';}).join(', ');l.style.color='var(--ui-text)';}
 function getCheckedTags(px){return Array.from(document.querySelectorAll('.'+px+'-tag-chk:checked')).map(c=>c.value);}
 function setCheckedTags(px,tags){document.querySelectorAll('.'+px+'-tag-chk').forEach(c=>{c.checked=(tags||[]).indexOf(c.value)!==-1;});updateTagLabel(px);}
 
@@ -3984,7 +4005,7 @@ function save(isImmediate = false) {
   // 安靜背景同步：不再跳醒目提示，避免造成「卡頓 / 要等它」的錯覺。
   // 本地已瞬間存好，雲端在背景同步；真正未同步就關頁時，beforeunload 會攔下提醒。
   var dot = document.getElementById('sync-dot');
-  if (dot) { dot.style.background = '#475569'; dot.classList.remove('sync-saving'); } // 低調灰點
+  if (dot) { dot.style.background = 'var(--ui-muted)'; dot.classList.remove('sync-saving'); } // 低調灰點
   var txt = document.getElementById('sync-text');
   if (txt) {
     txt.textContent = '';
@@ -4511,7 +4532,7 @@ function rGrp(){
           var execLabel=p.execMode==='resell'?'轉包':'外包';
           var execCol=p.execMode==='resell'?'#c4b5fd':'#fcd34d';
           var vendorPart=p.vendorName
-            ?' <span style="color:rgba(252,211,77,0.75);font-weight:500;font-size:11px">'+esc(p.vendorName)+'</span>'
+            ?' <span style="color:var(--paint-252-211-77-750-ink);font-weight:500;font-size:11px">'+esc(p.vendorName)+'</span>'
             :'';
           execCorner=`<span style="font-size:11px;font-weight:700;color:${execCol};white-space:nowrap;flex-shrink:0;margin-left:8px;letter-spacing:0.01em">${execLabel}${vendorPart}</span>`;
         }
@@ -4521,27 +4542,27 @@ function rGrp(){
           if(p.nonBillable) return '';
           if(base<=0) return '';
           var net=base-ar.recv;
-          if(net<=0) return '<span style="font-size:10px;padding:1px 6px;border-radius:4px;background:#052e16;color:#4ade80;font-weight:500">＄ 結清</span>';
+          if(net<=0) return '<span style="font-size:10px;padding:1px 6px;border-radius:4px;background:var(--paint-5-46-22-1000-fill);color:var(--paint-74-222-128-1000-ink);font-weight:500">＄ 結清</span>';
           return ar.isExpected
             ? ''
-            : '<span style="font-size:10px;padding:1px 6px;border-radius:4px;background:rgba(245,158,11,0.12);border:1px solid #d97706;color:#fbbf24;font-weight:600">＄ 待收</span>';
+            : '<span style="font-size:10px;padding:1px 6px;border-radius:4px;background:var(--paint-245-158-11-120-fill);border:1px solid var(--paint-217-119-6-1000-line);color:var(--paint-251-191-36-1000-ink);font-weight:600">＄ 待收</span>';
         })();
 
         // 外包付款狀態
         var payBadge='';
         if(isOutsource){
           payBadge=p.vendorPaid
-            ?'<span style="font-size:10px;color:#34d399;font-weight:500">已付</span>'
-            :'<span style="font-size:10px;color:#f59e0b;font-weight:500">待付</span>';
+            ?'<span style="font-size:10px;color:var(--paint-52-211-153-1000-ink);font-weight:500">已付</span>'
+            :'<span style="font-size:10px;color:var(--paint-245-158-11-1000-ink);font-weight:500">待付</span>';
         }
 
         // 截止日行：階段白色可讀，最終截止稍亮
         var deadlineRow=(function(){
           var parts=[];
-          if(nms&&nms.date) parts.push('<span style="color:#cbd5e1">'+esc(nms.name)+' '+nms.date.slice(5)+'</span>');
-          if(p.edate) parts.push('<span style="color:#94a3b8">'+p.edate.slice(5)+'</span>');
-          else parts.push('<span style="color:#334155">未設截止</span>');
-          return (dlBadge?dlBadge+'&nbsp;':'')+parts.join('<span style="color:#334155;margin:0 3px">›</span>');
+          if(nms&&nms.date) parts.push('<span style="color:var(--paint-203-213-225-1000-ink)">'+esc(nms.name)+' '+nms.date.slice(5)+'</span>');
+          if(p.edate) parts.push('<span style="color:var(--paint-148-163-184-1000-ink)">'+p.edate.slice(5)+'</span>');
+          else parts.push('<span style="color:var(--paint-51-65-85-1000-ink)">未設截止</span>');
+          return (dlBadge?dlBadge+'&nbsp;':'')+parts.join('<span style="color:var(--paint-51-65-85-1000-ink);margin:0 3px">›</span>');
         })();
 
         var moneyLeft=[arBadge,payBadge].filter(Boolean).join('&nbsp;');
@@ -4560,11 +4581,11 @@ function rGrp(){
             ratePart='<span style="color:'+(below?'#f59e0b':'#64748b')+'">時薪 ≈'+fmtMoney(eqRate,rCur)+'</span>';
           }
         }
-        var hrsPart=(p.hrs||0)>0?'<span style="color:#7d8aa0;font-weight:500">'+formatHrs(p.hrs)+'</span>':'';
+        var hrsPart=(p.hrs||0)>0?'<span style="color:var(--paint-125-138-160-1000-ink);font-weight:500">'+formatHrs(p.hrs)+'</span>':'';
         var rateHtml='';
         if(hrsPart||ratePart){
-          rateHtml='<span style="font-size:10px;color:#64748b;white-space:nowrap;flex-shrink:0">'
-            +[hrsPart,ratePart].filter(Boolean).join('<span style="color:#334155;margin:0 4px">·</span>')
+          rateHtml='<span style="font-size:10px;color:var(--paint-100-116-139-1000-ink);white-space:nowrap;flex-shrink:0">'
+            +[hrsPart,ratePart].filter(Boolean).join('<span style="color:var(--paint-51-65-85-1000-ink);margin:0 4px">·</span>')
             +'</span>';
         }
 
@@ -4586,14 +4607,14 @@ function rGrp(){
             ${cardThumb}
             <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px">
               <div style="display:flex;align-items:baseline;justify-content:space-between;gap:6px">
-                <span style="font-weight:700;color:#f1f5f9;font-size:14px;line-height:1.3;flex:1;min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(p.name)}</span>
+                <span style="font-weight:700;color:var(--paint-241-245-249-1000-ink);font-size:14px;line-height:1.3;flex:1;min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(p.name)}</span>
                 ${execCorner}
               </div>
               <div style="font-size:10px;line-height:1.5">${deadlineRow}</div>
               ${metaRow}
             </div>
           </div>
-          <div style="height:1px;background:#0d1826;margin:0 12px"></div>
+          <div style="height:1px;background:var(--paint-13-24-38-1000-fill);margin:0 12px"></div>
           ${noteRow}
         </div>`;
       };
@@ -4604,11 +4625,11 @@ function rGrp(){
       if(archivedTasks.length){
         archivedBlock=grpExpandedArchive
           ?`<div class="col-span-full" style="margin-top:6px">
-              <button style="font-size:10px;color:#334155;padding:2px 8px;margin-bottom:6px" onclick="expandedGrps['${g.id}_arc']=false;rGrp();event.stopPropagation()">▴ 收合已結案 (${archivedTasks.length})</button>
+              <button style="font-size:10px;color:var(--paint-51-65-85-1000-ink);padding:2px 8px;margin-bottom:6px" onclick="expandedGrps['${g.id}_arc']=false;rGrp();event.stopPropagation()">▴ 收合已結案 (${archivedTasks.length})</button>
               <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">${archivedHtml}</div>
             </div>`
           :`<div class="col-span-full" style="margin-top:2px">
-              <button style="font-size:10px;color:#334155;padding:2px 8px" onclick="expandedGrps['${g.id}_arc']=true;rGrp();event.stopPropagation()">▸ 已結案 ${archivedTasks.length} 張</button>
+              <button style="font-size:10px;color:var(--paint-51-65-85-1000-ink);padding:2px 8px" onclick="expandedGrps['${g.id}_arc']=true;rGrp();event.stopPropagation()">▸ 已結案 ${archivedTasks.length} 張</button>
             </div>`;
       }
 
@@ -4621,7 +4642,7 @@ function rGrp(){
     return doneSep+`<div class="proj-group${isDone?' grp-done':''}">
       <div class="proj-group-hdr" onclick="toggleGrp('${g.id}')">
         <div class="flex items-center gap-3">
-          <span class="chevron ${isExp?'expanded':''}" style="color:#64748b">▶</span>
+          <span class="chevron ${isExp?'expanded':''}" style="color:var(--paint-100-116-139-1000-ink)">▶</span>
           <span class="font-medium text-slate-200">${esc(g.name)}</span>
           ${bdgSt(g.st)}
         </div>
@@ -5235,10 +5256,10 @@ function openDetail(id){
 
   var html = `
     <style>
-      #dt-tag-dd .tag-dd-btn { background: transparent; border: 1px dashed transparent; padding: 2px 6px; font-size: 11px; color: #64748b; box-shadow: none; min-width: 0; border-radius: 4px; transition: all 0.2s; }
-      #dt-tag-dd .tag-dd-btn:hover { border-color: #475569; color: #cbd5e1; }
-      #dt-tag-dd .tag-dd-list { background: #1e293b; border: 1px solid #334155; }
-      #detail-panel select option { background-color: #0f172a !important; color: #e2e8f0 !important; }
+      #dt-tag-dd .tag-dd-btn { background: transparent; border: 1px dashed transparent; padding: 2px 6px; font-size: 11px; color: var(--paint-100-116-139-1000-ink); box-shadow: none; min-width: 0; border-radius: 4px; transition: all 0.2s; }
+      #dt-tag-dd .tag-dd-btn:hover { border-color: var(--paint-71-85-105-1000-line); color: var(--paint-203-213-225-1000-ink); }
+      #dt-tag-dd .tag-dd-list { background: var(--paint-30-41-59-1000-fill); border: 1px solid var(--paint-51-65-85-1000-line); }
+      #detail-panel select option { background-color: var(--paint-15-23-42-1000-fill) !important; color: var(--paint-226-232-240-1000-ink) !important; }
     </style>
     <div class="p-5 md:p-6 text-slate-300">
       
@@ -5247,7 +5268,7 @@ function openDetail(id){
                value="${esc(p.name)}" onchange="updateProjField(${id}, 'name', this.value)">
         <div class="flex items-center gap-2 flex-shrink-0 mt-0.5">
           ${p.st==='done'?`<button class="btn btn-sm bg-transparent border-slate-700 text-slate-500 hover:text-blue-400 hover:bg-slate-800 transition-colors" onclick="openFollowUp(${id})" title="以這張卡為基礎開新任務，兩張卡互相連結">↪ 後續任務</button>`:''}
-          <button class="btn btn-sm bg-transparent border-slate-700 text-slate-500 hover:text-blue-400 hover:bg-slate-800 transition-colors" data-mod="aix" onclick="copyTaskExport(${id}, this)" title="依模板複製這個任務的全期資料，貼給 AI 分析">📋 複製分析</button>
+          <button class="detail-copy-analysis btn btn-sm bg-transparent border-slate-700 text-slate-500 hover:text-blue-400 hover:bg-slate-800 transition-colors" data-mod="aix" onclick="copyTaskExport(${id}, this)" title="依模板複製這個任務的全期資料，貼給 AI 分析">複製分析</button>
           <button class="btn btn-sm bg-slate-800/60 border-slate-700/50 text-slate-400 hover:text-slate-200 hover:bg-slate-700" onclick="closeDetail()">✕ 關閉</button>
         </div>
       </div>
@@ -5262,10 +5283,10 @@ function openDetail(id){
           + (next.length ? '<span>後續 '+next.map(lk).join('、')+'</span>' : '')
           + '</div>';
       })()}
-      <div class="grid grid-cols-2 gap-y-4 gap-x-4 mb-6 px-1">
+      <div class="detail-summary grid grid-cols-2 gap-y-4 gap-x-4 mb-6 px-1">
         <div>
           <label class="text-[10px] text-slate-500 mb-1 block">狀態</label>
-          <select class="outline-none cursor-pointer rounded-md px-2 py-1 text-xs border transition-colors hover:brightness-125 -ml-1 ${stCol}" onchange="updateProjField(${id}, 'st', this.value)">
+          <select class="detail-status outline-none cursor-pointer rounded-md px-2 py-1 text-xs border transition-colors hover:brightness-125 -ml-1 ${stCol}" onchange="updateProjField(${id}, 'st', this.value)">
             <option value="active" class="bg-slate-900 text-slate-200" ${p.st==='active'?'selected':''}>進行中</option>
             <option value="done" class="bg-slate-900 text-slate-200" ${p.st==='done'?'selected':''}>已完成</option>
             <option value="paused" class="bg-slate-900 text-slate-200" ${p.st==='paused'?'selected':''}>暫停</option>
@@ -5273,16 +5294,16 @@ function openDetail(id){
         </div>
         <div>
           <label class="text-[10px] text-slate-500 mb-1 block">類型</label>
-          <select class="outline-none cursor-pointer rounded-md px-2 py-1 text-xs border border-blue-900/50 bg-blue-950/30 text-blue-400 hover:brightness-125 transition-colors -ml-1" onchange="updateProjField(${id}, 'type', this.value)">
+          <select class="detail-type outline-none cursor-pointer rounded-md px-2 py-1 text-xs border border-blue-900/50 bg-blue-950/30 text-blue-400 hover:brightness-125 transition-colors -ml-1" onchange="updateProjField(${id}, 'type', this.value)">
             ${catOpts}
           </select>
         </div>
 
         <div>
-          <label class="text-[10px] text-slate-500 mb-1 block">首次結案日（舊資料可補填）</label>
+          <label class="text-[10px] text-slate-500 mb-1 block">結案日</label>
           <input type="date" class="inp mb-2" value="${esc(p.completedAt||'')}" onchange="updateProjField(${id}, 'completedAt', this.value)">
           <label class="text-[10px] text-slate-500 mb-1 block">累計工時</label>
-          <div class="text-base font-bold text-blue-300 leading-none">${formatHrs(p.hrs||0)}</div>
+          <div class="detail-total-hours text-base font-bold text-blue-300 leading-none">${formatHrs(p.hrs||0)}</div>
         </div>
         <div>
           <label class="text-[10px] text-slate-500 mb-1 block">合約總額</label>
@@ -5293,7 +5314,7 @@ function openDetail(id){
         </div>
       </div>
 
-      <div class="bg-slate-800/20 border border-slate-700/50 rounded-lg p-3.5 mb-6">
+      <div class="detail-attributes bg-slate-800/20 border border-slate-700/50 rounded-lg p-3.5 mb-6">
         <div class="grid grid-cols-[60px_1fr] gap-y-2.5 text-xs items-center px-1">
           <div class="text-slate-500" data-mod="grp">專案群組</div>
           <div class="-ml-1.5" data-mod="grp">
@@ -5439,26 +5460,26 @@ function openDetail(id){
         <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-3 mb-3 hover:border-slate-600 transition-colors">
           <div id="dt-notes-pv" 
                class="w-full text-xs text-slate-400 min-h-[80px] leading-relaxed whitespace-pre-wrap break-words cursor-text" 
-               onclick="toggleNotePreview('dt-notes-pv', 'dt-notes'); var ta=document.getElementById('dt-notes'); ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px';">${p.notes ? linkify(p.notes) : '<span class="text-slate-600">（點擊輸入備註，如雲端連結、客戶要求...）</span>'}</div>
+               onclick="toggleNotePreview('dt-notes-pv', 'dt-notes'); var ta=document.getElementById('dt-notes'); ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px';">${p.notes ? linkify(p.notes) : ''}</div>
           <textarea id="dt-notes" 
                     style="display:none"
                     class="bg-transparent outline-none w-full text-xs text-slate-400 min-h-[80px] max-h-[320px] leading-relaxed resize-none overflow-y-auto no-scrollbar placeholder-slate-600" 
                     oninput="this.style.height='auto'; this.style.height=this.scrollHeight+'px';" 
-                    onblur="updateProjField(${id}, 'notes', this.value); refreshNotePreview('dt-notes-pv', 'dt-notes', '（點擊輸入備註，如雲端連結、客戶要求...）');"
-                    placeholder="（點擊輸入備註，如雲端連結、客戶要求...）">${esc(p.notes||'')}</textarea>
+                    onblur="updateProjField(${id}, 'notes', this.value); refreshNotePreview('dt-notes-pv', 'dt-notes', '');"
+                    aria-label="案件備註">${esc(p.notes||'')}</textarea>
         </div>
         <div>
           <label class="text-[10px] text-slate-500 mb-1.5 block px-1">客戶 / 聯繫資訊</label>
           <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-2.5 hover:border-slate-600 transition-colors">
             <div id="dt-contact-pv" 
                  class="w-full text-xs text-slate-500 min-h-[20px] leading-relaxed whitespace-pre-wrap break-words cursor-text" 
-                 onclick="toggleNotePreview('dt-contact-pv', 'dt-contact')">${p.contact ? linkify(p.contact) : '<span class="text-slate-600">（點擊編輯）</span>'}</div>
+                 onclick="toggleNotePreview('dt-contact-pv', 'dt-contact')">${p.contact ? linkify(p.contact) : ''}</div>
             <input type="text" id="dt-contact" 
                    style="display:none"
                    class="bg-transparent outline-none w-full text-xs text-slate-500 placeholder-slate-600" 
                    value="${esc(p.contact||'')}"
-                   onblur="updateProjField(${id}, 'contact', this.value); refreshNotePreview('dt-contact-pv', 'dt-contact', '（點擊編輯）');"
-                   placeholder="（點擊編輯）">
+                   onblur="updateProjField(${id}, 'contact', this.value); refreshNotePreview('dt-contact-pv', 'dt-contact', '');"
+                   aria-label="客戶／聯絡資訊">
           </div>
         </div>
       </div>
@@ -5482,42 +5503,45 @@ function openDetail(id){
           </div>
         </div>
         <div class="mb-2"></div>
-        <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl overflow-hidden mb-3">
+        <div class="detail-ms-list bg-slate-800/40 border border-slate-700/50 rounded-xl overflow-hidden mb-3">
           ${(p.milestones||[]).map((m,i)=>`
-            <div class="flex flex-wrap items-center justify-between gap-y-1.5 p-2.5 px-3 border-b border-slate-700/50 last:border-b-0 hover:bg-slate-800/60 transition-colors">
-              <div class="flex items-center gap-2.5 flex-1 min-w-[160px]">
+            <div class="detail-ms-row flex flex-wrap items-center justify-between gap-y-1.5 p-2.5 px-3 border-b border-slate-700/50 last:border-b-0 hover:bg-slate-800/60 transition-colors">
+              <div class="detail-ms-main flex items-center gap-2.5 flex-1 min-w-[160px]">
                 <input type="checkbox" class="accent-rose-500 w-4 h-4 cursor-pointer flex-shrink-0" ${m.done?'checked':''} onchange="toggleMS(${id},${i})">
                 <select class="bg-transparent text-sm outline-none flex-shrink-0 w-24 cursor-pointer ${m.done?'text-slate-500':'text-slate-300'}" data-msf="name" onchange="editMS(${id},${i},this)">${phaseSelectOptions(m.name)}</select>
-                <input size="1" title="${esc(m.note||'')}" class="bg-transparent text-xs outline-none flex-1 w-0 min-w-0 hover:bg-slate-900/50 border border-transparent hover:border-slate-700 rounded px-1.5 py-0.5 transition-colors ${m.done?'text-slate-600':'text-slate-500'}" value="${esc(m.note||'')}" placeholder="附註（不進統計）" data-msf="note" onchange="editMS(${id},${i},this)">
+                <input size="1" title="${esc(m.note||'')}" class="bg-transparent text-xs outline-none flex-1 w-0 min-w-0 hover:bg-slate-900/50 border border-transparent hover:border-slate-700 rounded px-1.5 py-0.5 transition-colors ${m.done?'text-slate-600':'text-slate-500'}" value="${esc(m.note||'')}" placeholder="附註" data-msf="note" onchange="editMS(${id},${i},this)">
               </div>
-              <div class="flex items-center gap-2 flex-shrink-0">
+              <div class="detail-ms-meta flex items-center gap-2 flex-shrink-0">
                 <span class="flex items-center gap-0.5" title="此階段預估工時（排程分段檢查用）">
                   <input type="number" min="0" step="0.5" class="bg-transparent hover:bg-slate-900/50 border border-transparent hover:border-slate-700 rounded px-1 py-1 text-xs outline-none w-12 text-right ${m.done?'text-slate-500':'text-slate-400'} transition-colors" value="${m.estHrs||''}" placeholder="—" data-msf="estHrs" onchange="editMS(${id},${i},this)">
                   <span class="text-[9px] text-slate-600">h</span>
                 </span>
                 <label class="flex items-center gap-1 cursor-pointer select-none" title="此階段為硬截止（不可調整，排程最優先保障）；未勾選則視為期望日（軟截止）">
                   <input type="checkbox" class="accent-rose-500 w-3.5 h-3.5 cursor-pointer" ${m.hard?'checked':''} data-msf="hard" onchange="editMS(${id},${i},this)">
-                  <span class="text-[9px] ${m.hard?'text-rose-400':'text-slate-600'}">硬</span>
+                  <span class="text-[9px] ${m.hard?'text-rose-400':'text-slate-600'}">硬截止</span>
                 </label>
                 <input type="date" class="bg-transparent hover:bg-slate-900/50 border border-transparent hover:border-slate-700 rounded px-1.5 py-1 text-xs outline-none ${m.done?'text-slate-500':'text-slate-400'} transition-colors" value="${m.date||''}" data-msf="date" onchange="editMS(${id},${i},this)">
                 <button class="text-slate-600 hover:text-red-400 px-1" onclick="delMS(${id},${i})">✕</button>
               </div>
             </div>
           `).join('')}
-          ${(p.milestones||[]).length===0 ? '<div class="text-center text-xs text-slate-600 py-3">尚無階段目標</div>' : ''}
+
         </div>
-        <div class="flex flex-col gap-2">
-          <div class="flex gap-2">
-            <select id="dt-ms-name" class="inp text-sm w-28 flex-shrink-0 bg-slate-800/40 border-slate-700/50 rounded-xl" onchange="onNewMSPhaseChange(${id})">${phaseSelectOptions('')}</select>
-            <input type="text" size="1" id="dt-ms-note" class="inp text-sm flex-1 w-0 min-w-0 bg-slate-800/40 border-slate-700/50 rounded-xl placeholder-slate-600" placeholder="附註（選填，不進統計）" onkeydown="if(event.key==='Enter')addMS(${id})">
+        <details class="detail-ms-composer" ontoggle="if(this.open)this.querySelector('select').focus()">
+          <summary class="detail-ms-add-trigger">＋ 新增階段</summary>
+          <div class="detail-ms-draft">
+            <div class="detail-ms-row">
+              <div class="detail-ms-main"><span class="detail-ms-draft-spacer" aria-hidden="true"></span><select id="dt-ms-name" aria-label="階段" class="inp text-sm w-28 flex-shrink-0 bg-slate-800/40 border-slate-700/50 rounded-xl" onchange="onNewMSPhaseChange(${id})">${phaseSelectOptions('')}</select><input type="text" size="1" id="dt-ms-note" class="inp text-sm flex-1 w-0 min-w-0 bg-slate-800/40 border-slate-700/50 rounded-xl placeholder-slate-600" placeholder="附註（選填）" aria-label="附註" onkeydown="if(event.key==='Enter')addMS(${id})"></div>
+              <div class="detail-ms-meta">
+                <span class="flex items-center gap-0.5"><input type="number" id="dt-ms-est" min="0" step="0.5" class="inp text-sm w-20 flex-shrink-0 bg-slate-800/40 border-slate-700/50 rounded-xl text-slate-400 placeholder-slate-600" placeholder="—" aria-label="預估工時（小時）" title="此階段預估工時（選填）"><span class="text-[11px] text-slate-500">h</span></span>
+                <label class="flex items-center gap-1 cursor-pointer select-none px-1 flex-shrink-0" title="此階段為硬截止"><input type="checkbox" id="dt-ms-hard" class="accent-rose-500 w-3.5 h-3.5"><span class="text-[10px] text-slate-500">硬截止</span></label>
+                <input type="date" id="dt-ms-date" aria-label="截止日" class="inp text-sm flex-1 w-0 min-w-[120px] bg-slate-800/40 border-slate-700/50 rounded-xl text-slate-400" value="${toLocalDate()}">
+                <button type="button" class="text-slate-500 hover:text-red-400" aria-label="取消新增階段" title="取消新增階段" onclick="var d=this.closest('details');d.removeAttribute('open');d.querySelector('summary').focus()">✕</button>
+              </div>
+            </div>
+            <div class="detail-ms-draft-actions"><button class="btn btn-sm bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 rounded-xl flex-shrink-0" onclick="addMS(${id})">儲存階段</button></div>
           </div>
-          <div class="flex gap-2">
-            <input type="number" id="dt-ms-est" min="0" step="0.5" class="inp text-sm w-20 flex-shrink-0 bg-slate-800/40 border-slate-700/50 rounded-xl text-slate-400 placeholder-slate-600" placeholder="工時h" title="此階段預估工時（選填）">
-            <label class="flex items-center gap-1 cursor-pointer select-none px-1 flex-shrink-0" title="此階段為硬截止"><input type="checkbox" id="dt-ms-hard" class="accent-rose-500 w-3.5 h-3.5"><span class="text-[10px] text-slate-500">硬</span></label>
-            <input type="date" id="dt-ms-date" class="inp text-sm flex-1 w-0 min-w-[120px] bg-slate-800/40 border-slate-700/50 rounded-xl text-slate-400" value="${toLocalDate()}">
-            <button class="btn btn-sm bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 rounded-xl flex-shrink-0" onclick="addMS(${id})">+ 新增</button>
-          </div>
-        </div>
+        </details>
         ${(function(){
           var msSum=(p.milestones||[]).reduce(function(s,m){return s+(+m.estHrs||0);},0);
           if(p.estHrs&&msSum>p.estHrs)return '<div class="text-[10px] text-amber-400 mt-2 px-1"><span class="cursor-help" title="請調高總預估或調低某階段">⚠ 階段加總 '+formatHrs(msSum)+' ＞ 總預估 '+formatHrs(p.estHrs)+'</span><button type="button" onclick="sumEstFromMS('+id+')" title="把總預估改為階段加總" class="underline decoration-dotted hover:text-sky-300 text-sky-400 ml-2">改為 '+formatHrs(msSum)+'</button></div>';
@@ -6120,7 +6144,7 @@ function rProj(){
         if(!isDoneCard){
           if(activeTimers[p.id]){
             var elapsedMin = Math.floor(timerShownMs(p.id)/60000);
-            timerBtn = '<button class=\"btn btn-sm btn-danger px-2 py-0.5 text-[10px]\" onclick=\"stopTimer('+p.id+');event.stopPropagation()\"><span class=\"sync-dot sync-saving mr-1\" style=\"background:#fca5a5;width:5px;height:5px\"></span>停止 ('+elapsedMin+'m)</button>';
+            timerBtn = '<button class=\"btn btn-sm btn-danger px-2 py-0.5 text-[10px]\" onclick=\"stopTimer('+p.id+');event.stopPropagation()\"><span class=\"sync-dot sync-saving mr-1\" style=\"background:var(--paint-252-165-165-1000-fill);width:5px;height:5px\"></span>停止 ('+elapsedMin+'m)</button>';
           } else if(p.st==='active'){
             timerBtn = '<button class=\"btn btn-sm px-2 py-0.5 text-[10px] bg-slate-800 text-blue-400 border-slate-700\" onclick=\"startTimer('+p.id+');event.stopPropagation()\">▶</button>';
           }
@@ -6227,7 +6251,7 @@ function renderRows(list, isDone, scores, bucketKey, currentTopId) {
                 if (pi) {
                     if (maxHrs > 0) {
                         var mPct = Math.min((+p.estHrs || 0) / maxHrs, 1.08) * 100;
-                        var mCol = pi.level === 'bad' ? '#f43f5e' : (pi.level === 'warn' ? '#f59e0b' : '#475569');
+                        var mCol = pi.level === 'bad' ? 'var(--ui-bad)' : (pi.level === 'warn' ? 'var(--ui-warn)' : 'var(--ui-muted)');
                         planMark = `<div style=\"position:absolute;top:-2px;bottom:-2px;left:${mPct}%;width:2px;background:${mCol};border-radius:1px\" title=\"預估工時 ${(+p.estHrs||0).toFixed(1)}h\"></div>`;
                     }
                     if (pi.level !== 'ok') {
@@ -6302,7 +6326,7 @@ function renderRows(list, isDone, scores, bucketKey, currentTopId) {
             // 進行中 — 計時器在上方，主操作（結案）+ ✎ + 🗑 在下方同行
             var timerBtn = '';
             if (activeTimers[p.id]) {
-                timerBtn = `<button class="btn btn-sm btn-danger px-2 py-1 w-full justify-center text-[11px] shadow-md shadow-red-900/20" onclick="stopTimer(${p.id})"><span class="sync-dot sync-saving mr-1" style="background:#fca5a5"></span> 停止 (${Math.floor(timerShownMs(p.id)/60000)}m)</button>`;
+                timerBtn = `<button class="btn btn-sm btn-danger px-2 py-1 w-full justify-center text-[11px] shadow-md shadow-red-900/20" onclick="stopTimer(${p.id})"><span class="sync-dot sync-saving mr-1" style="background:var(--paint-252-165-165-1000-fill)"></span> 停止 (${Math.floor(timerShownMs(p.id)/60000)}m)</button>`;
             } else if (isTop && p.st === 'active') {
                 timerBtn = `<button class="btn btn-sm bg-slate-800 text-blue-400 border-slate-700 hover:border-blue-500 hover:bg-slate-700 shadow-sm px-2 py-1 w-full justify-center text-[11px]" onclick="startTimer(${p.id})">▶ 開始計時</button>`;
             }
@@ -6757,8 +6781,8 @@ function rPay(){
     var on=PAY_VIEW===view;
     var base='rounded-lg border px-4 py-3 cursor-pointer transition-colors select-none';
     var style=on
-      ? 'border-color:rgba('+rgb+',0.55);background:#1e293b;box-shadow:0 0 0 1px rgba('+rgb+',0.35) inset;'
-      : 'border-color:#1e293b;background:#0f172a;';
+      ? 'border-color:rgba('+rgb+',0.55);background:var(--paint-30-41-59-1000-fill);box-shadow:0 0 0 1px rgba('+rgb+',0.35) inset;'
+      : 'border-color:var(--paint-30-41-59-1000-line);background:var(--paint-15-23-42-1000-fill);';
     var dot=on?'<span style="color:rgb('+rgb+')" class="mr-1">●</span>':'';
     var hover=on?'':' onmouseover="this.style.background=\'#1e293b99\'" onmouseout="this.style.background=\'#0f172a\'"';
     return '<div class="'+base+'" style="'+style+'" onclick="setPayView(\''+view+'\')"'+hover+'>'+
@@ -6768,7 +6792,7 @@ function rPay(){
   var prodCapNote = valueBreakdown(VR);
   st.innerHTML=cardBox('flow',recvLabel,formatMultiCurMap(recvMap),'52,211,153')
     +cardBox('prod',prodLabel,formatMultiCurMap(prodMap)+prodCapNote,'96,165,250')
-    +(expenses.length?'<div class="rounded-lg border border-slate-800 bg-slate-900 px-4 py-3 cursor-pointer transition-colors" style="background:#0f172a" onclick="setPayView(\'flow\')"><p class="text-xs text-slate-500 mb-1">'+expLabel+'</p><div class="text-lg font-semibold text-amber-400 leading-tight">'+formatMultiCurMap(expMap,true)+'</div></div>':'');
+    +(expenses.length?'<div class="rounded-lg border border-slate-800 bg-slate-900 px-4 py-3 cursor-pointer transition-colors" style="background:var(--paint-15-23-42-1000-fill)" onclick="setPayView(\'flow\')"><p class="text-xs text-slate-500 mb-1">'+expLabel+'</p><div class="text-lg font-semibold text-amber-400 leading-tight">'+formatMultiCurMap(expMap,true)+'</div></div>':'');
   
   body.innerHTML=filteredP.map(p=>{
     var isExp=p.payType==='expense';
@@ -6982,13 +7006,13 @@ function _mddRefreshList(cid, ddId, onChangeFn){
   // 「全部」行（搜尋時隱藏）
   if(!q){
     rows+='<label class="tag-dd-item" style="cursor:pointer">'+
-      '<input type="checkbox" class="mdd-all flex-shrink-0" '+(isAll?'checked':'')+' style="accent-color:#3b82f6">'+
+      '<input type="checkbox" class="mdd-all flex-shrink-0" '+(isAll?'checked':'')+' style="accent-color:var(--paint-59-130-246-1000-fill)">'+
       '<span class="text-slate-400 text-xs">全部</span></label>';
   }
   visible.forEach(function(it){
     var chk=s.has(it.val);
     rows+='<label class="tag-dd-item" data-val="'+it.val+'" style="cursor:pointer">'+
-      '<input type="checkbox" class="mdd-item flex-shrink-0" '+(chk?'checked':'')+' style="accent-color:#3b82f6">'+
+      '<input type="checkbox" class="mdd-item flex-shrink-0" '+(chk?'checked':'')+' style="accent-color:var(--paint-59-130-246-1000-fill)">'+
       '<span class="text-xs">'+esc(it.label)+'</span></label>';
   });
   if(!visible.length) rows='<div class="px-3 py-2 text-xs text-slate-600">無符合項目</div>';
@@ -8185,7 +8209,7 @@ function renderDash(){
           var xAxis = chart.scales.x;
           var yAxis = chart.scales.y;
           ctx.save();
-          ctx.strokeStyle = 'rgba(100, 116, 139, 0.4)'; // 虛線顏色 (對應 Tailwind slate-500)
+          ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--ed-rule').trim() + '66'; // 虛線顏色 (對應 Tailwind slate-500)
           ctx.lineWidth = 1;
           ctx.setLineDash([4, 4]); // 虛線樣式
           ctx.beginPath();
@@ -8303,7 +8327,7 @@ function renderPie(){
     var el=document.getElementById('pie-tip');
     if(!el){
       el=document.createElement('div'); el.id='pie-tip';
-      el.style.cssText='position:fixed;z-index:9999;display:none;pointer-events:none;max-width:300px;padding:8px 10px;border-radius:8px;background:rgba(2,6,23,.96);border:1px solid #1e293b;color:#e2e8f0;font-size:12px;line-height:1.5;box-shadow:0 6px 20px rgba(0,0,0,.5);';
+      el.style.cssText='position:fixed;z-index:9999;display:none;pointer-events:none;max-width:300px;padding:8px 10px;border-radius:8px;background:var(--paint-2-6-23-960-fill);border:1px solid var(--paint-30-41-59-1000-line);color:var(--paint-226-232-240-1000-ink);font-size:12px;line-height:1.5;box-shadow:0 6px 20px var(--paint-0-0-0-500-shadow);';
       document.body.appendChild(el);
     }
     var tt=ctx.tooltip;
@@ -8311,8 +8335,8 @@ function renderPie(){
     var i=tt.dataPoints[0].dataIndex;
     var head='<div style="display:flex;align-items:flex-start;gap:6px;font-weight:600;word-break:break-all;white-space:normal"><span style="flex-shrink:0;width:9px;height:9px;margin-top:4px;border-radius:2px;background:'+pc[i%pc.length]+'"></span><span>'+esc(pk[i])+'</span></div>';
     var l1=metric==='val'
-      ?'<div style="margin-top:4px">產值 <b>'+fmtV(pd[i])+'</b> <span style="color:#94a3b8">· '+piePct(pd[i])+'%</span></div><div style="color:#94a3b8">工時 '+formatHrs(ph[i])+'</div>'
-      :'<div style="margin-top:4px">工時 <b>'+formatHrs(pd[i])+'</b> <span style="color:#94a3b8">· '+piePct(pd[i])+'%</span></div>';
+      ?'<div style="margin-top:4px">產值 <b>'+fmtV(pd[i])+'</b> <span style="color:var(--paint-148-163-184-1000-ink)">· '+piePct(pd[i])+'%</span></div><div style="color:var(--paint-148-163-184-1000-ink)">工時 '+formatHrs(ph[i])+'</div>'
+      :'<div style="margin-top:4px">工時 <b>'+formatHrs(pd[i])+'</b> <span style="color:var(--paint-148-163-184-1000-ink)">· '+piePct(pd[i])+'%</span></div>';
     el.innerHTML=head+l1;
     el.style.display='block';
     var r=ctx.chart.canvas.getBoundingClientRect();
@@ -10248,7 +10272,7 @@ function renderCalGrid(){
         if(ev.icon)html+='<span class=\"dl-icon\">'+ev.icon+'</span>';
         html+='<span>'+esc(ev.label)+'</span></div>';
       });
-      if(evs.length>5)html+='<div style=\"font-size:8px;color:#475569;text-align:center\">+'+(evs.length-5)+' 更多</div>';
+      if(evs.length>5)html+='<div style=\"font-size:8px;color:var(--paint-71-85-105-1000-ink);text-align:center\">+'+(evs.length-5)+' 更多</div>';
       var showTracks = localStorage.getItem('ft_show_tracks') !== '0';
       if(showTracks){
         var tracks=activeTracks(c.str);
@@ -10346,7 +10370,7 @@ function renderHist(){
         html+='<span class="hist-name">'+esc(g.name)+'</span>';
         html+='<span class="hist-hrs">'+formatHrs(g.hrs)+'</span></div>';
       });
-      if(groups.length>6) html+='<div style="font-size:8px;color:#475569;text-align:center">+'+(groups.length-6)+' 更多</div>';
+      if(groups.length>6) html+='<div style="font-size:8px;color:var(--paint-71-85-105-1000-ink);text-align:center">+'+(groups.length-6)+' 更多</div>';
 
       html+='</td>';
     }
@@ -10984,7 +11008,7 @@ function renderRemToday(){
   box.innerHTML = '<div class="rem-banner">'
     + '<span style="font-size:15px;line-height:1.4;flex-shrink:0;">📌</span>'
     + '<div style="display:flex;flex-direction:column;gap:4px;flex:1;">'
-    + '<span style="font-size:11px;color:#a16207;font-weight:600;">今天的提醒</span>'
+    + '<span style="font-size:11px;color:var(--paint-161-98-7-1000-ink);font-weight:600;">今天的提醒</span>'
     + items + '</div></div>';
 }
 
@@ -11151,10 +11175,10 @@ function runWhatIf(){
     }
     phases.push({label:name, est:est, deadline:dl, hard:hard});
   });
-  if(bad){ bad.style.borderColor='#f87171'; bad.focus(); return; }
+  if(bad){ bad.style.borderColor='var(--ui-bad)'; bad.focus(); return; }
   if(!phases.length){
     var first = document.querySelector('#wi-stages .wi-ph-est');
-    if(first){ first.style.borderColor='#f87171'; first.focus(); }
+    if(first){ first.style.borderColor='var(--ui-bad)'; first.focus(); }
     return;
   }
   SCHED_WHATIF = {
@@ -11648,7 +11672,7 @@ function renderSched(){
         if(prevRsv !== null && Math.abs(rsvHrs - prevRsv) > 0.001){
           var rsvNames = R.reserveList.filter(function(p){ return !(p.sdate && c.str < p.sdate) && !(p.edate && c.str > p.edate); })
             .map(function(p){ return p.name+' '+formatHrs(+p.reserveWk/SCHED_WEEK_WORKDAYS); }).join('、');
-          g += '<div class="cal-ev" style="color:#64748b;font-size:9px;cursor:help;" title="常態保留：'+esc(rsvNames||'無')+'">保留 → '+(Math.round(rsvHrs*10)/10)+'h</div>';
+          g += '<div class="cal-ev" style="color:var(--paint-100-116-139-1000-ink);font-size:9px;cursor:help;" title="常態保留：'+esc(rsvNames||'無')+'">保留 → '+(Math.round(rsvHrs*10)/10)+'h</div>';
         }
         prevRsv = rsvHrs;
       }
@@ -12246,7 +12270,7 @@ function fxClock(ms){
 
 /* ---------- 小卡片 DOM ---------- */
 var FX_CSS = [
-'.fx-w{--fx-bg:#0f172a;--fx-line:#1e293b;--fx-text:#e2e8f0;--fx-mute:#64748b;--fx-dim:#94a3b8;--fx-ok:#34d399;--fx-warn:#fbbf24;--fx-bad:#fb7185;--fx-work:#f87171;--fx-brk:#38bdf8;',
+'.fx-w{--fx-bg:var(--ui-background);--fx-line:var(--ui-border);--fx-text:var(--ui-text);--fx-mute:var(--ui-muted);--fx-dim:var(--ui-muted);--fx-ok:var(--ui-good);--fx-warn:var(--ui-warn);--fx-bad:var(--ui-bad);--fx-work:var(--ui-bad);--fx-brk:var(--ui-accent);',
 ' font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC",sans-serif;color:var(--fx-text);background:var(--fx-bg);box-sizing:border-box;text-align:left;}',
 '.fx-w *{box-sizing:border-box}',
 '.fx-head{display:flex;align-items:center;gap:8px;min-width:0}',
@@ -12273,28 +12297,28 @@ var FX_CSS = [
 '.fx-w.is-break .fx-pomo-lab{color:var(--fx-brk)}',
 '.fx-pomo-l{display:inline-flex;align-items:center;gap:8px;min-width:0}',
 '.fx-dots{display:inline-flex;align-items:center;gap:4px}',
-'.fx-pd{width:7px;height:7px;border-radius:50%;border:1px solid #475569;box-sizing:border-box;flex:none}',
+'.fx-pd{width:7px;height:7px;border-radius:50%;border:1px solid var(--paint-71-85-105-1000-line);box-sizing:border-box;flex:none}',
 '.fx-pd.f{background:var(--fx-work);border-color:var(--fx-work)}',
 '.fx-pd.h{background:linear-gradient(90deg,var(--fx-work) 50%,transparent 50%);border-color:var(--fx-work)}',
 '.fx-w.is-break .fx-pd.f{background:var(--fx-brk);border-color:var(--fx-brk)}',
-'.fx-pd.l{box-shadow:0 0 0 2px rgba(148,163,184,.22)}',
-'.fx-today{color:#475569}',
-'.fx-w.is-paused .fx-dot{background:#64748b;animation:none}',
+'.fx-pd.l{box-shadow:0 0 0 2px var(--paint-148-163-184-220-shadow)}',
+'.fx-today{color:var(--paint-71-85-105-1000-ink)}',
+'.fx-w.is-paused .fx-dot{background:var(--paint-100-116-139-1000-fill);animation:none}',
 '.fx-w.is-paused .fx-time{color:var(--fx-dim)}',
 '.fx-w.is-paused .fx-pomo-bar i{opacity:.45;transition:none}',
-'.fx-w.is-paused [data-act="pause"]{background:rgba(37,99,235,.22);border-color:#1d4ed8;color:#bfdbfe}',
+'.fx-w.is-paused [data-act="pause"]{background:var(--paint-37-99-235-220-fill);border-color:var(--paint-29-78-216-1000-line);color:var(--paint-191-219-254-1000-ink)}',
 '.fx-pill .fx-dots{margin-left:2px}',
 '.fx-actions{display:flex;align-items:center;gap:6px;margin-top:12px}',
 '.fx-spacer{flex:1}',
 '.fx-tools{margin-left:auto;display:flex;gap:2px;flex:none}',
 '.fx-icon{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;color:var(--fx-mute);cursor:pointer}',
-'.fx-icon:hover{color:var(--fx-text);background:#1e293b}',
-'.fx-icon:focus-visible{outline:2px solid #60a5fa;outline-offset:1px}',
-'.fx-btn{font:inherit;font-size:11px;line-height:1.2;border:1px solid #334155;background:#1e293b;color:#cbd5e1;border-radius:6px;padding:5px 9px;cursor:pointer;white-space:nowrap}',
-'.fx-btn:hover{border-color:#475569;color:#fff}',
-'.fx-btn:focus-visible,.fx-pill-body:focus-visible{outline:2px solid #60a5fa;outline-offset:1px}',
-'.fx-btn-stop{background:rgba(127,29,29,.25);border-color:#7f1d1d;color:#fca5a5}',
-'.fx-btn-stop:hover{background:rgba(127,29,29,.45);border-color:#991b1b;color:#fecaca}',
+'.fx-icon:hover{color:var(--fx-text);background:var(--paint-30-41-59-1000-fill)}',
+'.fx-icon:focus-visible{outline:2px solid var(--paint-96-165-250-1000-line);outline-offset:1px}',
+'.fx-btn{font:inherit;font-size:11px;line-height:1.2;border:1px solid var(--paint-51-65-85-1000-line);background:var(--paint-30-41-59-1000-fill);color:var(--paint-203-213-225-1000-ink);border-radius:6px;padding:5px 9px;cursor:pointer;white-space:nowrap}',
+'.fx-btn:hover{border-color:var(--paint-71-85-105-1000-line);color:var(--paint-255-255-255-1000-ink)}',
+'.fx-btn:focus-visible,.fx-pill-body:focus-visible{outline:2px solid var(--paint-96-165-250-1000-line);outline-offset:1px}',
+'.fx-btn-stop{background:var(--paint-127-29-29-250-fill);border-color:var(--paint-127-29-29-1000-line);color:var(--paint-252-165-165-1000-ink)}',
+'.fx-btn-stop:hover{background:var(--paint-127-29-29-450-fill);border-color:var(--paint-153-27-27-1000-line);color:var(--paint-254-202-202-1000-ink)}',
 '.fx-bi{display:none;line-height:0}',
 '.fx-bi svg{display:block}',
 '.fx-end{display:none;font-size:13px;color:var(--fx-dim);text-align:center;line-height:1.6}',
@@ -12302,7 +12326,7 @@ var FX_CSS = [
 '.fx-w.is-ended>*:not(.fx-end){display:none}',
 '.fx-w.is-ended .fx-end{display:block}',
 /* 右下角小膠囊 */
-'.fx-pill{border:1px solid #1e293b;border-radius:10px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.45)}',
+'.fx-pill{border:1px solid var(--paint-30-41-59-1000-line);border-radius:10px;overflow:hidden;box-shadow:0 10px 30px var(--paint-0-0-0-450-shadow)}',
 '.fx-pill-body{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;max-width:min(360px,calc(100vw - 32px))}',
 '.fx-pill .fx-name{font-size:12px;font-weight:500;color:var(--fx-dim);max-width:130px}',
 '.fx-pill .fx-time{font-size:15px;font-weight:500}',
@@ -12312,13 +12336,13 @@ var FX_CSS = [
 ].join('\n');
 
 var FX_PAGE_CSS = [
-'#fx-overlay{position:fixed;inset:0;z-index:9990;background:rgba(2,6,23,.88);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:16px}',
-'#fx-overlay .fx-w{width:100%;max-width:340px;border:1px solid #1e293b;border-radius:14px;padding:16px 18px;box-shadow:0 24px 60px rgba(0,0,0,.55)}',
+'#fx-overlay{position:fixed;inset:0;z-index:9990;background:var(--paint-2-6-23-880-fill);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:16px}',
+'#fx-overlay .fx-w{width:100%;max-width:340px;border:1px solid var(--paint-30-41-59-1000-line);border-radius:14px;padding:16px 18px;box-shadow:0 24px 60px var(--paint-0-0-0-550-shadow)}',
 '#fx-pill{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:9989;display:none}'
 ].join('\n');
 
 var FX_PIP_CSS = [
-'html,body{margin:0;height:100%;background:#0f172a}',
+'html,body{margin:0;height:100%;background:var(--paint-15-23-42-1000-fill)}',
 'body>.fx-w{min-height:100%;padding:14px 16px;display:flex;flex-direction:column;justify-content:center}',
 'body>.fx-w.is-ended{align-items:center}',
 '.fx-w.is-alert .fx-dot{background:var(--fx-warn)}',
@@ -12520,7 +12544,7 @@ function fxRenderEnded(w){
   w.root.classList.remove('is-break');
   w.end.innerHTML = e.mins >= 1
     ? '<b>已記錄 ' + esc(formatHrs(Math.round(e.mins / 60 * 100) / 100)) + '</b>' + esc(e.name)
-    : '<b style="color:#fbbf24">計時不足 1 分鐘</b>未記錄工時';
+    : '<b style="color:var(--paint-251-191-36-1000-ink)">計時不足 1 分鐘</b>未記錄工時';
 }
 
 /* ---------- 顯示層切換 ---------- */
@@ -12675,7 +12699,7 @@ fxTick();
    設定頁：左側分類切換＋「已儲存」回饋
    ・目前分類記在 ft_cfg_pane（僅本機，不同步）
    ============================================================ */
-var CFG_PANES = ['general','finance','time','analysis','maint'];
+var CFG_PANES = ['general','finance','time','analysis','appearance','maint'];
 function setCfgPane(name){
   if(CFG_PANES.indexOf(name) === -1) name = 'general';
   document.querySelectorAll('#v-cfg .cfg-pane').forEach(function(el){ el.classList.toggle('active', el.getAttribute('data-pane') === name); });
@@ -12808,109 +12832,109 @@ setTimeout(tgCheck, 1500);
 <style>
 /* ===== 階段縮圖（ThumbKit）===== */
 .tk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:10px}
-.tk-tile{display:flex;flex-direction:column;background:rgba(30,41,59,.4);border:1px solid rgba(51,65,85,.5);border-radius:12px;overflow:hidden;transition:border-color .15s,box-shadow .15s}
-.tk-tile.tk-over{border-color:#38bdf8;box-shadow:0 0 0 2px rgba(56,189,248,.3)}
-.tk-drop{position:relative;aspect-ratio:4/3;background:rgba(2,6,23,.6);display:flex;align-items:center;justify-content:center;cursor:pointer;outline:none}
-.tk-drop:focus{box-shadow:inset 0 0 0 2px #3b82f6}
+.tk-tile{display:flex;flex-direction:column;background:var(--paint-30-41-59-400-fill);border:1px solid var(--paint-51-65-85-500-line);border-radius:12px;overflow:hidden;transition:border-color .15s,box-shadow .15s}
+.tk-tile.tk-over{border-color:var(--paint-56-189-248-1000-line);box-shadow:0 0 0 2px var(--paint-56-189-248-300-shadow)}
+.tk-drop{position:relative;aspect-ratio:4/3;background:var(--paint-2-6-23-600-fill);display:flex;align-items:center;justify-content:center;cursor:pointer;outline:none}
+.tk-drop:focus{box-shadow:inset 0 0 0 2px var(--paint-59-130-246-1000-shadow)}
 .tk-drop img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;visibility:hidden}
 .tk-drop.tk-loaded img{visibility:visible}
 .tk-drop.tk-loaded .tk-ph{display:none}
-.tk-ph{font-size:10px;line-height:1.5;color:#64748b;padding:0 10px;text-align:center}
-.tk-drop.tk-missing .tk-ph{color:#94a3b8}
-.tk-empty{position:absolute;inset:8px;border:1px dashed #334155;border-radius:8px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:12px;color:#475569;padding:6px}
-.tk-drop:hover .tk-empty{border-color:#475569;color:#94a3b8}
-.tk-ready{position:absolute;left:6px;right:6px;bottom:6px;font-size:10px;text-align:center;color:#dbeafe;background:rgba(30,58,138,.88);border-radius:6px;padding:2px 0;opacity:0;transition:opacity .15s;pointer-events:none}
+.tk-ph{font-size:10px;line-height:1.5;color:var(--paint-100-116-139-1000-ink);padding:0 10px;text-align:center}
+.tk-drop.tk-missing .tk-ph{color:var(--paint-148-163-184-1000-ink)}
+.tk-empty{position:absolute;inset:8px;border:1px dashed var(--paint-51-65-85-1000-line);border-radius:8px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:12px;color:var(--paint-71-85-105-1000-ink);padding:6px}
+.tk-drop:hover .tk-empty{border-color:var(--paint-71-85-105-1000-line);color:var(--paint-148-163-184-1000-ink)}
+.tk-ready{position:absolute;left:6px;right:6px;bottom:6px;font-size:10px;text-align:center;color:var(--paint-219-234-254-1000-ink);background:var(--paint-30-58-138-880-fill);border-radius:6px;padding:2px 0;opacity:0;transition:opacity .15s;pointer-events:none}
 .tk-drop:focus .tk-ready{opacity:1}
-.tk-drop.tk-busy::after{content:'處理中…';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(2,6,23,.78);color:#cbd5e1;font-size:11px}
+.tk-drop.tk-busy::after{content:'處理中…';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--paint-2-6-23-780-fill);color:var(--paint-203-213-225-1000-ink);font-size:11px}
 .tk-meta{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;padding:7px 9px 3px}
-.tk-label{font-size:12px;color:#e2e8f0;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tk-sub{font-size:10px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tk-label{font-size:12px;color:var(--paint-226-232-240-1000-ink);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tk-sub{font-size:10px;color:var(--paint-100-116-139-1000-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tk-acts{display:flex;gap:1px;flex-shrink:0}
-.tk-acts button{font-size:10px;color:#64748b;padding:2px 5px;border-radius:4px;background:transparent}
-.tk-acts button:hover{color:#e2e8f0;background:rgba(51,65,85,.6)}
-.tk-acts button.tk-del:hover{color:#f87171}
+.tk-acts button{font-size:10px;color:var(--paint-100-116-139-1000-ink);padding:2px 5px;border-radius:4px;background:transparent}
+.tk-acts button:hover{color:var(--paint-226-232-240-1000-ink);background:var(--paint-51-65-85-600-fill)}
+.tk-acts button.tk-del:hover{color:var(--paint-248-113-113-1000-ink)}
 .tk-wimg{cursor:zoom-in}
 .tk-wtile .tk-wcap{cursor:pointer}
-.tk-acts button.tk-lbbtn{color:#60a5fa}
-.tk-acts button.tk-lbbtn:hover{color:#93c5fd}
-#tk-lb{position:fixed;inset:0;z-index:9980;display:none;flex-direction:column;background:rgba(2,6,23,.95);color:#e2e8f0;outline:none;padding-top:env(safe-area-inset-top,0px)}
+.tk-acts button.tk-lbbtn{color:var(--paint-96-165-250-1000-ink)}
+.tk-acts button.tk-lbbtn:hover{color:var(--paint-147-197-253-1000-ink)}
+#tk-lb{position:fixed;inset:0;z-index:9980;display:none;flex-direction:column;background:var(--paint-2-6-23-950-fill);color:var(--paint-226-232-240-1000-ink);outline:none;padding-top:env(safe-area-inset-top,0px)}
 #tk-lb.show{display:flex}
 .tk-lb-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;flex-shrink:0}
 .tk-lb-title{min-width:0;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
-.tk-lb-name{font-size:14px;font-weight:600;color:#f1f5f9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:46vw}
-.tk-lb-stage{font-size:12px;color:#93c5fd;white-space:nowrap}
-.tk-lb-note{font-size:11px;color:#fbbf24}
+.tk-lb-name{font-size:14px;font-weight:600;color:var(--paint-241-245-249-1000-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:46vw}
+.tk-lb-stage{font-size:12px;color:var(--paint-147-197-253-1000-ink);white-space:nowrap}
+.tk-lb-note{font-size:11px;color:var(--paint-251-191-36-1000-ink)}
 .tk-lb-btns{display:flex;align-items:center;gap:6px;flex-shrink:0}
-.tk-lb-btns button,.tk-lb-btns a{font-size:12px;color:#cbd5e1;background:rgba(30,41,59,.9);border:1px solid #334155;border-radius:8px;padding:4px 10px;text-decoration:none;cursor:pointer;white-space:nowrap}
-.tk-lb-btns button:hover,.tk-lb-btns a:hover{color:#fff;border-color:#64748b}
+.tk-lb-btns button,.tk-lb-btns a{font-size:12px;color:var(--paint-203-213-225-1000-ink);background:var(--paint-30-41-59-900-fill);border:1px solid var(--paint-51-65-85-1000-line);border-radius:8px;padding:4px 10px;text-decoration:none;cursor:pointer;white-space:nowrap}
+.tk-lb-btns button:hover,.tk-lb-btns a:hover{color:var(--paint-255-255-255-1000-ink);border-color:var(--paint-100-116-139-1000-line)}
 .tk-lb-stagebox{position:relative;flex:1;min-height:0;margin:0 14px;overflow:hidden;display:flex;border-radius:10px;touch-action:pan-y}
 .tk-lb-stagebox img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;user-select:none;-webkit-user-drag:none}
 .tk-lb-stagebox.can-zoom img{cursor:zoom-in}
 .tk-lb-stagebox.zoom{overflow:auto}
 .tk-lb-stagebox.zoom img{position:static;width:auto;height:auto;max-width:none;max-height:none;margin:auto;flex-shrink:0;cursor:zoom-out}
 .tk-lb-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;padding:10px 14px 4px;flex-shrink:0}
-.tk-lb-chips button{font-size:12px;color:#cbd5e1;background:rgba(15,23,42,.9);border:1px solid #334155;border-radius:999px;padding:3px 12px;cursor:pointer}
-.tk-lb-chips button i{font-style:normal;color:#64748b;margin-right:5px;font-size:10px}
-.tk-lb-chips button.on{border-color:#60a5fa;color:#fff}
-.tk-lb-chips button:hover{border-color:#94a3b8}
-.tk-lb-hint{font-size:11px;color:#64748b;text-align:center;padding:2px 14px calc(10px + env(safe-area-inset-bottom,0px));flex-shrink:0}
+.tk-lb-chips button{font-size:12px;color:var(--paint-203-213-225-1000-ink);background:var(--paint-15-23-42-900-fill);border:1px solid var(--paint-51-65-85-1000-line);border-radius:999px;padding:3px 12px;cursor:pointer}
+.tk-lb-chips button i{font-style:normal;color:var(--paint-100-116-139-1000-ink);margin-right:5px;font-size:10px}
+.tk-lb-chips button.on{border-color:var(--paint-96-165-250-1000-line);color:var(--paint-255-255-255-1000-ink)}
+.tk-lb-chips button:hover{border-color:var(--paint-148-163-184-1000-line)}
+.tk-lb-hint{font-size:11px;color:var(--paint-100-116-139-1000-ink);text-align:center;padding:2px 14px calc(10px + env(safe-area-inset-bottom,0px));flex-shrink:0}
 .tk-acts button.tk-ico{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;padding:0}
 .tk-path{display:flex;align-items:center;gap:2px;padding:0 7px 8px}
-.tk-path input{flex:1;min-width:0;background:transparent;border:1px solid transparent;border-radius:4px;padding:2px 4px;font-size:10px;color:#94a3b8;outline:none}
-.tk-path input:hover{border-color:#334155}
-.tk-path input:focus{border-color:#475569;background:rgba(15,23,42,.6);color:#e2e8f0}
-.tk-path input::placeholder{color:#475569}
-.tk-path a,.tk-path button{font-size:10px;color:#60a5fa;padding:2px 4px;flex-shrink:0;border-radius:4px;background:transparent}
-.tk-path a:hover,.tk-path button:hover{background:rgba(51,65,85,.6);color:#93c5fd}
-.tk-row{position:relative;display:inline-block;vertical-align:middle;flex-shrink:0;width:44px;height:44px;border-radius:6px;overflow:hidden;background:#0f172a;border:1px solid rgba(51,65,85,.7);margin-top:2px}
+.tk-path input{flex:1;min-width:0;background:transparent;border:1px solid transparent;border-radius:4px;padding:2px 4px;font-size:10px;color:var(--paint-148-163-184-1000-ink);outline:none}
+.tk-path input:hover{border-color:var(--paint-51-65-85-1000-line)}
+.tk-path input:focus{border-color:var(--paint-71-85-105-1000-line);background:var(--paint-15-23-42-600-fill);color:var(--paint-226-232-240-1000-ink)}
+.tk-path input::placeholder{color:var(--paint-71-85-105-1000-ink)}
+.tk-path a,.tk-path button{font-size:10px;color:var(--paint-96-165-250-1000-ink);padding:2px 4px;flex-shrink:0;border-radius:4px;background:transparent}
+.tk-path a:hover,.tk-path button:hover{background:var(--paint-51-65-85-600-fill);color:var(--paint-147-197-253-1000-ink)}
+.tk-row{position:relative;display:inline-block;vertical-align:middle;flex-shrink:0;width:44px;height:44px;border-radius:6px;overflow:hidden;background:var(--paint-15-23-42-1000-fill);border:1px solid var(--paint-51-65-85-700-line);margin-top:2px}
 .tk-row img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .15s}
 .tk-row.tk-loaded img{opacity:1}
-.tk-row.tk-missing{background:#0f172a url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='16' rx='2'/%3E%3Ccircle cx='9' cy='10' r='1.6'/%3E%3Cpath d='M21 16l-5-5-8 8'/%3E%3C/svg%3E") center/42% no-repeat}
+.tk-row.tk-missing{background:var(--paint-15-23-42-1000-fill) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='16' rx='2'/%3E%3Ccircle cx='9' cy='10' r='1.6'/%3E%3Cpath d='M21 16l-5-5-8 8'/%3E%3C/svg%3E") center/42% no-repeat}
 .tk-row.tk-list{width:48px;height:48px;margin-top:0;border-radius:6px;cursor:zoom-in}
 .tk-list-gap{display:inline-block;width:48px;flex-shrink:0}
-#tk-peek{position:fixed;z-index:80;pointer-events:none;background:#0b1220;border:1px solid #334155;border-radius:10px;padding:6px;box-shadow:0 12px 32px rgba(0,0,0,.55);opacity:0;transition:opacity .12s;left:-9999px;top:0}
+#tk-peek{position:fixed;z-index:80;pointer-events:none;background:var(--paint-11-18-32-1000-fill);border:1px solid var(--paint-51-65-85-1000-line);border-radius:10px;padding:6px;box-shadow:0 12px 32px var(--paint-0-0-0-550-shadow);opacity:0;transition:opacity .12s;left:-9999px;top:0}
 #tk-peek.show{opacity:1}
 #tk-peek img{display:block;max-width:360px;max-height:360px;border-radius:6px}
-#tk-peek div{font-size:11px;color:#94a3b8;padding:5px 2px 0}
-.tk-vtoggle{display:inline-flex;border:1px solid #1e293b;border-radius:8px;padding:2px;gap:2px}
-.tk-vtoggle button{font-size:12px;color:#64748b;padding:3px 12px;border-radius:6px;background:transparent}
-.tk-vtoggle button:hover{color:#cbd5e1}
-.tk-vtoggle button.on{background:#1e293b;color:#e2e8f0}
+#tk-peek div{font-size:11px;color:var(--paint-148-163-184-1000-ink);padding:5px 2px 0}
+.tk-vtoggle{display:inline-flex;border:1px solid var(--paint-30-41-59-1000-line);border-radius:8px;padding:2px;gap:2px}
+.tk-vtoggle button{font-size:12px;color:var(--paint-100-116-139-1000-ink);padding:3px 12px;border-radius:6px;background:transparent}
+.tk-vtoggle button:hover{color:var(--paint-203-213-225-1000-ink)}
+.tk-vtoggle button.on{background:var(--paint-30-41-59-1000-fill);color:var(--paint-226-232-240-1000-ink)}
 .tk-wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px 14px}
 .tk-wtile{cursor:pointer;min-width:0;content-visibility:auto;contain-intrinsic-block-size:auto 260px}
 /* ↑ 畫面外的格子由瀏覽器略過排版與繪製；auto 會記住實際高度，捲動時不跳動 */
-.tk-wimg{position:relative;aspect-ratio:1/1;background:#0b1220;border:1px solid #1e293b;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center;transition:border-color .15s}
-.tk-wtile:hover .tk-wimg{border-color:#475569}
+.tk-wimg{position:relative;aspect-ratio:1/1;background:var(--paint-11-18-32-1000-fill);border:1px solid var(--paint-30-41-59-1000-line);border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center;transition:border-color .15s}
+.tk-wtile:hover .tk-wimg{border-color:var(--paint-71-85-105-1000-line)}
 .tk-wimg img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;visibility:hidden}
 .tk-wimg.tk-loaded img{visibility:visible}
 .tk-wimg.tk-loaded .tk-ph{display:none}
 .tk-wimg .tk-ph{font-size:11px}
-.tk-wcount{position:absolute;top:7px;right:7px;font-size:10px;color:#cbd5e1;background:rgba(15,23,42,.85);border:1px solid #334155;border-radius:999px;padding:0 7px;line-height:18px}
+.tk-wcount{position:absolute;top:7px;right:7px;font-size:10px;color:var(--paint-203-213-225-1000-ink);background:var(--paint-15-23-42-850-fill);border:1px solid var(--paint-51-65-85-1000-line);border-radius:999px;padding:0 7px;line-height:18px}
 .tk-wstages{position:absolute;left:6px;right:6px;bottom:6px;display:flex;flex-wrap:wrap;gap:4px;opacity:0;transition:opacity .15s}
 .tk-wtile:hover .tk-wstages,.tk-wstages:focus-within{opacity:1}
-.tk-wstages button{font-size:10px;color:#cbd5e1;background:rgba(15,23,42,.9);border:1px solid #334155;border-radius:999px;padding:1px 8px}
-.tk-wstages button.on{border-color:#60a5fa;color:#fff}
+.tk-wstages button{font-size:10px;color:var(--paint-203-213-225-1000-ink);background:var(--paint-15-23-42-900-fill);border:1px solid var(--paint-51-65-85-1000-line);border-radius:999px;padding:1px 8px}
+.tk-wstages button.on{border-color:var(--paint-96-165-250-1000-line);color:var(--paint-255-255-255-1000-ink)}
 .tk-wcap{padding:7px 2px 0}
-.tk-wname{font-size:13px;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tk-wsub{font-size:11px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
-.tk-wempty .tk-drop{aspect-ratio:1/1;border-radius:10px;border:1px solid #1e293b}
+.tk-wname{font-size:13px;color:var(--paint-226-232-240-1000-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tk-wsub{font-size:11px;color:var(--paint-100-116-139-1000-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.tk-wempty .tk-drop{aspect-ratio:1/1;border-radius:10px;border:1px solid var(--paint-30-41-59-1000-line)}
 .tk-wempty .tk-wcap{cursor:pointer}
-.tk-wbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-top:18px;padding-top:12px;border-top:1px solid #1e293b;font-size:12px;color:#64748b}
-.tk-wswitch{display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:#94a3b8}
-.tk-wnote{padding:40px 0;text-align:center;font-size:13px;color:#64748b}
-.tk-row.tk-card{width:76px;height:76px;margin-top:0;border-radius:8px;border-color:#1e2d42}
+.tk-wbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-top:18px;padding-top:12px;border-top:1px solid var(--paint-30-41-59-1000-line);font-size:12px;color:var(--paint-100-116-139-1000-ink)}
+.tk-wswitch{display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:var(--paint-148-163-184-1000-ink)}
+.tk-wnote{padding:40px 0;text-align:center;font-size:13px;color:var(--paint-100-116-139-1000-ink)}
+.tk-row.tk-card{width:76px;height:76px;margin-top:0;border-radius:8px;border-color:var(--paint-30-45-66-1000-line)}
 .tk-chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px;padding:0 2px}
 .tk-chips.tk-chips-only{margin-top:0}
-.tk-chips-lbl{font-size:10px;color:#475569;margin-right:2px}
-.tk-drop.tk-chip{position:relative;aspect-ratio:auto;display:inline-flex;align-items:center;gap:2px;font-size:11px;line-height:1;color:#94a3b8;background:rgba(30,41,59,.5);border:1px dashed #334155;border-radius:999px;padding:5px 10px;overflow:hidden;transition:border-color .15s,color .15s}
-.tk-drop.tk-chip:hover{border-color:#64748b;color:#e2e8f0}
-.tk-drop.tk-chip:focus{box-shadow:none;border-style:solid;border-color:#3b82f6;color:#dbeafe;background:rgba(30,58,138,.35)}
-.tk-drop.tk-chip:focus::after{content:'Ctrl+V 貼上';margin-left:6px;font-size:10px;color:#93c5fd}
-.tk-drop.tk-chip.tk-over{border-style:solid;border-color:#38bdf8;color:#e0f2fe}
-.tk-drop.tk-chip.tk-busy::after{content:'處理中…';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(2,6,23,.85);color:#cbd5e1;font-size:10px;margin:0}
-.tk-hidden-bar{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:8px;padding:0 4px;font-size:10px;color:#475569}
-.tk-hidden-bar button{font-size:10px;color:#64748b;border:1px solid #1e293b;border-radius:999px;padding:1px 8px;background:transparent}
-.tk-hidden-bar button:hover{color:#cbd5e1;border-color:#475569}
+.tk-chips-lbl{font-size:10px;color:var(--paint-71-85-105-1000-ink);margin-right:2px}
+.tk-drop.tk-chip{position:relative;aspect-ratio:auto;display:inline-flex;align-items:center;gap:2px;font-size:11px;line-height:1;color:var(--paint-148-163-184-1000-ink);background:var(--paint-30-41-59-500-fill);border:1px dashed var(--paint-51-65-85-1000-line);border-radius:999px;padding:5px 10px;overflow:hidden;transition:border-color .15s,color .15s}
+.tk-drop.tk-chip:hover{border-color:var(--paint-100-116-139-1000-line);color:var(--paint-226-232-240-1000-ink)}
+.tk-drop.tk-chip:focus{box-shadow:none;border-style:solid;border-color:var(--paint-59-130-246-1000-line);color:var(--paint-219-234-254-1000-ink);background:var(--paint-30-58-138-350-fill)}
+.tk-drop.tk-chip:focus::after{content:'Ctrl+V 貼上';margin-left:6px;font-size:10px;color:var(--paint-147-197-253-1000-ink)}
+.tk-drop.tk-chip.tk-over{border-style:solid;border-color:var(--paint-56-189-248-1000-line);color:var(--paint-224-242-254-1000-ink)}
+.tk-drop.tk-chip.tk-busy::after{content:'處理中…';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--paint-2-6-23-850-fill);color:var(--paint-203-213-225-1000-ink);font-size:10px;margin:0}
+.tk-hidden-bar{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:8px;padding:0 4px;font-size:10px;color:var(--paint-71-85-105-1000-ink)}
+.tk-hidden-bar button{font-size:10px;color:var(--paint-100-116-139-1000-ink);border:1px solid var(--paint-30-41-59-1000-line);border-radius:999px;padding:1px 8px;background:transparent}
+.tk-hidden-bar button:hover{color:var(--paint-203-213-225-1000-ink);border-color:var(--paint-71-85-105-1000-line)}
 @media (prefers-reduced-motion: reduce){.tk-row img,.tk-ready,.tk-tile{transition:none}}
 </style>
 <script>
