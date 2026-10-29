@@ -133,3 +133,28 @@
 - index.html 僅快取 v23→v24，反向替換後與基準完全相同，無資料與邏輯修改。
 - 隔離 Edge 三主題 × 1440/1280/1200/1199/1080/1000/999/800/799/600/599/390/320 共39組：無頁面/表格橫向溢出、顯示欄位順序符合規劃、無pageerror。手機編輯/詳情開啟關閉通過；目視炭灰800/390畫面。證據 task-columns-v24.json。
 - 未驗證：實體觸控、其他瀏覽器、極端長資料。純CSS未重跑計算測試。未commit/push/deploy。下一步使用者確認v24。
+
+## 圓形主題選擇 — In Progress
+已核對 F 專案，工作區乾淨。現有 FTTheme 為唯一儲存來源；將沿用並替換選單控制，不改主題儲存機制。
+
+## 浮動小窗主題 — In Progress
+原因：PiP 僅注入 FX_CSS/FX_PIP_CSS，未繼承主頁 CSS 自訂變數，背景色失效。下一步：動態同步變數、測試主題切換/未來自訂變數/關閉清理。
+- 前次色票實作及 recheck-theme.cjs 已通過；最後紀錄寫入遭自動審核額度限制未執行，需補完。
+
+### 圓形主題選擇 — Done（補前次中斷紀錄）
+- 已實作三主題原生radio圓形色票、名稱/勾號/焦點，沿用FTTheme儲存；index.html、editorial.js、appearance-controls.css、editorial.css及AGENTS.md已更新。既有測試改為色票點選並保留原斷言。
+- 前次實測點選、方向鍵、重載、跨頁同步、儲存失敗回饋、其他儲存值不變、390px無溢出；recheck-theme.cjs本次重跑PASS。未實測實體觸控/螢幕閱讀器。
+### 浮動小窗主題 — Done
+- index.html：新增fxBindPipTheme，同步主頁計算後的所有CSS變數與color-scheme；初始開啟、主題事件、根元素style/class/theme屬性變動時更新；移除失效變數，pagehide清理監聽與observer。未依主題名稱分支。
+- FX元件舊色碼型變數改接ui語意變數（背景/文字/邊框/強調/警告等）；PiP背景使用ui-background；未修改計時或業務資料邏輯。快取20261030-02。
+- 隔離Edge原生Document PiP：實際requestWindow開啟，三主題背景/文字/color-scheme匹配，開窗後切換同步；未知新增token、自訂背景、移除token及關閉重開通過。證據docs/acceptance-evidence/pip-theme.json。
+- 測試限制：隔離環境fxTick暫以no-op避免無任務時自動關窗，未測完整開始/暫停/停止與計時帳務；未驗證實體置頂視窗外觀及多瀏覽器。真實資料未動。Git diff --check通過。
+- 下一步：使用者於本機預覽20261030-02實際開始計時確認。未commit/push/deploy。
+
+## 深藍預設 — In Progress
+已核對現況，保留既有未提交修改；調整初始化fallback、HTML預設、色票順序與文件。
+
+### 深藍預設 — Done
+- theme-preload.js 無設定/無效值/讀取失敗預設改original；index.html初始主題同步為original，深藍色票第一個並移動預設標記，快取20261030-03；AGENTS.md同步。已儲存的有效主題維持不覆蓋。
+- recheck-theme.cjs通過：預設/三主題切換及儲存重載/資料不變/儲存失敗。第一次測試點選已選的深藍不觸發change，因此未產生儲存鍵；已調整測試先切至紙白再測深藍，保留原儲存斷言。Git差異格式檢查通過。
+- 靜態確認色票順序original/dark/light與預設標記；本次未另做視覺截圖或實體觸控。下一步使用者確認v20261030-03；未commit/push/deploy。

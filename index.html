@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html lang="zh-TW" class="dark" data-editorial-theme="dark">
+<html lang="zh-TW" class="dark" data-editorial-theme="original">
 <head>
-<script src="theme-preload.js?v=20261029-24"></script>
+<script src="theme-preload.js?v=20261030-03"></script>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -597,11 +597,11 @@ html[data-mod-off~="batch"] [data-mod="batch"]{display:none !important;}
   .vd-2col,.vd-3col{grid-template-columns:1fr;}
 }
 </style>
-<link rel="stylesheet" href="theme-tokens.css?v=20261029-24">
-<link id="editorial-styles" rel="stylesheet" href="editorial.css?v=20261029-24">
-<script src="editorial.js?v=20261029-24" defer></script>
-<link rel="stylesheet" href="appearance-controls.css?v=20261029-24">
-<link rel="stylesheet" href="navy-glass.css?v=20261029-24">
+<link rel="stylesheet" href="theme-tokens.css?v=20261030-03">
+<link id="editorial-styles" rel="stylesheet" href="editorial.css?v=20261030-03">
+<script src="editorial.js?v=20261030-03" defer></script>
+<link rel="stylesheet" href="appearance-controls.css?v=20261030-03">
+<link rel="stylesheet" href="navy-glass.css?v=20261030-03">
 </head>
 <body class="bg-slate-950 min-h-screen text-slate-100 pb-20">
 <datalist id="vendor-datalist"></datalist>
@@ -1389,14 +1389,12 @@ html[data-mod-off~="batch"] [data-mod="batch"]{display:none !important;}
         <section class="cfg-pane" data-pane="appearance" role="tabpanel" aria-labelledby="appearance-heading">
           <h2 class="cfg-pane-title" id="appearance-heading">外觀</h2>
           <div class="cfg-card">
-            <div class="cfg-row">
-              <div class="cfg-row-label"><label class="cfg-row-name" for="editorial-theme-toggle">主題</label><div class="cfg-row-desc">立即套用並自動儲存在此瀏覽器。</div></div>
-              <div class="cfg-row-ctl">
-                <select id="editorial-theme-toggle" class="inp" aria-describedby="editorial-theme-status" data-nosave>
-                  <option value="dark">炭灰深色（預設）</option>
-                  <option value="original">柔霧深藍</option>
-                  <option value="light">紙白淺色</option>
-                </select>
+            <div class="cfg-row cfg-row-stack">
+              <div class="cfg-row-label"><div class="cfg-row-name" id="theme-options-label">主題</div><div class="cfg-row-desc">立即套用並自動儲存在此瀏覽器。</div></div>
+              <div id="editorial-theme-options" role="radiogroup" aria-labelledby="theme-options-label" aria-describedby="editorial-theme-status">
+                <label class="theme-choice"><input type="radio" name="editorial-theme" value="original" data-nosave><span class="theme-choice-body"><span class="theme-swatch theme-swatch-original" aria-hidden="true"><span class="theme-check">✓</span></span><span>柔霧深藍<small>（預設）</small></span></span></label>
+                <label class="theme-choice"><input type="radio" name="editorial-theme" value="dark" data-nosave><span class="theme-choice-body"><span class="theme-swatch theme-swatch-dark" aria-hidden="true"><span class="theme-check">✓</span></span><span>炭灰深色</span></span></label>
+                <label class="theme-choice"><input type="radio" name="editorial-theme" value="light" data-nosave><span class="theme-choice-body"><span class="theme-swatch theme-swatch-light" aria-hidden="true"><span class="theme-check">✓</span></span><span>紙白淺色</span></span></label>
               </div>
             </div>
             <p id="editorial-theme-status" class="cfg-row-desc" role="status" aria-live="polite"></p>
@@ -12297,28 +12295,28 @@ var FX_CSS = [
 '.fx-w.is-break .fx-pomo-lab{color:var(--fx-brk)}',
 '.fx-pomo-l{display:inline-flex;align-items:center;gap:8px;min-width:0}',
 '.fx-dots{display:inline-flex;align-items:center;gap:4px}',
-'.fx-pd{width:7px;height:7px;border-radius:50%;border:1px solid var(--paint-71-85-105-1000-line);box-sizing:border-box;flex:none}',
+'.fx-pd{width:7px;height:7px;border-radius:50%;border:1px solid var(--ui-border);box-sizing:border-box;flex:none}',
 '.fx-pd.f{background:var(--fx-work);border-color:var(--fx-work)}',
 '.fx-pd.h{background:linear-gradient(90deg,var(--fx-work) 50%,transparent 50%);border-color:var(--fx-work)}',
 '.fx-w.is-break .fx-pd.f{background:var(--fx-brk);border-color:var(--fx-brk)}',
-'.fx-pd.l{box-shadow:0 0 0 2px var(--paint-148-163-184-220-shadow)}',
-'.fx-today{color:var(--paint-71-85-105-1000-ink)}',
-'.fx-w.is-paused .fx-dot{background:var(--paint-100-116-139-1000-fill);animation:none}',
+'.fx-pd.l{box-shadow:0 0 0 2px color-mix(in srgb,var(--ui-text) 15%,transparent)}',
+'.fx-today{color:var(--ui-muted)}',
+'.fx-w.is-paused .fx-dot{background:var(--ui-muted);animation:none}',
 '.fx-w.is-paused .fx-time{color:var(--fx-dim)}',
 '.fx-w.is-paused .fx-pomo-bar i{opacity:.45;transition:none}',
-'.fx-w.is-paused [data-act="pause"]{background:var(--paint-37-99-235-220-fill);border-color:var(--paint-29-78-216-1000-line);color:var(--paint-191-219-254-1000-ink)}',
+'.fx-w.is-paused [data-act="pause"]{background:color-mix(in srgb,var(--ui-accent) 12%,var(--ui-background));border-color:var(--ui-accent);color:var(--ui-accent)}',
 '.fx-pill .fx-dots{margin-left:2px}',
 '.fx-actions{display:flex;align-items:center;gap:6px;margin-top:12px}',
 '.fx-spacer{flex:1}',
 '.fx-tools{margin-left:auto;display:flex;gap:2px;flex:none}',
 '.fx-icon{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;color:var(--fx-mute);cursor:pointer}',
-'.fx-icon:hover{color:var(--fx-text);background:var(--paint-30-41-59-1000-fill)}',
-'.fx-icon:focus-visible{outline:2px solid var(--paint-96-165-250-1000-line);outline-offset:1px}',
-'.fx-btn{font:inherit;font-size:11px;line-height:1.2;border:1px solid var(--paint-51-65-85-1000-line);background:var(--paint-30-41-59-1000-fill);color:var(--paint-203-213-225-1000-ink);border-radius:6px;padding:5px 9px;cursor:pointer;white-space:nowrap}',
-'.fx-btn:hover{border-color:var(--paint-71-85-105-1000-line);color:var(--paint-255-255-255-1000-ink)}',
-'.fx-btn:focus-visible,.fx-pill-body:focus-visible{outline:2px solid var(--paint-96-165-250-1000-line);outline-offset:1px}',
-'.fx-btn-stop{background:var(--paint-127-29-29-250-fill);border-color:var(--paint-127-29-29-1000-line);color:var(--paint-252-165-165-1000-ink)}',
-'.fx-btn-stop:hover{background:var(--paint-127-29-29-450-fill);border-color:var(--paint-153-27-27-1000-line);color:var(--paint-254-202-202-1000-ink)}',
+'.fx-icon:hover{color:var(--fx-text);background:var(--ui-panel)}',
+'.fx-icon:focus-visible{outline:2px solid var(--ui-accent);outline-offset:1px}',
+'.fx-btn{font:inherit;font-size:11px;line-height:1.2;border:1px solid var(--ui-border);background:var(--ui-panel);color:var(--ui-text);border-radius:6px;padding:5px 9px;cursor:pointer;white-space:nowrap}',
+'.fx-btn:hover{border-color:var(--ui-border);color:var(--ui-text)}',
+'.fx-btn:focus-visible,.fx-pill-body:focus-visible{outline:2px solid var(--ui-accent);outline-offset:1px}',
+'.fx-btn-stop{background:color-mix(in srgb,var(--ui-bad) 12%,var(--ui-background));border-color:var(--ui-bad);color:var(--ui-bad)}',
+'.fx-btn-stop:hover{background:color-mix(in srgb,var(--ui-bad) 12%,var(--ui-background));border-color:var(--ui-bad);color:var(--ui-bad)}',
 '.fx-bi{display:none;line-height:0}',
 '.fx-bi svg{display:block}',
 '.fx-end{display:none;font-size:13px;color:var(--fx-dim);text-align:center;line-height:1.6}',
@@ -12326,7 +12324,7 @@ var FX_CSS = [
 '.fx-w.is-ended>*:not(.fx-end){display:none}',
 '.fx-w.is-ended .fx-end{display:block}',
 /* 右下角小膠囊 */
-'.fx-pill{border:1px solid var(--paint-30-41-59-1000-line);border-radius:10px;overflow:hidden;box-shadow:0 10px 30px var(--paint-0-0-0-450-shadow)}',
+'.fx-pill{border:1px solid var(--ui-border);border-radius:10px;overflow:hidden;box-shadow:0 10px 30px color-mix(in srgb,var(--ui-text) 15%,transparent)}',
 '.fx-pill-body{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;max-width:min(360px,calc(100vw - 32px))}',
 '.fx-pill .fx-name{font-size:12px;font-weight:500;color:var(--fx-dim);max-width:130px}',
 '.fx-pill .fx-time{font-size:15px;font-weight:500}',
@@ -12336,13 +12334,13 @@ var FX_CSS = [
 ].join('\n');
 
 var FX_PAGE_CSS = [
-'#fx-overlay{position:fixed;inset:0;z-index:9990;background:var(--paint-2-6-23-880-fill);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:16px}',
-'#fx-overlay .fx-w{width:100%;max-width:340px;border:1px solid var(--paint-30-41-59-1000-line);border-radius:14px;padding:16px 18px;box-shadow:0 24px 60px var(--paint-0-0-0-550-shadow)}',
+'#fx-overlay{position:fixed;inset:0;z-index:9990;background:var(--ui-background);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:16px}',
+'#fx-overlay .fx-w{width:100%;max-width:340px;border:1px solid var(--ui-border);border-radius:14px;padding:16px 18px;box-shadow:0 24px 60px color-mix(in srgb,var(--ui-text) 15%,transparent)}',
 '#fx-pill{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:9989;display:none}'
 ].join('\n');
 
 var FX_PIP_CSS = [
-'html,body{margin:0;height:100%;background:var(--paint-15-23-42-1000-fill)}',
+'html,body{margin:0;height:100%;background:var(--ui-background)}',
 'body>.fx-w{min-height:100%;padding:14px 16px;display:flex;flex-direction:column;justify-content:center}',
 'body>.fx-w.is-ended{align-items:center}',
 '.fx-w.is-alert .fx-dot{background:var(--fx-warn)}',
@@ -12572,6 +12570,34 @@ function fxPipSizeGet(){
   if(!(w > 0 && h > 0)) return {w:330, h:200};
   return {w:Math.min(600, Math.max(180, Math.round(w))), h:Math.min(400, Math.max(48, Math.round(h)))};
 }
+// A PiP document does not inherit the opener's custom properties.
+// Copy resolved tokens without knowing theme names; release listeners on close.
+function fxBindPipTheme(w){
+  var copied = [];
+  function sync(){
+    if(w.closed) return;
+    var source = getComputedStyle(document.documentElement);
+    var target = w.document.documentElement.style;
+    copied.forEach(function(name){ target.removeProperty(name); });
+    copied = [];
+    for(var i=0; i<source.length; i++){
+      var name = source[i];
+      if(name.indexOf('--') !== 0) continue;
+      target.setProperty(name, source.getPropertyValue(name));
+      copied.push(name);
+    }
+    target.colorScheme = source.colorScheme;
+  }
+  sync();
+  document.addEventListener('ft-theme-change', sync);
+  var observer = new MutationObserver(sync);
+  observer.observe(document.documentElement, {attributes:true,attributeFilter:['style','class','data-editorial-theme']});
+  w.addEventListener('pagehide', function(){
+    document.removeEventListener('ft-theme-change', sync);
+    observer.disconnect();
+  }, {once:true});
+}
+
 async function fxOpenPip(){
   if(fx.pip || fx.pipOpening || !fxPipSupported()) return;
   fx.pipOpening = true;
@@ -12582,6 +12608,7 @@ async function fxOpenPip(){
   fx.pip = w;
   var d = w.document;
   d.title = '專注計時';
+  fxBindPipTheme(w);
   var st = d.createElement('style'); st.textContent = FX_CSS + '\n' + FX_PIP_CSS; d.head.appendChild(st);
   fx.pipW = fxBuild(d, 'pip');
   d.body.appendChild(fx.pipW.root);

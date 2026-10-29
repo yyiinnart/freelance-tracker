@@ -13,8 +13,6 @@ body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.tab-main,.tab-sub):hove
 
 
 
-#editorial-theme-toggle{display:none}
-body:has(:is(#v-proj,.editorial-page):not(.hidden)) #editorial-theme-toggle{display:inline-flex}
 body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) :is([class*="text-slate-"],.text-gray-400){color:var(--ed-muted)}
 body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(.editorial-header,#v-proj,.editorial-page,#detail-panel,#modal) :is(.text-white,.text-slate-100,.text-slate-200,.text-slate-300){color:var(--ed-text)}
 body:has(:is(#v-proj,.editorial-page):not(.hidden)) :is(#v-proj,.editorial-page,#detail-panel,#modal) [class*="border-slate-"]{border-color:var(--ed-rule)}

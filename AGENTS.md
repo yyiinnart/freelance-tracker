@@ -18,7 +18,7 @@
 - UI 工作先讀 `.agents/skills/design-taste-frontend/SKILL.md`；本專案是操作型應用，依其 `references/app-screens.md`，不要套用行銷頁流程。
 - 局部調整沿用已確認方向，不重新抽取整站設計；需要新方向時才依 Skill 使用 `draw.mjs --app`，保留指定配色及排版。依需求使用 `lint.mjs`、`inspect.mjs --app` 並檢視真實瀏覽器畫面。
 - Skill 不構成擴大範圍或修改資料的授權；使用者明確指示優先。
-- 三主題共用排版：`original` 柔霧深藍、`dark` 炭灰（新使用者預設）、`light` 紙白。根元素用 `data-editorial-theme`；唯一切換器 `#editorial-theme-toggle` 位於設定的外觀子頁。`ft_editorial_theme` 保存本機主題偏好，不混入業務資料或雲端 CFG；以 `FTTheme` 管理並在首次繪製前套用。
+- 三主題共用排版：`original` 柔霧深藍（新使用者預設）、`dark` 炭灰、`light` 紙白。根元素用 `data-editorial-theme`；唯一色票單選群組 `#editorial-theme-options` 位於設定的外觀子頁。`ft_editorial_theme` 保存本機主題偏好，不混入業務資料或雲端 CFG；以 `FTTheme` 管理並在首次繪製前套用。
 - 深藍維持原有生產力工具氣質，炭灰／紙白偏書卷風。使用留白、間距及分隔線建立層級，避免泛白、光暈、昂貴模糊及多餘裝飾；保留彩色標籤、語意色彩與文字對比。
 - 桌面優先並維持手機可用。詳情欄位保留鍵盤焦點提示且尺寸不跳動；隱框／透明底只限 `(hover:hover) and (pointer:fine)`，hover／focus 顯示編輯框，觸控保留完整邊界。新增階段欄位閒置時保留細底線。
 - 修改外部 CSS／JS 後同步更新 index.html 的相關快取版本，並以新版本網址預覽。
