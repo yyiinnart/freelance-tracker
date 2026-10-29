@@ -5,3 +5,5 @@ log/
 test/
 # Local acceptance screenshots, logs and verification artifacts
 /docs/acceptance-evidence/
+
+/AGENTS.md
