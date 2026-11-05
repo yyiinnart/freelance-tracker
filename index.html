@@ -8735,7 +8735,7 @@ var AIX_FIELDS = [
 ];
 var AIX_BLOCKS = {
   general:[['整體產出與金流','計費／不計酬工時、期間實收、發包支出'], ['每週工時','逐週工時與上班／休假天數'], ['休假與作息','上班日、請假、加班週末、工時結構'], ['活躍專案數','期間有活動的專案件數（數值）'], ['活躍專案明細','每個專案的進度、工時、應收與已收']],
-  cash:[['本月','進行中的月份（數值）'], ['每月現金流','12 個月的實收／固定與消費支出／淨結餘／產值表'], ['現金流摘要','合計、月均、負結餘月份、外幣原幣'], ['已結案待收','結案未收款與帳齡'], ['預計收入','未結案任務的預計未收'], ['應付外包','尚未付給外包的款項']],
+  cash:[['本月','進行中的月份（數值）'], ['每月現金流','12 個月的收支／淨結餘／產值表，含逐月消費名目金額'], ['現金流摘要','合計、月均、負結餘月份、外幣原幣'], ['已結案待收','結案未收款與帳齡'], ['預計收入','未結案任務的預計未收'], ['應付外包','尚未付給外包的款項']],
   hrs:[['工時總覽','總工時、上班日均、超時天數、連續工作天數'], ['每週工時','逐週工時、達成週目標、加班週末'], ['星期分佈','每個星期幾的平均工時'], ['超時日','超過每日上限的日子'], ['類型佔比','依業務類型的工時佔比'], ['階段佔比','依階段的工時佔比'], ['任務排行','投入最多的任務（前 8）'], ['休假','請假與加班週末天數']],
   est:[['整體偏差','樣本數、預估與實際合計、整體偏差'], ['依案型','各案型的預估／實際／偏差'], ['依階段','各階段估時回測（與分析頁同源）'], ['低估個案','實際超出預估最多的個案（前 8）'], ['提早完成個案','比預估快完成的個案（前 3）'], ['進行中風險','進行中已用掉 80% 以上預估的任務']],
   profit:[['獲利總覽','件數、總工時、淨產值、整體時薪'], ['依類型','各業務類型的實際時薪'], ['依標籤','各標籤的實際時薪'], ['時薪最低','時薪最低的個案（前 5）'], ['時薪最高','時薪最高的個案（前 5）'], ['外包毛利','外包／轉包的毛利與毛利率']],
@@ -8800,7 +8800,7 @@ cash: [
 '2. 哪幾筆待收應該優先催款？',
 '3. 收入是否過度集中在少數月份或少數案子？',
 '4. 以目前的總支出，建議保留多少個月的緩衝金？',
-'5. 固定支出佔總支出的比例是否偏高？有哪些可以調整？'
+'5. 固定支出佔總支出的比例是否偏高？各消費名目的花費集中在哪裡，有哪些可以調整？'
 ].join('\n'),
 hrs: [
 '# 工時與作息：近 3 個月負荷分析（{{期間}}）',
@@ -9115,6 +9115,31 @@ aixCollect.general = function(){
           blocks:{'整體產出與金流':b1, '每週工時':b2.join('\n') || '- 近期無工時紀錄', '休假與作息':b3, '活躍專案明細':b4.join('\n')}};
 };
 
+// 納入既有「每月現金流」區塊，已自訂的收支模板也能沿用，不改寫模板偏好。
+function aixCashExpenseBreakdown(mons, curMon){
+  var rows=[], warnings=[];
+  mons.forEach(function(m){
+    if(typeof MEXP[m]!=='number')return; // 未填月份不視為零消費。
+    var groups=new Map(), total=0;
+    monthExpenseRows(m).forEach(function(r){
+      var n=Number(r.amt);if(!Number.isFinite(n)||n<0)return;
+      n=Math.round(n);var name=String(r.name||'').trim()||'未填名目';
+      groups.set(name,(groups.get(name)||0)+n);total+=n;
+    });
+    var label=m+(m===curMon?'（進行中）':'');
+    Array.from(groups).sort(function(a,b){return b[1]-a[1];}).forEach(function(g){
+      // 名目為使用者輸入，避免破壞 Markdown 表格欄位與列。
+      var name=g[0].replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\|/g,'&#124;').replace(/[\r\n]+/g,' ');
+      rows.push([label,name,aixTWD(g[1])]);
+    });
+    if(total!==Math.round(MEXP[m]))warnings.push('- '+m+' 消費明細合計 '+aixTWD(total)+' 與已記錄總額 '+aixTWD(MEXP[m])+' 不一致；該月名目分析不完整，請勿據此推論完整花費去向。');
+    if(!groups.size&&MEXP[m]===0)rows.push([label,'—',aixTWD(0)]);
+  });
+  return '### 消費名目明細（不含固定支出）\n'+
+    (rows.length?aixTable(['月份','名目','金額（TWD）'],rows):'- 近 12 個月尚未填寫消費。')+
+    (warnings.length?'\n'+warnings.join('\n'):'');
+}
+
 /* ─────────── 💰 收支 ─────────── */
 aixCollect.cash = function(){
   var now = toLocalDate(), curMon = now.slice(0, 7), mons = aixMonthsBack(12), start = mons[0] + '-01';
@@ -9176,7 +9201,7 @@ aixCollect.cash = function(){
     return [p.name + '（' + aixMode(p) + '）', fmtMoney(p.vendorCost, p.vendorCostCur || 'TWD'), aixTWD(toTWD(p.vendorCost, p.vendorCostCur || 'TWD')), XP_ST[p.st] || p.st];
   }));
   return {fields:Object.assign(aixCommonFields(start + ' ~ ' + now), {'本月':curMon}),
-          blocks:{'每月現金流':aixTable(['月份', '實收', '發包支出', '固定支出', '消費', '總支出', '淨結餘', '扣發包後', '當月產值'], rows),
+          blocks:{'每月現金流':aixTable(['月份', '實收', '發包支出', '固定支出', '消費', '總支出', '淨結餘', '扣發包後', '當月產值'], rows)+'\n\n'+aixCashExpenseBreakdown(mons,curMon),
                   '現金流摘要':sum, '已結案待收':bAR, '預計收入':bPipe, '應付外包':bPay}};
 };
 
