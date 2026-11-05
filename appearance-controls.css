@@ -26,3 +26,27 @@ html[data-editorial-theme="light"] #v-proj .proj-table :is(.badge[style],.editor
 .theme-choice input:focus-visible+.theme-choice-body{outline:2px solid var(--ui-accent);outline-offset:3px}
 .theme-choice:hover .theme-choice-body{background:var(--ui-hover)}
 @media(max-width:599px){#editorial-theme-options{flex-direction:column;gap:4px}.theme-choice-body{min-height:58px}}
+
+/* Monthly consumption: saved rows recede, active edits keep a stable field box. */
+.mexp-row{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) 40px;gap:8px;align-items:end;margin-bottom:8px}
+.mexp-row label{min-width:0}
+.mexp-row:not(:first-child) label>span{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+.mexp-row [data-amt]{text-align:right;font-variant-numeric:tabular-nums}
+.mexp-delete{height:38px;color:var(--ui-muted);font-size:11px;border:0;background:transparent;cursor:pointer}
+.mexp-delete:hover{color:var(--ui-bad)}
+.mexp-delete:focus-visible{outline:2px solid var(--ui-accent);outline-offset:2px}
+.mexp-editor #mexp-summary{font-variant-numeric:tabular-nums}
+.mexp-breakdown{margin-top:14px;max-width:280px;color:var(--ui-muted);font-size:11px;font-weight:400}
+.mexp-bar-row{display:grid;grid-template-columns:minmax(44px,1fr) minmax(36px,1.5fr) auto;gap:8px;align-items:center;margin-top:6px}
+.mexp-bar-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mexp-bar-value{font-variant-numeric:tabular-nums;text-align:right}
+.mexp-bar-track{display:block;height:3px;background:var(--ui-border)}
+.mexp-bar-track>span{display:block;height:100%;background:var(--ui-accent);opacity:.55}
+@media(hover:hover) and (pointer:fine){
+  #modal .mexp-row.is-saved .inp:not(:hover):not(:focus){border-color:transparent!important;background:transparent!important;box-shadow:none!important}
+  #modal .mexp-row.is-saved input[type=number]:not(:hover):not(:focus){appearance:textfield;-moz-appearance:textfield}
+  #modal .mexp-row.is-saved input[type=number]:not(:hover):not(:focus)::-webkit-inner-spin-button{appearance:none}
+}
+
+#modal .mexp-row .inp{border:1px solid var(--ui-border)!important;background:var(--ui-panel)!important}
+#modal .mexp-row .inp:focus{border-color:var(--ui-accent)!important;outline:2px solid var(--ui-accent);outline-offset:2px}

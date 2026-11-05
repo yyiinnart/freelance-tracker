@@ -600,7 +600,7 @@ html[data-mod-off~="batch"] [data-mod="batch"]{display:none !important;}
 <link rel="stylesheet" href="theme-tokens.css?v=20261030-03">
 <link id="editorial-styles" rel="stylesheet" href="editorial.css?v=20261030-03">
 <script src="editorial.js?v=20261030-03" defer></script>
-<link rel="stylesheet" href="appearance-controls.css?v=20261030-03">
+<link rel="stylesheet" href="appearance-controls.css?v=20261105-01">
 <link rel="stylesheet" href="navy-glass.css?v=20261030-03">
 </head>
 <body class="bg-slate-950 min-h-screen text-slate-100 pb-20">
@@ -1484,6 +1484,13 @@ html[data-mod-off~="batch"] [data-mod="batch"]{display:none !important;}
                 <button class="btn btn-sm bg-transparent border-slate-700 text-slate-500 hover:text-amber-400 hover:bg-amber-950/20 hover:border-amber-900/50 transition-colors" onclick="flattenFixedExp()" title="把過去月份的固定支出寫成每月定額，清掉已結束的項目與調整紀錄">壓平過去月份</button>
                 <span id="fexp-flat-info" class="text-[10px] text-slate-600"></span>
               </div>
+            </div>
+          </div>
+          <div id="cfg-mexp" class="cfg-card">
+            <div class="cfg-card-head"><div class="cfg-card-title">常用消費名目</div></div>
+            <div class="cfg-block">
+              <div class="flex gap-2 mb-3"><input id="mexp-new-name" aria-label="新增常用消費名目" class="inp min-w-0 flex-1" placeholder="例如：餐飲、交通"><button type="button" class="btn btn-sm" onclick="mexpAddName()">新增名目</button></div>
+              <div id="mexp-name-list" class="flex flex-wrap gap-2"></div>
             </div>
           </div>
         </section>
@@ -7288,9 +7295,69 @@ function _applyTagFilter(){
 
 function sc(l,v){return `<div><p class=\"text-xs text-slate-500 mb-1\">${l}</p><div class=\"text-lg font-semibold text-white leading-tight\">${v}</div></div>`;}
 
+// 消費明細隨 MEXP 沿用既有儲存與同步；月份總額仍維持數字，舊資料不遷移。
+function monthExpenseRows(mon){
+  var rows=MEXP._details && MEXP._details[mon];
+  return Array.isArray(rows)?rows.map(function(r){return {name:r.name||'',amt:r.amt};}):
+    (typeof MEXP[mon]==='number'?[{name:'',amt:MEXP[mon]}]:[]);
+}
+function mexpNames(){ return Array.isArray(MEXP._names)?MEXP._names:[]; }
+function mexpReadRows(){
+  return Array.from(document.querySelectorAll('#mexp-rows > div')).map(function(row){
+    return {name:row.querySelector('[data-name]').value.trim(),amt:row.querySelector('[data-amt]').value};
+  });
+}
+function mexpAddRow(item, saved){
+  item=item||{name:'',amt:''};
+  var row=document.createElement('div');
+  row.className='mexp-row'+(saved?' is-saved':'');
+  row.innerHTML='<label class="flex-1 min-w-0" style="flex-basis:45%"><span class="text-xs text-slate-400 block mb-1">名目</span><input data-name class="inp w-full" list="mexp-names" placeholder="輸入或選擇名目" value="'+esc(item.name)+'"></label>'+
+    '<label class="flex-1 min-w-0" style="flex-basis:30%"><span class="text-xs text-slate-400 block mb-1">金額（TWD）</span><input data-amt type="number" min="0" step="1" class="inp w-full" value="'+esc(item.amt)+'"></label>'+
+    '<button type="button" class="mexp-delete" aria-label="刪除此筆消費">刪除</button>';
+  row.querySelector('button').onclick=function(){row.remove();mexpSummary();};
+  row.oninput=function(){row.classList.remove('is-saved');mexpSummary();};
+  document.getElementById('mexp-rows').appendChild(row);
+  mexpSummary();
+}
+function mexpSummary(){
+  var groups=new Map(),total=0;
+  mexpReadRows().forEach(function(r){
+    if(!r.name&&r.amt==='')return;
+    var n=Number(r.amt); if(!Number.isFinite(n)||n<0)return;
+    n=Math.round(n);var key=r.name||'未填名目';
+    groups.set(key,(groups.get(key)||0)+n);total+=n;
+  });
+  document.getElementById('mexp-summary').innerHTML='<div class="flex justify-between text-sm mb-2"><span>當月花費去向</span><span>NT$ '+total.toLocaleString()+'</span></div>'+
+    (groups.size?Array.from(groups).sort(function(a,b){return b[1]-a[1];}).map(function(g){
+      return '<div class="flex justify-between gap-3 text-xs py-1"><span class="min-w-0 break-words">'+esc(g[0])+'</span><span class="shrink-0">NT$ '+g[1].toLocaleString()+'（'+(total?Math.round(g[1]/total*100):0)+'%）</span></div>';
+    }).join(''):'<p class="text-xs text-slate-500">尚未填寫消費。</p>');
+}
+function mexpRenderNames(){
+  var list=document.getElementById('mexp-names');
+  if(list)list.innerHTML=mexpNames().map(function(n){return '<option value="'+esc(n)+'"></option>';}).join('');
+  var box=document.getElementById('mexp-name-list');if(!box)return;box.innerHTML='';
+  mexpNames().forEach(function(n,i){
+    var b=document.createElement('button');b.type='button';b.className='btn btn-sm';b.textContent=n+' ×';
+    b.title='刪除常用名目「'+n+'」';b.setAttribute('aria-label',b.title);
+    b.onclick=function(){MEXP._names=mexpNames().filter(function(_,j){return j!==i;});save();mexpRenderNames();};box.appendChild(b);
+  });
+}
+function mexpAddName(){
+  var input=document.getElementById('mexp-new-name'),name=input.value.trim();if(!name){input.focus();return;}
+  var names=mexpNames().slice();if(names.indexOf(name)<0)names.push(name);
+  MEXP._names=names;save();input.value='';mexpRenderNames();input.focus();
+}
+function mexpBreakdown(mon){
+  var groups=new Map();monthExpenseRows(mon).forEach(function(r){var n=Number(r.amt);if(n>0)groups.set(r.name||'未填名目',(groups.get(r.name||'未填名目')||0)+n);});
+  var rows=Array.from(groups).sort(function(a,b){return b[1]-a[1];});if(!rows.length)return '';
+  var max=rows[0][1];
+  if(rows.length>4)rows=rows.slice(0,3).concat([['其他',rows.slice(3).reduce(function(s,r){return s+r[1];},0)]]);
+  max=Math.max.apply(null,rows.map(function(r){return r[1];}));
+  return '<div class="mexp-breakdown" aria-label="當月消費名目分布">'+rows.map(function(r){return '<div class="mexp-bar-row"><span class="mexp-bar-name" title="'+esc(r[0])+'">'+esc(r[0])+'</span><span class="mexp-bar-track" aria-hidden="true"><span style="width:'+r[1]/max*100+'%"></span></span><span class="mexp-bar-value">'+Math.round(r[1]).toLocaleString()+'</span></div>';}).join('')+'</div>';
+}
 function editMonthExpense(mon){
   if(!mon) return;
-  var cur=(typeof MEXP[mon]==='number')?MEXP[mon]:'';
+  var rows=monthExpenseRows(mon);
   var fx=fixedForMonth(mon);
   var fxHtml;
   if(fx.items.length){
@@ -7308,20 +7375,26 @@ function editMonthExpense(mon){
       '<span class="text-xs text-slate-500">這個月沒有固定支出。房租、保險、訂閱可以設定一次、每月自動帶入。</span>'+
       '<button type="button" class="text-[11px] text-slate-500 hover:text-blue-400 shrink-0" onclick="gotoFixedExpCfg()">設定 →</button></div>';
   }
-  var body='<div>'+fxHtml+
+  var body='<div class="mexp-editor">'+fxHtml+
     '<label class="text-xs text-slate-400 block mb-1">當月消費</label>'+
-    '<p class="text-[10px] text-slate-600 mb-2">固定支出以外的開銷總額（TWD），清空即清除</p>'+
-    '<div class="flex items-center gap-2"><span class="text-slate-400 text-sm">NT$</span>'+
-    '<input id="mexp-input" type="number" inputmode="numeric" class="inp flex-1" value="'+cur+'" placeholder="例如 20000"></div>'+
-    '</div>';
+    '<datalist id="mexp-names"></datalist><div id="mexp-rows"></div>'+
+    '<button type="button" class="btn btn-sm mb-3" onclick="mexpAddRow()">+ 新增消費</button>'+
+    '<div id="mexp-summary" class="border-t border-slate-800 pt-3" aria-live="polite"></div></div>';
   openModal('✏️ 當月總支出（'+mon+'）', body, function(){
-    var v=document.getElementById('mexp-input').value;
-    var n=parseFloat(v);
-    if(!v||isNaN(n)||n<=0){ delete MEXP[mon]; }
-    else { MEXP[mon]=Math.round(n); }
+    var entries=mexpReadRows().filter(function(r){return r.name||r.amt!=='';});
+    if(entries.some(function(r){return r.amt===''||!Number.isFinite(Number(r.amt))||Number(r.amt)<0;})){
+      alert('請為每筆消費填寫有效的非負金額。');return false;
+    }
+    entries=entries.map(function(r){return {name:r.name,amt:Math.round(Number(r.amt))};});
+    if(!MEXP._details)MEXP._details={};
+    if(entries.length){MEXP._details[mon]=entries;MEXP[mon]=entries.reduce(function(s,r){return s+r.amt;},0);}
+    else{delete MEXP[mon];delete MEXP._details[mon];}
     save(); renderDash();
   }, '儲存');
-  setTimeout(function(){var el=document.getElementById('mexp-input');if(el){el.focus();el.select();}},50);
+  mexpRenderNames();
+  rows.forEach(function(r){mexpAddRow(r,true);});
+  if(!rows.length)mexpAddRow();
+  document.querySelector('.mexp-editor > button').focus();
 }
 
 /* ===== 💸 固定支出（FEXP）=====
@@ -8147,7 +8220,7 @@ function renderDash(){
       netCard=sc('當月淨結餘','<span class="text-slate-500">-</span>');
     } else {
       expVal=fxM+(varM||0);
-      expCard='<div onclick="editMonthExpense(\''+mon+'\')" class="cursor-pointer group"><p class="text-xs text-slate-500 mb-1">當月總支出 ✏️</p><div class="text-lg font-semibold text-white group-hover:text-blue-400 leading-tight">NT$ '+Math.round(expVal).toLocaleString()+'</div>'+expSub(fxM,varM)+'</div>';
+      expCard='<div onclick="editMonthExpense(\''+mon+'\')" class="cursor-pointer group"><p class="text-xs text-slate-500 mb-1">當月總支出 ✏️</p><div class="text-lg font-semibold text-white group-hover:text-blue-400 leading-tight">NT$ '+Math.round(expVal).toLocaleString()+'</div>'+expSub(fxM,varM)+mexpBreakdown(mon)+'</div>';
       var netM=recvTWD-expVal;
       var netTag=varM===null?' <span class="text-xs text-slate-500 font-normal">(僅含固定支出)</span>':' <span class="text-xs text-slate-500 font-normal">(外幣已換算)</span>';
       netCard=sc('當月淨結餘'+netTag,'<span class="'+(netM>=0?'text-emerald-400':'text-red-400')+'">NT$ '+Math.round(netM).toLocaleString()+'</span>');
@@ -12728,6 +12801,7 @@ fxTick();
    ============================================================ */
 var CFG_PANES = ['general','finance','time','analysis','appearance','maint'];
 function setCfgPane(name){
+  if(name==='finance')mexpRenderNames();
   if(CFG_PANES.indexOf(name) === -1) name = 'general';
   document.querySelectorAll('#v-cfg .cfg-pane').forEach(function(el){ el.classList.toggle('active', el.getAttribute('data-pane') === name); });
   document.querySelectorAll('#v-cfg .cfg-nav-btn').forEach(function(el){
