@@ -1,0 +1,16 @@
+#fx-break-overlay{box-sizing:border-box;position:fixed;inset:0;width:100%;height:100%;height:100dvh;max-width:none;max-height:none;margin:0;padding:24px;border:0;background:var(--ed-bg);color:var(--ed-text);overflow:auto;color-scheme:dark}
+html[data-editorial-theme="light"] #fx-break-overlay{color-scheme:light}
+#fx-break-overlay::backdrop{background:var(--ed-bg)}
+#fx-break-overlay[open]{display:grid;place-items:center}
+.fx-break-content{width:min(100%,600px);text-align:center;margin:auto}
+#fx-break-kind{font-size:14px;color:var(--ed-muted);margin:0 0 16px}
+#fx-break-heading{font-size:28px;font-weight:500;margin:0}
+#fx-break-clock{font-size:clamp(56px,13vw,96px);font-variant-numeric:tabular-nums;line-height:1.2;margin:28px 0}
+#fx-break-hint{font-size:16px;line-height:1.8;margin:0 0 16px}
+#fx-break-note,#fx-break-status{font-size:13px;line-height:1.8;color:var(--ed-muted)}
+.fx-break-actions{display:flex;justify-content:center;flex-wrap:wrap;gap:12px;margin:32px 0 16px}
+.fx-break-actions button{font:inherit;font-size:14px;min-height:44px;padding:10px 18px;border:1px solid var(--ed-rule);border-radius:4px;background:var(--ed-surface);color:var(--ed-text);cursor:pointer}
+.fx-break-actions button:hover{background:var(--ed-hover)}
+.fx-break-actions button:focus-visible{outline:2px solid var(--ed-accent);outline-offset:4px}
+#fx-break-display{max-width:100%;min-height:38px}
+@media(max-width:480px){#fx-break-overlay{padding:24px 16px}.fx-break-actions{gap:10px}.fx-break-actions button{flex:1 1 140px}}
