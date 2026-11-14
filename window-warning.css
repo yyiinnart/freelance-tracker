@@ -1,0 +1,10 @@
+#ft-window-warning{position:sticky;top:0;z-index:40;padding:12px 24px;border-bottom:1px solid var(--ed-rule);background:var(--ed-surface);color:var(--ed-warn);font-size:14px;line-height:1.6;overflow-wrap:anywhere}
+#ft-window-warning[hidden]{display:none}
+#ft-window-warning-dialog{box-sizing:border-box;width:calc(100% - 32px);max-width:480px;max-height:calc(100dvh - 32px);margin:auto;padding:24px;border:1px solid var(--ed-rule);border-radius:6px;background:var(--ed-bg);color:var(--ed-text);overflow:auto}
+#ft-window-warning-dialog::backdrop{background:rgba(0,0,0,.5)}
+#ft-window-warning-dialog h2{margin:0 0 16px;font-size:20px;font-weight:600;line-height:1.5}
+#ft-window-warning-dialog p{margin:0 0 16px;font-size:14px;line-height:1.8;color:var(--ed-muted)}
+#ft-window-warning-dialog button{min-height:44px;padding:8px 20px;border:1px solid var(--ed-rule);border-radius:4px;background:var(--ed-surface);color:var(--ed-text);font:inherit;cursor:pointer}
+#ft-window-warning-dialog button:hover{background:var(--ed-hover)}
+#ft-window-warning-dialog button:focus-visible{outline:2px solid var(--ed-accent);outline-offset:3px}
+@media(max-width:480px){#ft-window-warning{padding:10px 16px}#ft-window-warning-dialog{padding:20px}}
