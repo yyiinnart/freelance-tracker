@@ -4049,6 +4049,9 @@ function updateProjField(id, field, value) {
     p[field] = parseFloat(value) || 0;
   } else if (field === 'st') {
     setProjectStatus(p,value);
+    // 詳情面板開著時，即時顯示／隱藏結案日欄位並同步日期
+    var _dw=document.querySelector('#detail-panel .detail-done-date');
+    if(_dw && CUR_DETAIL===id){ _dw.classList.toggle('hidden', p.st!=='done'); var _di=_dw.querySelector('input'); if(_di) _di.value=p.completedAt||''; }
   } else if (field === 'nonBillable') {
     p[field] = value;
   } else {
@@ -5309,8 +5312,10 @@ function openDetail(id){
         </div>
 
         <div>
-          <label class="text-[10px] text-slate-500 mb-1 block">結案日</label>
-          <input type="date" class="inp mb-2" value="${esc(p.completedAt||'')}" onchange="updateProjField(${id}, 'completedAt', this.value)">
+          <div class="detail-done-date ${p.st==='done'?'':'hidden'}">
+            <label class="text-[10px] text-slate-500 mb-1 block">結案日</label>
+            <input type="date" class="inp mb-2" value="${esc(p.completedAt||'')}" onchange="updateProjField(${id}, 'completedAt', this.value)">
+          </div>
           <label class="text-[10px] text-slate-500 mb-1 block">累計工時</label>
           <div class="detail-total-hours text-base font-bold text-blue-300 leading-none">${formatHrs(p.hrs||0)}</div>
         </div>
@@ -6577,7 +6582,7 @@ function toggleDoneProj(){
    全部期間等於各月合計；零工時案件尚未產生工作產值。
    確認金額不是實收；新增返修會重算歷史月份，但不改合約與金流。 */
 function valueBasis(p, totalHours){
-  var h=Math.max(0,+totalHours||0), completed=p.st==='done'||!!p.completedAt||!!p.hasCompleted;
+  var h=Math.max(0,+totalHours||0), completed=p.st==='done'||!!p.hasCompleted; // 結案日(completedAt)只是紀錄，不決定是否已結案
   var confirmed=Math.max(0,+p.earned||0);
   var total=completed&&confirmed>0?confirmed:Math.max(confirmed,+p.budget||0);
   var base=completed?h:Math.max(h,+p.estHrs||0);
@@ -6638,7 +6643,7 @@ function valueBreakdown(vr){
 }
 function setProjectStatus(p, status){
   if(p.st!==status){
-    if(status==='done'&&!p.completedAt&&!p.hasCompleted) p.completedAt=toLocalDate();
+    if(status==='done'&&!p.hasCompleted&&(!p.completedAt||p.completedAt>toLocalDate())) p.completedAt=toLocalDate();
     if(p.st==='done'||status==='done') p.hasCompleted=true;
     (p.statusHistory||(p.statusHistory=[])).push({from:p.st,to:status,date:toLocalDate()});
     p.st=status;
@@ -11834,11 +11839,17 @@ function renderSched(){
       cards.push({l:'下月（'+mLab(ymNext)+'）預估', v:fmtNT(rNx)+dMoney(rNx-rNx0),
         sub:'排定 '+formatHrs((S.byMonth[ymNext]||{}).hrs||0)});
       // 3) 加權平均時薪 vs 目標
-      var avgRate = S.totHrs > 0 ? S.totRev / S.totHrs : 0;
+      // 時薪口徑：分母排除「不計入酬勞統計」(nonBillable) 的工時，分子不變；
+      // 產能利用率、總排定時數、空檔、警示仍用實際占用工時（S.totHrs / usedWin）。
+      var rateHrs = S.totHrs - S.nbHrs;
+      var avgRate = rateHrs > 0.01 ? S.totRev / rateHrs : 0;
       var tgt = getGlobalRate();
-      var below = S.totHrs > 0 && avgRate < tgt;
-      cards.push({l:'排程平均時薪', v:'<span class="'+(below?'text-amber-400':'')+'">'+(S.totHrs>0?('NT$ '+Math.round(avgRate).toLocaleString()+'<span class="text-[11px] text-slate-500 font-normal"> /h</span>'):'—')+'</span>',
-        sub:'目標 NT$ '+tgt.toLocaleString()+(below?' · <span class="text-amber-400/80">低於目標</span>':'')});
+      var below = rateHrs > 0.01 && avgRate < tgt;
+      cards.push({l:'排程平均時薪', v:'<span class="'+(below?'text-amber-400':'')+'">'+(rateHrs>0.01?('NT$ '+Math.round(avgRate).toLocaleString()+'<span class="text-[11px] text-slate-500 font-normal"> /h</span>'):'—')+'</span>',
+        sub:'目標 NT$ '+tgt.toLocaleString()+(below?' · <span class="text-amber-400/80">低於目標</span>':'')
+          +((S.nbHrs > 0.01 && S.totHrs > 0)
+            ? '<span class="block cursor-help" title="已勾選「不計入酬勞統計」的任務工時不列入時薪分母；產能利用率與排程仍計入">另有不計酬 '+formatHrs(S.nbHrs)+'，占排程 '+Math.round(S.nbHrs/S.totHrs*100)+'%</span>'
+            : '')});
       // 4) 排到哪天 + 總剩餘工時
       var lastTxt = S.lastDay ? (parseInt(S.lastDay.slice(5,7),10)+'/'+parseInt(S.lastDay.slice(8,10),10)) : '—';
       cards.push({l:'排到', v:lastTxt+(S.lastDay?'<span class="text-[11px] text-slate-500 font-normal">（'+S.lastDay.slice(0,4)+'）</span>':''),
@@ -11892,9 +11903,6 @@ function renderSched(){
         html2 += '<div class="text-[11px] text-slate-500 px-1 mt-1.5">⚠ '+S.unpriced.length+' 件未計價（收入統計被低估）：'
           + S.unpriced.map(function(p){ return '<span class="cursor-pointer underline decoration-dotted hover:text-slate-300" onclick="openDetail('+p.id+')">'+esc(p.name)+'</span>'; }).join('、')
           + '<span class="text-slate-600">　→ 至詳情補合約總額／時薪即可納入</span></div>';
-      }
-      if(S.nbHrs > 0.01 && S.totHrs > 0){
-        html2 += '<div class="text-[11px] text-slate-600 px-1 mt-1 cursor-help" title="無償任務產值以 0 計，會拉低平均時薪">含無償工時 '+formatHrs(S.nbHrs)+'（'+Math.round(S.nbHrs/S.totHrs*100)+'%）</div>';
       }
       stEl.innerHTML = html2;
     }
