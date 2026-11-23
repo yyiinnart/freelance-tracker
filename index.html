@@ -1525,6 +1525,16 @@ html[data-mod-off~="batch"] [data-mod="batch"]{display:none !important;}
             </div>
             <div class="cfg-row">
               <div class="cfg-row-label">
+                <div class="cfg-row-name">超時收尾暫排</div>
+                <div class="cfg-row-desc">進行中任務已投入工時超過預估、還沒勾完成時，在排程暫排這麼多小時（0 為不暫排）</div>
+              </div>
+              <div class="cfg-row-ctl">
+                <input type="number" id="cfg-ot-tail" class="inp cfg-num" value="2" min="0" max="24" step="0.5" onchange="saveOtTail(this.value)" aria-label="超時收尾暫排時數">
+                <span class="cfg-unit">小時</span>
+              </div>
+            </div>
+            <div class="cfg-row">
+              <div class="cfg-row-label">
                 <div class="cfg-row-name">截止日緊急門檻</div>
                 <div class="cfg-row-desc">剩餘天數在此之內，任務卡片與日曆會亮起警示</div>
               </div>
@@ -9448,7 +9458,8 @@ aixCollect.sched = function(){
   if(R.msAuto.length) b4 += '- 階段未填工時、依時間比例自動分配：' + R.msAuto.map(function(x){ return x.p.name + '（' + x.items.map(function(it){ return it.label + ' ≈' + formatHrs(it.est); }).join('、') + '）'; }).join('、') + '\n';
   if(R.msNoRoom.length) b4 += '- ⚠ 階段未填工時且總預估已分配完，截止日未納入排程：' + R.msNoRoom.map(function(x){ return x.p.name + '（' + x.labels.join('、') + '）'; }).join('、') + '\n';
   b4 += '- 未填預估工時且無法暫估（實際負荷可能被低估）：' + (R.noEst.length ? R.noEst.map(function(p){ return p.name + (p.edate ? '（截止 ' + p.edate + '）' : ''); }).join('、') : '無') + '\n'
-    + '- 已投入工時 ≥ 預估，剩餘視為 0：' + (R.spent.length ? R.spent.map(function(p){ return p.name; }).join('、') : '無') + '\n';
+    + (R.overtime && R.overtime.length ? '- 已投入工時超過預估、還有未完成階段，暫排收尾工時：' + R.overtime.map(function(x){ return x.p.name + ' ' + formatHrs(x.tail); }).join('、') + '\n' : '')
+    + '- 已投入工時 ≥ 預估且階段全完成，剩餘視為 0：' + (R.spent.length ? R.spent.map(function(p){ return p.name; }).join('、') : '無') + '\n';
   if(R.overSum.length) b4 += '- 階段預估加總超過任務總預估（已改用階段加總排程）：' + R.overSum.map(function(p){ return p.name; }).join('、') + '\n';
   b4 += '- 外包／轉包進行中：' + (outs.length ? outs.map(function(p){ return p.name + '（' + aixMode(p) + (p.edate ? '，截止 ' + p.edate : '') + '）'; }).join('、') : '無') + '\n'
     + '- 暫停／待命：' + (paused.length ? paused.map(function(p){ return p.name; }).join('、') : '無');
@@ -10517,6 +10528,21 @@ function saveOffHour(val){
   localStorage.setItem('ft_off_hour', n);
   renderCal();
 }
+// 超時收尾暫排時數：進行中任務已投入 ≥ 預估、卻還沒完成時，暫排的收尾工時（0 = 不暫排）。預設 2。
+function getOtTail(){
+  var v = localStorage.getItem('ft_ot_tail');
+  if(v === null) return 2;
+  var n = parseFloat(v);
+  return isNaN(n) ? 2 : n;
+}
+function saveOtTail(val){
+  var n = parseFloat(val);
+  if(isNaN(n) || n < 0) n = 0;
+  if(n > 24) n = 24;
+  n = Math.round(n*2)/2;
+  localStorage.setItem('ft_ot_tail', n);
+  renderCal();
+}
 // 試算列表「需關注」門檻：餘裕 ≤ N 工作天（含來不及）預設展開，其餘摺疊。預設 2。
 function getAttnThresh(){
   var v = localStorage.getItem('ft_attn_thresh');
@@ -10661,6 +10687,7 @@ function computeSchedule(extra, capOverride){
   var noEst = [];      // 未填預估工時的任務（提示用）
   var overSum = [];    // 階段工時加總超過總預估的任務
   var spent = [];      // 已投入工時 ≥ 預估，剩餘 0（提示更新預估或結案）
+  var overtime = [];   // 超時但還有未完成階段：暫排一小段收尾 [{p, tail, label}]
   var reserveList = [];  // 常態任務（每週保留，不產生排程單位）
   var rsvMissing = [];   // 常態任務但尚未填每週保留（不佔容量，提示用）
   var provisional = [];  // 未填預估、以歷史中位數暫估排入 [{p, est, src, n}]
@@ -10767,7 +10794,27 @@ function computeSchedule(extra, capOverride){
         firstDay: null, lastDay: null
       });
     });
-    if(units.length === unitsBefore) spent.push(p); // 所有階段剩餘皆為 0：已投入 ≥ 預估或階段全勾完成
+    if(units.length === unitsBefore){
+      // 所有階段剩餘皆為 0：已投入 ≥ 預估，或階段全勾完成。
+      // 若還有未勾完成的階段，代表「超時但沒做完」：暫排一小段收尾，避免任務從日曆消失。
+      var otTail = getOtTail(), openIdx = -1;
+      for(var oi = 0; oi < phases.length; oi++){ if(!phases[oi].done){ openIdx = oi; break; } }
+      if(otTail > 0 && openIdx >= 0){
+        var oph = phases[openIdx];
+        var otLabel = (oph.label ? oph.label + '・' : '') + '超時收尾';
+        units.push({
+          pid: p.id, pname: p.name, phaseLabel: otLabel, phaseIdx: openIdx,
+          deadline: oph.deadline, hard: !!oph.hard,
+          remaining: otTail, total: otTail,
+          prov: false, auto: false, ot: true,
+          startConstraint: (p.sdate && p.sdate > schedStartStr) ? p.sdate : schedStartStr,
+          firstDay: null, lastDay: null
+        });
+        overtime.push({p:p, tail:otTail, label:otLabel});
+      } else {
+        spent.push(p);
+      }
+    }
   });
 
   // ---- 接新案試算：注入虛擬單位（pid=-1，不寫入任何資料；多階段依序相依）----
@@ -10820,14 +10867,14 @@ function computeSchedule(extra, capOverride){
         if(!picked.firstDay) picked.firstDay = ds;
         picked.lastDay = ds;
         if(!allocByDate[ds]) allocByDate[ds] = [];
-        allocByDate[ds].push({pid:picked.pid, pname:picked.pname, phaseLabel:picked.phaseLabel, hrs:alloc, hard:picked.hard, deadline:picked.deadline, tent:!!(picked.prov||picked.auto)});
+        allocByDate[ds].push({pid:picked.pid, pname:picked.pname, phaseLabel:picked.phaseLabel, hrs:alloc, hard:picked.hard, deadline:picked.deadline, tent:!!(picked.prov||picked.auto||picked.ot)});
         left -= alloc;
       }
     }
     d.setDate(d.getDate()+1);
     dayCount++;
   }
-  return {units:units, allocByDate:allocByDate, noEst:noEst, overSum:overSum, spent:spent,
+  return {units:units, allocByDate:allocByDate, noEst:noEst, overSum:overSum, spent:spent, overtime:overtime,
           reserveList:reserveList, rsvMissing:rsvMissing, provisional:provisional, msAuto:msAuto, msNoRoom:msNoRoom};
 }
 
@@ -11602,8 +11649,8 @@ function renderSched(){
         otBtn = ' <button type="button" class="text-[10px] text-amber-400/80 hover:text-amber-300 underline decoration-dotted ml-1" onclick="event.stopPropagation();showOvertime('+g.pid+','+u.phaseIdx+')" title="試算這個階段要加多少班才趕得上">趕工試算</button>';
       }
       cells += '<td class="text-xs '+(multi?'text-slate-400':'text-slate-600')+'">'+esc(phaseName)+(u.hard?' <span class="text-rose-400 text-[10px]">●硬</span>':'')+'</td>'
-        +'<td class="font-mono text-xs">'+(u.prov||u.auto
-            ? '<span class="text-amber-400/80 cursor-help" title="'+(u.prov?'暫估：未填預估，以同類已結案任務的實際工時中位數排入':'暫分配：此階段沒填工時，從剩餘預估依時間比例分配')+'">≈'+formatHrs(u.total)+'</span>'
+        +'<td class="font-mono text-xs">'+(u.prov||u.auto||u.ot
+            ? '<span class="text-amber-400/80 cursor-help" title="'+(u.ot?'超時暫排：已投入工時超過預估、還沒完成，暫排一小段收尾；勾完成或上調預估後會改由實際剩餘計算':(u.prov?'暫估：未填預估，以同類已結案任務的實際工時中位數排入':'暫分配：此階段沒填工時，從剩餘預估依時間比例分配'))+'">≈'+formatHrs(u.total)+'</span>'
             : formatHrs(u.total))+'</td>'
         +'<td class="font-mono text-xs">'+(u.deadline||'<span class="text-slate-600">—</span>')+'</td>'
         +'<td class="font-mono text-xs">'+(u.firstDay||'—')+'</td>'
@@ -11662,6 +11709,11 @@ function renderSched(){
     html += '<div id="sched-ot-result" class="mb-2"></div>';
     } else {
     html += '<div class="text-center py-10 text-sm text-slate-500 bg-slate-900/40 border border-slate-800 rounded-xl mb-3">目前沒有可排程的任務<br><span class="text-xs text-slate-600">在任務詳情填寫「預估工時」即可加入試算</span></div>';
+  }
+  if(R.overtime && R.overtime.length){
+    html += '<div class="text-[11px] text-amber-400/80 px-1 mb-1"><span class="cursor-help" title="已投入工時超過預估、還有階段沒勾完成：每件暫排一小段收尾（設定可調），虛線標示">⏱ 超時暫排：</span>'+R.overtime.map(function(x){
+      return '<span class="cursor-pointer underline decoration-dotted hover:text-amber-300" onclick="openDetail('+x.p.id+')" title="已投入 '+formatHrs(x.p.hrs||0)+' / 預估 '+formatHrs(SCHED_EFF_EST[x.p.id]||x.p.estHrs||0)+'，暫排 '+formatHrs(x.tail)+'">'+esc(x.p.name)+'</span>';
+    }).join('、')+'<span class="text-slate-600">　→ 做完請勾完成；還沒做完可上調預估工時</span></div>';
   }
   if(R.spent && R.spent.length){
     html += '<div class="text-[11px] text-slate-500 px-1 mb-1"><span class="cursor-help" title="已投入 ≥ 預估，或階段全數完成，不再排程">剩餘 0h：</span>'+R.spent.map(function(p){
@@ -11990,6 +12042,7 @@ function init(){
   document.getElementById('global-rate').value=getGlobalRate();
   var wtEl = document.getElementById('weekly-target'); if(wtEl) wtEl.value = getWeeklyTarget();
   var ohEl = document.getElementById('cfg-off-hour'); if(ohEl) ohEl.value = getOffHour();
+  var otEl = document.getElementById('cfg-ot-tail'); if(otEl) otEl.value = getOtTail();
   applyWorkMode();
   applyHintVisibility();
   applyUnifyCurUI();
